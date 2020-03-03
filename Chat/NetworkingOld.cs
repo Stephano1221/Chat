@@ -1,4 +1,4 @@
-﻿using System;
+﻿/*using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -13,7 +13,7 @@ using System.Windows.Forms;
 
 namespace Chat
 {
-    public partial class ChatScreen : Form
+    public partial class frmChatScreen : Form
     {
         private int port = 12210;
         private bool connected;
@@ -28,7 +28,7 @@ namespace Chat
         private static ManualResetEvent sendDone = new ManualResetEvent(false);
         private static ManualResetEvent receiveDone = new ManualResetEvent(false);
 
-        public ChatScreen()
+        public frmChatScreen()
         {
             InitializeComponent();
             CheckHost();
@@ -36,13 +36,13 @@ namespace Chat
 
         private void CheckHost()
         {
-            if (HolderForm.hosting == true)
+            if (frmHolderForm.hosting == true)
             {
                 ts = new ThreadStart(StartListening);
                 thread = new Thread(ts);
                 thread.Start();
                 Thread.Sleep(100);
-                xlstbxChat.Items.Add($"Server started on: {IP}");
+                xlbxChat.Items.Add($"Server started on: {IP}");
             }
             else
             {
@@ -99,7 +99,7 @@ namespace Chat
                 Receive(client);
                 receiveDone.WaitOne();
 
-                xlstbxChat.Items.Add($"Response received: {response}");
+                xlbxChat.Items.Add($"Response received: {response}");
 
                 client.Shutdown(SocketShutdown.Both);
                 client.Close();
@@ -119,7 +119,7 @@ namespace Chat
 
                 client.EndConnect(ar);
 
-                xlstbxChat.Items.Add($"Socket connected to {client.RemoteEndPoint.ToString()}");
+                xlbxChat.Items.Add($"Socket connected to {client.RemoteEndPoint.ToString()}");
                 connectDone.Set();
             }
             catch (Exception e)
@@ -240,26 +240,26 @@ namespace Chat
             if (e.KeyCode == Keys.Enter)
             {
                 //SendMessage();
-                xtxtbxSendMessage.Clear();
+                xtbxSendMessage.Clear();
                 e.SuppressKeyPress = true;
             }
         }
 
         private void xtxtbxSendMessage_Enter(object sender, EventArgs e)
         {
-            if (xtxtbxSendMessage.ForeColor == Color.Gray)
+            if (xtbxSendMessage.ForeColor == Color.Gray)
             {
-                xtxtbxSendMessage.ForeColor = Color.Black;
-                xtxtbxSendMessage.Clear();
+                xtbxSendMessage.ForeColor = Color.Black;
+                xtbxSendMessage.Clear();
             }
         }
 
         private void xtxtbxSendMessage_Leave(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(xtxtbxSendMessage.Text))
+            if (string.IsNullOrWhiteSpace(xtbxSendMessage.Text))
             {
-                xtxtbxSendMessage.ForeColor = Color.Gray;
-                xtxtbxSendMessage.Text = "Enter a message...";
+                xtbxSendMessage.ForeColor = Color.Gray;
+                xtbxSendMessage.Text = "Enter a message...";
             }
         }
 
@@ -272,4 +272,4 @@ namespace Chat
         public byte[] buffer = new byte[BufferSize];
         public StringBuilder sb = new StringBuilder();
     }
-}
+}*/

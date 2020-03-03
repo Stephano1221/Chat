@@ -1,6 +1,6 @@
 ﻿namespace Chat
 {
-    partial class HolderForm
+    partial class frmHolderForm
     {
         /// <summary>
         /// Required designer variable.
@@ -30,14 +30,13 @@
         {
             this.SuspendLayout();
             // 
-            // HolderForm
+            // frmHolderForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(884, 561);
-            this.IsMdiContainer = true;
             this.MinimumSize = new System.Drawing.Size(900, 600);
-            this.Name = "HolderForm";
+            this.Name = "frmHolderForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Chat";
             this.ResumeLayout(false);

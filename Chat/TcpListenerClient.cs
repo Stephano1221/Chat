@@ -13,7 +13,7 @@ using System.Windows.Forms;
 
 namespace Chat
 {
-    public partial class ChatScreen : Form
+    public partial class frmChatScreen : Form
     {
         private int port = 12210;
         private bool connected;
@@ -23,7 +23,7 @@ namespace Chat
         Server server;
         Client client;
 
-        public ChatScreen()
+        public frmChatScreen()
         {
             InitializeComponent();
             CheckHost();
@@ -31,7 +31,7 @@ namespace Chat
 
         private void CheckHost()
         {
-            if (HolderForm.hosting == true)
+            if (frmHolderForm.hosting == true)
             {
                 ts = new ThreadStart(StartServer);
                 thread = new Thread(ts);
@@ -49,7 +49,7 @@ namespace Chat
         {
             hosting = true;
             server = new Server();
-            server.username = HolderForm.username;
+            server.username = frmHolderForm.username;
             server.StartServer(port);
         }
 
@@ -57,17 +57,17 @@ namespace Chat
         {
             hosting = false;
             client = new Client();
-            client.username = HolderForm.username;
+            client.username = frmHolderForm.username;
             client.StartClient(port);
         }
 
         private void SendMessage()
         {
-            if (!(string.IsNullOrWhiteSpace(xtxtbxSendMessage.Text) && xtxtbxSendMessage.ForeColor == Color.Gray))
+            if (!(string.IsNullOrWhiteSpace(xtbxSendMessage.Text) && xtbxSendMessage.ForeColor == Color.Gray))
             {
                 if (hosting == false)
                 {
-                    client.Send(xtxtbxSendMessage.Text);
+                    client.Send(xtbxSendMessage.Text);
                 }
             }
         }
@@ -77,26 +77,26 @@ namespace Chat
             if (e.KeyCode == Keys.Enter)
             {
                 SendMessage();
-                xtxtbxSendMessage.Clear();
+                xtbxSendMessage.Clear();
                 e.SuppressKeyPress = true;
             }
         }
 
         private void xtxtbxSendMessage_Enter(object sender, EventArgs e)
         {
-            if (xtxtbxSendMessage.ForeColor == Color.Gray)
+            if (xtbxSendMessage.ForeColor == Color.Gray)
             {
-                xtxtbxSendMessage.ForeColor = Color.Black;
-                xtxtbxSendMessage.Clear();
+                xtbxSendMessage.ForeColor = Color.Black;
+                xtbxSendMessage.Clear();
             }
         }
 
         private void xtxtbxSendMessage_Leave(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(xtxtbxSendMessage.Text))
+            if (string.IsNullOrWhiteSpace(xtbxSendMessage.Text))
             {
-                xtxtbxSendMessage.ForeColor = Color.Gray;
-                xtxtbxSendMessage.Text = "Enter a message...";
+                xtbxSendMessage.ForeColor = Color.Gray;
+                xtbxSendMessage.Text = "Enter a message...";
             }
         }
     }

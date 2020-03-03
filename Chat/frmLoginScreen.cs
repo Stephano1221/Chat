@@ -10,9 +10,9 @@ using System.Windows.Forms;
 
 namespace Chat
 {
-    public partial class LoginScreen : Form
+    public partial class frmLoginScreen : Form
     {
-        public LoginScreen()
+        public frmLoginScreen()
         {
             InitializeComponent();
             DisableTextboxContextMenu();
@@ -24,13 +24,13 @@ namespace Chat
             xtxtbxUsername.ContextMenu = new ContextMenu();
         }
 
-        private void XbtnHost_Click(object sender, EventArgs e)
+        private void xbtnHost_Click(object sender, EventArgs e)
         {
             if (CheckUsername() == true)
             {
-                HolderForm.username = xtxtbxUsername.Text;
-                HolderForm.hosting = true;
-                ChatScreen chatScreen = new ChatScreen()
+                frmHolderForm.username = xtxtbxUsername.Text;
+                frmHolderForm.hosting = true;
+                frmChatScreen chatScreen = new frmChatScreen
                 {
                     MdiParent = this.ParentForm,
                     Dock = DockStyle.Fill
@@ -40,17 +40,17 @@ namespace Chat
             }
         }
 
-        private void XbtnJoin_Click(object sender, EventArgs e)
+        private void xbtnJoin_Click(object sender, EventArgs e)
         {
             if (CheckUsername() == true)
             {
-                HolderForm.username = xtxtbxUsername.Text;
-                HolderForm.hosting = false;
-                EnterJoinIP enterJoinIP = new EnterJoinIP();
+                frmHolderForm.username = xtxtbxUsername.Text;
+                frmHolderForm.hosting = false;
+                frmEnterJoinIP enterJoinIP = new frmEnterJoinIP();
                 DialogResult dialogResult = enterJoinIP.ShowDialog();
                 if (dialogResult == DialogResult.OK)
                 {
-                    ChatScreen chatScreen = new ChatScreen()
+                    frmChatScreen chatScreen = new frmChatScreen
                     {
                         MdiParent = this.ParentForm,
                         Dock = DockStyle.Fill
