@@ -20,10 +20,9 @@ namespace Chat
         private ThreadStart ts;
         private Thread thread;
         private bool hosting;
-        private string response;
         private string publicIp;
         private string localIp;
-        private List<string> connectedClients = new List<string>();
+        private List<Client> connectedClients = new List<Client>();
 
         public frmChatScreen()
         {
@@ -36,18 +35,15 @@ namespace Chat
             publicIp = new WebClient().DownloadString("https://ipv4.icanhazip.com/");
             publicIp = publicIp.TrimEnd();
             localIp = GetLocalIp();
-            if (frmHolderForm.hosting == true)
+            if (frmHolderForm.hosting)
             {
-                ts = new ThreadStart(StartServer);
-                thread = new Thread(ts);
+                Thread thread = new Thread(new ThreadStart(StartServer));
                 thread.Start();
-                Thread.Sleep(100);
                 xlbxChat.Items.Add($"Server started on: {publicIp}");
             }
             else
             {
-                ts = new ThreadStart(StartClient);
-                thread = new Thread(ts);
+                Thread thread = new Thread(new ThreadStart(StartClient));
                 thread.Start();
             }
         }
@@ -58,7 +54,7 @@ namespace Chat
             using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0))
             {
                 socket.Connect("8.8.8.8", 65530);
-                IPEndPoint endPoint = socket.LocalEndPoint as IPEndPoint;
+                IPEndPoint endPoint = (IPEndPoint)socket.LocalEndPoint;
                 ip = endPoint.Address.ToString();
             }
             return ip;
@@ -71,9 +67,10 @@ namespace Chat
             tcpListener.Start();
             while (true)
             {
-                Recieve(tcpListener);
+                AcceptIncomingConnection(tcpListener);
+                RecieveLoopClients();
             }
-            tcpListener.Stop();
+            //tcpListener.Stop();
         }
 
         private void StartClient()
@@ -92,37 +89,62 @@ namespace Chat
             MessageBox.Show("Client: " + recievedData);
         }
 
-        private void Recieve(TcpListener tcpListener)
+        private void AcceptIncomingConnection(TcpListener tcpListener)
         {
-            using (Socket socket = tcpListener.AcceptSocket())
+            if (tcpListener.Pending())
             {
-                byte[] buffer = new byte[1024];
-                int size = socket.Receive(buffer);
-                string recievedData = null;
-                for (int i = 0; i < size; i++)
+                using (TcpClient tcpClient = tcpListener.AcceptTcpClient())
                 {
-                    recievedData += Convert.ToChar(buffer[i]);
+                    using (NetworkStream networkStream = tcpClient.GetStream())
+                    {
+                        byte[] buffer = new byte[1024];
+                        int size = networkStream.Read(buffer, 0, 4);
+                        string recievedData = Encoding.ASCII.GetString(buffer);
+                        //Send acknowledement
+                        Send(networkStream, "<RECIEVED><EOF>");
+                        MessageBox.Show("Server: " + recievedData);
+                        //Initialise new Client
+                    }
                 }
-                ASCIIEncoding aSCIIEncoding = new ASCIIEncoding();
-                socket.Send(aSCIIEncoding.GetBytes("<RECIEVED><EOF>"));
-                MessageBox.Show("Server: " + recievedData);
+            }
+        }
+
+        private void Recieve(TcpClient tcpClient)
+        {
+            using (NetworkStream networkStream = tcpClient.GetStream())
+            {
+                if (networkStream.CanRead && networkStream.CanWrite && networkStream.DataAvailable)
+                {
+                    byte[] buffer = new byte[1024];
+                    int size = networkStream.Read(buffer, 0, /*recieve length of next packet and only read by that amount*/);
+                    string recievedData = Encoding.ASCII.GetString(buffer);
+                    //Send acknowledement
+                    Send(networkStream, "<RECIEVED><EOF>");
+                    MessageBox.Show("Server: " + recievedData);
+                }
+            }
+        }
+
+        private void RecieveLoopClients()
+        {
+            for (int i = 0; i < connectedClients.Count(); i++)
+            {
+                Recieve(connectedClients[i].tcpClient);
             }
         }
 
         private void Send(NetworkStream networkStream, string message)
         {
-            ASCIIEncoding aSCIIEncoding = new ASCIIEncoding();
-            byte[] buffer = aSCIIEncoding.GetBytes(message);
+            byte[] buffer = Encoding.ASCII.GetBytes(message);
             networkStream.Write(buffer, 0, buffer.Length);
-            //byte[] bb = new byte[1024];
-            //int k = networkStream.Read(bb, 0, 1024);
+            //Read acknowledgement
         }
 
         private void xtxxtbxSendMessage_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
             {
-                //SendMessage();
+                Send(connectedClients[0].networkStream, xtbxSendMessage.Text);
                 xtbxSendMessage.Clear();
                 e.SuppressKeyPress = true;
             }
@@ -146,5 +168,13 @@ namespace Chat
             }
         }
 
+    }
+
+    public class Client
+    {
+        public int clientId;
+        public string username;
+        public TcpClient tcpClient;
+        public NetworkStream networkStream;
     }
 }
