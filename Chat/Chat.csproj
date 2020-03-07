@@ -46,46 +46,46 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="frmChatScreen.cs">
+    <Compile Include="FrmChatScreen.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmChatScreen.Designer.cs">
-      <DependentUpon>frmChatScreen.cs</DependentUpon>
+    <Compile Include="FrmChatScreen.Designer.cs">
+      <DependentUpon>FrmChatScreen.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmEnterJoinIP.cs">
+    <Compile Include="FrmEnterJoinIP.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmEnterJoinIP.Designer.cs">
-      <DependentUpon>frmEnterJoinIP.cs</DependentUpon>
+    <Compile Include="FrmEnterJoinIP.Designer.cs">
+      <DependentUpon>FrmEnterJoinIP.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmHolderForm.cs">
+    <Compile Include="FrmHolder.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmHolderForm.Designer.cs">
-      <DependentUpon>frmHolderForm.cs</DependentUpon>
+    <Compile Include="FrmHolder.Designer.cs">
+      <DependentUpon>FrmHolder.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmLoginScreen.cs">
+    <Compile Include="FrmLoginScreen.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmLoginScreen.Designer.cs">
-      <DependentUpon>frmLoginScreen.cs</DependentUpon>
+    <Compile Include="FrmLoginScreen.Designer.cs">
+      <DependentUpon>FrmLoginScreen.cs</DependentUpon>
     </Compile>
     <Compile Include="MicrosoftNetworking.cs" />
     <Compile Include="NetworkingOld.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TcpListenerClient.cs" />
-    <EmbeddedResource Include="frmChatScreen.resx">
-      <DependentUpon>frmChatScreen.cs</DependentUpon>
+    <EmbeddedResource Include="FrmChatScreen.resx">
+      <DependentUpon>FrmChatScreen.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmEnterJoinIP.resx">
-      <DependentUpon>frmEnterJoinIP.cs</DependentUpon>
+    <EmbeddedResource Include="FrmEnterJoinIP.resx">
+      <DependentUpon>FrmEnterJoinIP.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmHolderForm.resx">
-      <DependentUpon>frmHolderForm.cs</DependentUpon>
+    <EmbeddedResource Include="FrmHolder.resx">
+      <DependentUpon>FrmHolder.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmLoginScreen.resx">
-      <DependentUpon>frmLoginScreen.cs</DependentUpon>
+    <EmbeddedResource Include="FrmLoginScreen.resx">
+      <DependentUpon>FrmLoginScreen.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

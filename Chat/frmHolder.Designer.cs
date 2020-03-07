@@ -1,6 +1,6 @@
 ﻿namespace Chat
 {
-    partial class frmHolderForm
+    partial class FrmHolder
     {
         /// <summary>
         /// Required designer variable.

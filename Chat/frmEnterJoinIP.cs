@@ -10,9 +10,9 @@ using System.Windows.Forms;
 
 namespace Chat
 {
-    public partial class frmEnterJoinIP : Form
+    public partial class FrmEnterJoinIP : Form
     {
-        public frmEnterJoinIP()
+        public FrmEnterJoinIP()
         {
             InitializeComponent();
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -47,7 +47,7 @@ namespace Chat
             if (count == 3)
             {
                 this.DialogResult = DialogResult.OK;
-                frmHolderForm.joinIP = xtxtbxIP.Text;
+                FrmHolder.joinIP = xtxtbxIP.Text;
                 this.Close();
             }
             else

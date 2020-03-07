@@ -10,9 +10,9 @@ using System.Windows.Forms;
 
 namespace Chat
 {
-    public partial class frmLoginScreen : Form
+    public partial class FrmLoginScreen : Form
     {
-        public frmLoginScreen()
+        public FrmLoginScreen()
         {
             InitializeComponent();
             DisableTextboxContextMenu();
@@ -28,9 +28,9 @@ namespace Chat
         {
             if (CheckUsername() == true)
             {
-                frmHolderForm.username = xtxtbxUsername.Text;
-                frmHolderForm.hosting = true;
-                frmChatScreen chatScreen = new frmChatScreen
+                FrmHolder.username = xtxtbxUsername.Text;
+                FrmHolder.hosting = true;
+                FrmChatScreen chatScreen = new FrmChatScreen
                 {
                     MdiParent = this.ParentForm,
                     Dock = DockStyle.Fill
@@ -44,13 +44,13 @@ namespace Chat
         {
             if (CheckUsername() == true)
             {
-                frmHolderForm.username = xtxtbxUsername.Text;
-                frmHolderForm.hosting = false;
-                frmEnterJoinIP enterJoinIP = new frmEnterJoinIP();
+                FrmHolder.username = xtxtbxUsername.Text;
+                FrmHolder.hosting = false;
+                FrmEnterJoinIP enterJoinIP = new FrmEnterJoinIP();
                 DialogResult dialogResult = enterJoinIP.ShowDialog();
                 if (dialogResult == DialogResult.OK)
                 {
-                    frmChatScreen chatScreen = new frmChatScreen
+                    FrmChatScreen chatScreen = new FrmChatScreen
                     {
                         MdiParent = this.ParentForm,
                         Dock = DockStyle.Fill

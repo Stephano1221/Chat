@@ -16,7 +16,7 @@ namespace Chat
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new frmHolderForm());
+            Application.Run(new FrmHolder());
         }
     }
 }

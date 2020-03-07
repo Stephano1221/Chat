@@ -13,7 +13,7 @@ using System.Windows.Forms;
 
 namespace Chat
 {
-    public partial class frmChatScreen : Form
+    public partial class FrmChatScreen : Form
     {
         private int port = 12210;
         private bool connected;
@@ -24,7 +24,7 @@ namespace Chat
         private string localIp;
         private List<Client> connectedClients = new List<Client>();
 
-        public frmChatScreen()
+        public FrmChatScreen()
         {
             InitializeComponent();
             CheckHost();
@@ -32,96 +32,96 @@ namespace Chat
 
         private void CheckHost()
         {
-            publicIp = new WebClient().DownloadString("https://ipv4.icanhazip.com/");
-            publicIp = publicIp.TrimEnd();
             localIp = GetLocalIp();
-            if (frmHolderForm.hosting)
+            if (FrmHolder.hosting)
             {
+                publicIp = new WebClient().DownloadString("https://ipv4.icanhazip.com/");
+                publicIp = publicIp.TrimEnd();
                 Thread thread = new Thread(new ThreadStart(StartServer));
+                thread.IsBackground = true; //TODO: Abort thread if parentform closes, so that Client.Disconnect() can be properly called
                 thread.Start();
                 xlbxChat.Items.Add($"Server started on: {publicIp}");
             }
             else
             {
+                publicIp = FrmHolder.joinIP;
                 Thread thread = new Thread(new ThreadStart(StartClient));
+                thread.IsBackground = true;
                 thread.Start();
+                xlbxChat.Items.Add($"Connected to server on: {publicIp}");
             }
         }
 
         private string GetLocalIp()
         {
-            string ip;
+            string localIp;
             using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0))
             {
                 socket.Connect("8.8.8.8", 65530);
                 IPEndPoint endPoint = (IPEndPoint)socket.LocalEndPoint;
-                ip = endPoint.Address.ToString();
+                localIp = endPoint.Address.ToString();
             }
-            return ip;
+            return localIp;
         }
 
         private void StartServer()
         {
             IPAddress iPAddress = IPAddress.Parse(localIp);
             TcpListener tcpListener = new TcpListener(iPAddress, port);
-            tcpListener.Start();
-            while (true)
+            try
             {
-                AcceptIncomingConnection(tcpListener);
-                RecieveLoopClients();
+                tcpListener.Start();
+                while (true)
+                {
+                    ServerAcceptIncomingConnection(tcpListener);
+                    RecieveLoopClients();
+                }
             }
-            //tcpListener.Stop();
+            catch (ThreadAbortException)
+            {
+                foreach (Client client in connectedClients)
+                {
+                    Disconnect(client);
+                }
+                tcpListener.Stop();
+            }
         }
 
         private void StartClient()
         {
-            TcpClient tcpClient = new TcpClient();
-            tcpClient.Connect(publicIp, port);
-            NetworkStream networkStream = tcpClient.GetStream();
-            Send(networkStream, $"<connect.localIp={localIp}><EOF>");
-            byte[] buffer = new byte[1024];
-            int size = networkStream.Read(buffer, 0, buffer.Length);
-            string recievedData = null;
-            for (int i = 0; i < size; i++)
+            try
             {
-                recievedData += Convert.ToChar(buffer[i]);
+                Client client = new Client();
+                client.tcpClient = new TcpClient();
+                client.tcpClient.Connect(publicIp, port);
+                connectedClients.Add(client);
+                connectedClients[0].Send(0, $"{FrmHolder.username}");
+                while (true)
+                {
+                    RecieveLoopClients();
+                }
+                //MessageBox.Show("Client: " + recievedData);
             }
-            MessageBox.Show("Client: " + recievedData);
+            catch (ThreadAbortException)
+            {
+                foreach (Client client in connectedClients)
+                {
+                    Disconnect(client);
+                }
+            }
         }
 
-        private void AcceptIncomingConnection(TcpListener tcpListener)
+        private void ServerAcceptIncomingConnection(TcpListener tcpListener)
         {
             if (tcpListener.Pending())
             {
-                using (TcpClient tcpClient = tcpListener.AcceptTcpClient())
-                {
-                    using (NetworkStream networkStream = tcpClient.GetStream())
-                    {
-                        byte[] buffer = new byte[1024];
-                        int size = networkStream.Read(buffer, 0, 4);
-                        string recievedData = Encoding.ASCII.GetString(buffer);
-                        //Send acknowledement
-                        Send(networkStream, "<RECIEVED><EOF>");
-                        MessageBox.Show("Server: " + recievedData);
-                        //Initialise new Client
-                    }
-                }
-            }
-        }
-
-        private void Recieve(TcpClient tcpClient)
-        {
-            using (NetworkStream networkStream = tcpClient.GetStream())
-            {
-                if (networkStream.CanRead && networkStream.CanWrite && networkStream.DataAvailable)
-                {
-                    byte[] buffer = new byte[1024];
-                    int size = networkStream.Read(buffer, 0, /*recieve length of next packet and only read by that amount*/);
-                    string recievedData = Encoding.ASCII.GetString(buffer);
-                    //Send acknowledement
-                    Send(networkStream, "<RECIEVED><EOF>");
-                    MessageBox.Show("Server: " + recievedData);
-                }
+                TcpClient tcpClient = tcpListener.AcceptTcpClient();
+                Client client = new Client();
+                client.tcpClient = tcpClient;
+                connectedClients.Add(client);
+                connectedClients[0].Send(1, $"{connectedClients.Count - 1}");
+                //TODO: Send acknowledement
+                //MessageBox.Show("Server: " + recievedData);
             }
         }
 
@@ -129,22 +129,24 @@ namespace Chat
         {
             for (int i = 0; i < connectedClients.Count(); i++)
             {
-                Recieve(connectedClients[i].tcpClient);
+                connectedClients[i].Recieve();
             }
         }
 
-        private void Send(NetworkStream networkStream, string message)
+        private void Disconnect(Client client)
         {
-            byte[] buffer = Encoding.ASCII.GetBytes(message);
-            networkStream.Write(buffer, 0, buffer.Length);
-            //Read acknowledgement
+            client.Disconnect();
+            connectedClients.Remove(client);
         }
 
         private void xtxxtbxSendMessage_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
             {
-                Send(connectedClients[0].networkStream, xtbxSendMessage.Text);
+                if (connectedClients.Count > 0)
+                {
+                    connectedClients[0].Send(2, xtbxSendMessage.Text);
+                }
                 xtbxSendMessage.Clear();
                 e.SuppressKeyPress = true;
             }
@@ -175,6 +177,72 @@ namespace Chat
         public int clientId;
         public string username;
         public TcpClient tcpClient;
-        public NetworkStream networkStream;
+
+        public void Send(int messageType, string message)
+        {
+            if (messageType >= 0 && messageType <= 255)
+            {
+                NetworkStream networkStream = tcpClient.GetStream();
+                {
+                    if (networkStream.CanWrite && networkStream.CanRead)
+                    {
+                        //Mmessage type
+                        byte[] typeBuffer = new byte[1];
+                        typeBuffer = BitConverter.GetBytes(messageType);
+                        // Message content
+                        byte[] messageBuffer = Encoding.ASCII.GetBytes(message);
+                        // Message length
+                        byte[] lengthBuffer = new byte[4];
+                        lengthBuffer = BitConverter.GetBytes(messageBuffer.Length);
+                        if (BitConverter.IsLittleEndian)
+                        {
+                            /*Array.Reverse(typeBuffer);
+                            Array.Reverse(messageBuffer);
+                            Array.Reverse(lengthBuffer);*/
+                        }
+                        networkStream.Write(typeBuffer, 0, 1); // Message type
+                        networkStream.Write(lengthBuffer, 0, 4); // Message length
+                        networkStream.Write(messageBuffer, 0, messageBuffer.Length); // Message content
+                        //Read acknowledgement
+                    }
+                }
+            }
+            else
+            {
+                throw new ArgumentOutOfRangeException("'messageType' must be between 0 and 255");
+            }
+        }
+
+        public void Recieve()
+        {
+            NetworkStream networkStream = tcpClient.GetStream();
+            {
+                if (networkStream.CanRead && networkStream.CanWrite && networkStream.DataAvailable)
+                {
+                    // Message type
+                    byte[] typeBuffer = new byte[1];
+                    networkStream.Read(typeBuffer, 0, 1);
+                    int messageType = typeBuffer[0];
+                    // Message length
+                    byte[] lengthBuffer = new byte[4];
+                    networkStream.Read(lengthBuffer, 0, 4);
+                    int messageLength = BitConverter.ToInt32(lengthBuffer, 0);
+                    if (messageLength > 1*1024*1024)
+                    {
+                        throw new ArgumentOutOfRangeException("Length cannot be greater than 1*1024*1024");
+                    }
+                    // Message content
+                    byte[] messageBuffer = new byte[messageLength];
+                    networkStream.Read(messageBuffer, 0, messageLength);
+                    string message = Encoding.ASCII.GetString(messageBuffer);
+                    //TODO: Send acknowledement
+                }
+            }
+        }
+
+        public void Disconnect()
+        {
+            tcpClient.Close();
+        }
     }
 }

@@ -10,13 +10,13 @@ using System.Windows.Forms;
 
 namespace Chat
 {
-    public partial class frmHolderForm : Form
+    public partial class FrmHolder : Form
     { 
         public static string username;
         public static bool hosting;
         public static string joinIP;
 
-        public frmHolderForm()
+        public FrmHolder()
         {
             InitializeComponent();
             Setup();
@@ -25,7 +25,7 @@ namespace Chat
         private void Setup()
         {
             IsMdiContainer = true;
-            frmLoginScreen loginScreen = new frmLoginScreen
+            FrmLoginScreen loginScreen = new FrmLoginScreen
             {
                 MdiParent = this,
                 Dock = DockStyle.Fill

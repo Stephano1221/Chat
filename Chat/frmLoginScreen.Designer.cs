@@ -1,6 +1,6 @@
 ﻿namespace Chat
 {
-    partial class frmLoginScreen
+    partial class FrmLoginScreen
     {
         /// <summary>
         /// Required designer variable.

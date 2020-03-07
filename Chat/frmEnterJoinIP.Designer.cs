@@ -1,6 +1,6 @@
 ﻿namespace Chat
 {
-    partial class frmEnterJoinIP
+    partial class FrmEnterJoinIP
     {
         /// <summary>
         /// Required designer variable.
