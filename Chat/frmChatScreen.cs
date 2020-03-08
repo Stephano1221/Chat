@@ -18,11 +18,11 @@ namespace Chat
         private Thread serverThread;
         private Thread clientThread;
         private int port = 12210;
-        private ThreadStart ts;
         private string publicIp;
         private string localIp;
         private List<Client> connectedClients = new List<Client>();
         bool askToClose = true;
+        private System.Windows.Forms.Timer heartbeat = new System.Windows.Forms.Timer();
 
         private delegate void MessageDelegate(Client client, Message message);
 
@@ -86,7 +86,7 @@ namespace Chat
             {
                 if (connectedClients.Count > 0)
                 {
-                    Disconnect(null, true);
+                    Disconnect(null, false, true);
                 }
                 tcpListener.Stop();
             }
@@ -101,6 +101,9 @@ namespace Chat
                 client.tcpClient.Connect(publicIp, port);
                 connectedClients.Add(client);
                 Send(connectedClients[0], 0, $"{FrmHolder.username}", true);
+                heartbeat.Interval = 5000;
+                heartbeat.Tick += Heartbeat_Tick;
+                heartbeat.Start();
                 while (true)
                 {
                     RecieveLoopClients();
@@ -110,9 +113,14 @@ namespace Chat
             {
                 if (connectedClients.Count > 0)
                 {
-                    Disconnect(client, false);
+                    Disconnect(client, false, false);
                 }
             }
+        }
+
+        private void Heartbeat_Tick(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
         }
 
         private void ServerAcceptIncomingConnection(TcpListener tcpListener)
@@ -278,7 +286,7 @@ namespace Chat
                         SendToAll(6, client.username, true);
                     }
                     connectedClients.Remove(client);
-                    Disconnect(client, false);
+                    Disconnect(client, false, false);
                     SendToAll(7, null, true);
                     for (int i = 0; i < xlsvConnectedUsers.Items.Count; i++)
                     {
@@ -287,7 +295,10 @@ namespace Chat
                 }
                 else
                 {
-                    clientThread.Abort();
+                    if (clientThread != null && clientThread.IsAlive)
+                    {
+                        clientThread.Abort();
+                    }
                     MessageBox.Show("The server was closed.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     OpenMainMenu();
                 }
@@ -314,6 +325,50 @@ namespace Chat
             {
                 xlsvConnectedUsers.Items.Add(message.message);
             }
+            else if (message.messageType == 9) // Kicked
+            {
+                if (clientThread != null && clientThread.IsAlive)
+                {
+                    clientThread.Abort();
+                }
+                string[] parts = message.message.Split(' ');
+                string username = parts[0];
+                string reason = "";
+                for (int i = 1; i < parts.Length; i++)
+                {
+                    reason += parts[i] + ' ';
+                }
+                reason.Trim();
+                if (reason != "" && reason != " ")
+                {
+                    MessageBox.Show($"You have been kicked by {username} with reason: {reason}", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show($"You have been kicked by {username}", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                OpenMainMenu();
+            }
+            else if (message.messageType == 10)
+            {
+                string[] parts = message.message.Split(' ');
+                string username = parts[0];
+                string kickerUsername = parts[1];
+                string reason = "";
+                for (int i = 2; i < parts.Length; i++)
+                {
+                    reason += parts[i] + ' ';
+                }
+                reason.Trim();
+                if (reason != "" && reason != " ")
+                {
+                    xlbxChat.Items.Add($"{username} was kicked by {kickerUsername} with reason: {reason}");
+                }
+                else
+                {
+                    xlbxChat.Items.Add($"{username} was kicked by {kickerUsername}");
+                }
+            }
         }
 
         private void RecieveLoopClients()
@@ -332,11 +387,12 @@ namespace Chat
             }
         }
 
-        private void Disconnect(Client client, bool sendToAll)
+        private void Disconnect(Client client, bool kick, bool sendToAll)
         {
+            int type = kick == false ? 3 : 9;
             if (sendToAll)
             {
-                SendToAll(3, null, true);
+                SendToAll(type, null, true);
                 for (int i = 0; i < connectedClients.Count; i++)
                 {
                     connectedClients[i].tcpClient.Close();
@@ -345,7 +401,7 @@ namespace Chat
             }
             else
             {
-                Send(client, 3, null, true);
+                Send(client, type, null, true);
                 client.tcpClient.Close();
                 connectedClients.Remove(client);
             }
@@ -377,21 +433,100 @@ namespace Chat
             }
         }
 
+        private List<Client> ClientSearch(string[] usernames, int[] clientIds)
+        {
+            List<Client> clients = new List<Client>();
+            if (usernames != null)
+            {
+                for (int i = 0; i < usernames.Length; i++)
+                {
+                    for (int j = 0; j < connectedClients.Count; j++)
+                    {
+                        if (usernames[i] == connectedClients[j].username)
+                        {
+                            clients.Add(connectedClients[j]);
+                            break;
+                        }
+                    }
+                }
+            }
+            if (clientIds != null)
+            {
+                for (int i = 0; i < clientIds.Length; i++)
+                {
+                    for (int j = 0; j < connectedClients.Count; j++)
+                    {
+                        if (clientIds[i] == connectedClients[j].clientId && clients.Contains(connectedClients[j]) == false)
+                        {
+                            clients.Add(connectedClients[j]);
+                            break;
+                        }
+                    }
+                }
+            }
+            return clients;
+        }
+
+        private bool ProcessCommand(string message)
+        {
+            if (message[0] == '/')
+            {
+                if (FrmHolder.hosting == false)
+                {
+                    xlbxChat.Items.Add($"You must be an admin to execute commands");
+                    return true;
+                }
+                string command = message.Substring(1, message.Length - 1);
+                string[] commandParts = command.Split(' ');
+                string[] usernames = { commandParts[1] };
+                if (commandParts[0] == "kick")
+                {
+                    List<Client> clients = ClientSearch(usernames, null);
+                    if (clients.Count == 0)
+                    {
+                        xlbxChat.Items.Add($"No user with the username {usernames[0]} exists");
+                        return true;
+                    }
+                    string reason = "";
+                    for (int i = 2; i < commandParts.Length; i++)
+                    {
+                        reason += commandParts[i] + ' ';
+                    }
+                    reason.Trim();
+                    if (reason != "")
+                    {
+                        xlbxChat.Items.Add($"You kicked {usernames[0]} with reason: {reason}");
+                    }
+                    else
+                    {
+                        xlbxChat.Items.Add($"You kicked {usernames[0]}");
+                    }
+                    Send(clients[0], 9, $"{FrmHolder.username} {reason}", true); // Kick client
+                    SendToAll(10, $"{usernames[0]} {FrmHolder.username} {reason}", true);
+                }
+                return true;
+            }
+            return false; //true if commmand
+        }
+
         private void xtxxtbxSendMessage_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
             {
                 string message = xtbxSendMessage.Text;
-                if (connectedClients.Count > 0)
-                {
-                    for (int i = 0; i < connectedClients.Count; i++)
-                    {
-                        Send(connectedClients[i], 2, $"<{FrmHolder.username}>{message}", true);
-                    }
-                }
-                if (FrmHolder.hosting)
+                if (FrmHolder.hosting || message[0] == '/')
                 {
                     xlbxChat.Items.Add($"{FrmHolder.username}: {message}");
+                }
+                if (ProcessCommand(message) == false)
+                {
+                    if (connectedClients.Count > 0)
+                    {
+                        for (int i = 0; i < connectedClients.Count; i++)
+                        {
+                            Send(connectedClients[i], 2, $"<{FrmHolder.username}>{message}", true);
+                        }
+                    }
                 }
                 xtbxSendMessage.Clear();
                 e.SuppressKeyPress = true;

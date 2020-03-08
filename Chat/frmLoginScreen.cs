@@ -71,6 +71,15 @@ namespace Chat
                 xlblUsernameError.Text = "Please insert a username";
                 return false;
             }
+            for (int i = 0; i < username.Length; i++)
+            {
+                if (username[i] == ' ')
+                {
+                    xlblUsername.Show();
+                    xlblUsernameError.Text = "Username cannot contain spaces";
+                    return false;
+                }
+            }
             return true;
         }
 
