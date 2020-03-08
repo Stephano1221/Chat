@@ -21,21 +21,21 @@ namespace Chat
 
         private void DisableTextboxContextMenu()
         {
-            xtxtbxUsername.ContextMenu = new ContextMenu();
+            xtbxUsername.ContextMenu = new ContextMenu();
         }
 
         private void xbtnHost_Click(object sender, EventArgs e)
         {
             if (CheckUsername() == true)
             {
-                FrmHolder.username = xtxtbxUsername.Text;
+                FrmHolder.username = xtbxUsername.Text;
                 FrmHolder.hosting = true;
-                FrmChatScreen chatScreen = new FrmChatScreen
+                FrmChatScreen frmLoginScreen = new FrmChatScreen
                 {
                     MdiParent = this.ParentForm,
                     Dock = DockStyle.Fill
                 };
-                chatScreen.Show();
+                frmLoginScreen.Show();
                 this.Close();
             }
         }
@@ -44,27 +44,27 @@ namespace Chat
         {
             if (CheckUsername() == true)
             {
-                FrmHolder.username = xtxtbxUsername.Text;
+                FrmHolder.username = xtbxUsername.Text;
                 FrmHolder.hosting = false;
-                FrmEnterJoinIP enterJoinIP = new FrmEnterJoinIP();
-                DialogResult dialogResult = enterJoinIP.ShowDialog();
+                FrmEnterJoinIp frmEnterJoinIp = new FrmEnterJoinIp();
+                DialogResult dialogResult = frmEnterJoinIp.ShowDialog();
                 if (dialogResult == DialogResult.OK)
                 {
-                    FrmChatScreen chatScreen = new FrmChatScreen
+                    FrmChatScreen frmChatScreen = new FrmChatScreen
                     {
                         MdiParent = this.ParentForm,
                         Dock = DockStyle.Fill
                     };
-                    chatScreen.Show();
+                    frmChatScreen.Show();
                     this.Close();
                 }
-                enterJoinIP.Close();
+                frmEnterJoinIp.Close();
             }
         }
 
         private bool CheckUsername()
         {
-            string username = xtxtbxUsername.Text;
+            string username = xtbxUsername.Text;
             if (string.IsNullOrWhiteSpace(username))
             {
                 xlblUsernameError.Show();
@@ -74,7 +74,7 @@ namespace Chat
             return true;
         }
 
-        private void xtxtbxUsername_TextChanged(object sender, EventArgs e)
+        private void xtbxUsername_TextChanged(object sender, EventArgs e)
         {
             xlblUsernameError.Hide();
         }

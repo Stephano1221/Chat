@@ -1,6 +1,6 @@
 ﻿namespace Chat
 {
-    partial class FrmEnterJoinIP
+    partial class FrmEnterJoinIp
     {
         /// <summary>
         /// Required designer variable.
@@ -29,9 +29,9 @@
         private void InitializeComponent()
         {
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
-            this.xlblIPAddress = new System.Windows.Forms.Label();
+            this.xlblIpAddress = new System.Windows.Forms.Label();
             this.xbtnJoin = new System.Windows.Forms.Button();
-            this.xtxtbxIP = new System.Windows.Forms.TextBox();
+            this.xtbxIp = new System.Windows.Forms.TextBox();
             this.xlblError = new System.Windows.Forms.Label();
             this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
@@ -40,9 +40,9 @@
             // 
             this.tableLayoutPanel1.ColumnCount = 1;
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel1.Controls.Add(this.xlblIPAddress, 0, 0);
+            this.tableLayoutPanel1.Controls.Add(this.xlblIpAddress, 0, 0);
             this.tableLayoutPanel1.Controls.Add(this.xbtnJoin, 0, 3);
-            this.tableLayoutPanel1.Controls.Add(this.xtxtbxIP, 0, 1);
+            this.tableLayoutPanel1.Controls.Add(this.xtbxIp, 0, 1);
             this.tableLayoutPanel1.Controls.Add(this.xlblError, 0, 2);
             this.tableLayoutPanel1.Location = new System.Drawing.Point(13, 13);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
@@ -54,18 +54,18 @@
             this.tableLayoutPanel1.Size = new System.Drawing.Size(259, 136);
             this.tableLayoutPanel1.TabIndex = 0;
             // 
-            // xlblIPAddress
+            // xlblIpAddress
             // 
-            this.xlblIPAddress.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            this.xlblIpAddress.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.xlblIPAddress.AutoSize = true;
-            this.xlblIPAddress.Location = new System.Drawing.Point(3, 0);
-            this.xlblIPAddress.Name = "xlblIPAddress";
-            this.xlblIPAddress.Size = new System.Drawing.Size(253, 30);
-            this.xlblIPAddress.TabIndex = 0;
-            this.xlblIPAddress.Text = "IP Address";
-            this.xlblIPAddress.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.xlblIpAddress.AutoSize = true;
+            this.xlblIpAddress.Location = new System.Drawing.Point(3, 0);
+            this.xlblIpAddress.Name = "xlblIpAddress";
+            this.xlblIpAddress.Size = new System.Drawing.Size(253, 30);
+            this.xlblIpAddress.TabIndex = 0;
+            this.xlblIpAddress.Text = "IP Address";
+            this.xlblIpAddress.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // xbtnJoin
             // 
@@ -80,16 +80,16 @@
             this.xbtnJoin.UseVisualStyleBackColor = true;
             this.xbtnJoin.Click += new System.EventHandler(this.XbtnJoin_Click);
             // 
-            // xtxtbxIP
+            // xtbxIp
             // 
-            this.xtxtbxIP.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            this.xtbxIp.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.xtxtbxIP.Location = new System.Drawing.Point(3, 33);
-            this.xtxtbxIP.Name = "xtxtbxIP";
-            this.xtxtbxIP.Size = new System.Drawing.Size(253, 20);
-            this.xtxtbxIP.TabIndex = 1;
-            this.xtxtbxIP.TextChanged += new System.EventHandler(this.xtxtbxIP_TextChanged);
+            this.xtbxIp.Location = new System.Drawing.Point(3, 33);
+            this.xtbxIp.Name = "xtbxIp";
+            this.xtbxIp.Size = new System.Drawing.Size(253, 20);
+            this.xtbxIp.TabIndex = 1;
+            this.xtbxIp.TextChanged += new System.EventHandler(this.xtxtbxIP_TextChanged);
             // 
             // xlblError
             // 
@@ -104,7 +104,7 @@
             this.xlblError.Text = "Error";
             this.xlblError.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
-            // EnterJoinIP
+            // FrmEnterJoinIp
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -112,9 +112,9 @@
             this.Controls.Add(this.tableLayoutPanel1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
-            this.Name = "EnterJoinIP";
+            this.Name = "FrmEnterJoinIp";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Enter IP";
+            this.Text = "i";
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();
             this.ResumeLayout(false);
@@ -124,8 +124,8 @@
         #endregion
 
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
-        private System.Windows.Forms.Label xlblIPAddress;
-        private System.Windows.Forms.TextBox xtxtbxIP;
+        private System.Windows.Forms.Label xlblIpAddress;
+        private System.Windows.Forms.TextBox xtbxIp;
         private System.Windows.Forms.Button xbtnJoin;
         private System.Windows.Forms.Label xlblError;
     }

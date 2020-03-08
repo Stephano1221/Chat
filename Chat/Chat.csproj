@@ -52,11 +52,11 @@
     <Compile Include="FrmChatScreen.Designer.cs">
       <DependentUpon>FrmChatScreen.cs</DependentUpon>
     </Compile>
-    <Compile Include="FrmEnterJoinIP.cs">
+    <Compile Include="FrmEnterJoinIp.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="FrmEnterJoinIP.Designer.cs">
-      <DependentUpon>FrmEnterJoinIP.cs</DependentUpon>
+    <Compile Include="FrmEnterJoinIp.Designer.cs">
+      <DependentUpon>FrmEnterJoinIp.cs</DependentUpon>
     </Compile>
     <Compile Include="FrmHolder.cs">
       <SubType>Form</SubType>
@@ -78,8 +78,8 @@
     <EmbeddedResource Include="FrmChatScreen.resx">
       <DependentUpon>FrmChatScreen.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="FrmEnterJoinIP.resx">
-      <DependentUpon>FrmEnterJoinIP.cs</DependentUpon>
+    <EmbeddedResource Include="FrmEnterJoinIp.resx">
+      <DependentUpon>FrmEnterJoinIp.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FrmHolder.resx">
       <DependentUpon>FrmHolder.cs</DependentUpon>
