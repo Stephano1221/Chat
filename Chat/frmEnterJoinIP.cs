@@ -21,7 +21,17 @@ namespace Chat
 
         private void XbtnJoin_Click(object sender, EventArgs e)
         {
-            CheckIP();
+            if (CheckIP())
+            {
+                this.DialogResult = DialogResult.OK;
+                FrmHolder.joinIP = xtbxIp.Text;
+                this.Close();
+            }
+            else
+            {
+                xlblError.Text = "Please enter a valid IP address";
+                xlblError.Show();
+            }
         }
 
         private void xtxtbxIP_TextChanged(object sender, EventArgs e)
@@ -29,7 +39,7 @@ namespace Chat
             xlblError.Hide();
         }
 
-        private void CheckIP()
+        private bool CheckIP()
         {
             int count = 0;
             foreach (char c in xtbxIp.Text)
@@ -46,15 +56,11 @@ namespace Chat
             }
             if (count == 3)
             {
-                this.DialogResult = DialogResult.OK;
-                FrmHolder.joinIP = xtbxIp.Text;
-                this.Close();
+                return true;
             }
             else
             {
-                xlblError.Text = "Please enter a valid IP address";
-                xlblError.Show();
-                return;
+                return false;
             }
         }
     }

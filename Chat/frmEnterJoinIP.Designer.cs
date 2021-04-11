@@ -114,7 +114,7 @@
             this.MaximizeBox = false;
             this.Name = "FrmEnterJoinIp";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "i";
+            this.Text = "IP Address";
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();
             this.ResumeLayout(false);

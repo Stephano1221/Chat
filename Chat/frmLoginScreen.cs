@@ -75,7 +75,7 @@ namespace Chat
             {
                 if (username[i] == ' ')
                 {
-                    xlblUsername.Show();
+                    xlblUsernameError.Show();
                     xlblUsernameError.Text = "Username cannot contain spaces";
                     return false;
                 }

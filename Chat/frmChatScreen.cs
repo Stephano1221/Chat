@@ -15,16 +15,27 @@ namespace Chat
 {
     public partial class FrmChatScreen : Form
     {
+        //TODO: Heartbeats. Separate heartbeat signal and response messages. https://blog.stephencleary.com/2009/05/detection-of-half-open-dropped.html
+        //TODO: Implement clientId
+        //TODO: Implement message ID's (each client has its own next message IDs)
+        //TODO: Clients can attempt to use admin commands (server responds with if they are admin/command executed)
+        //TODO: Text channels
         private Thread serverThread;
         private Thread clientThread;
         private int port = 12210;
         private string publicIp;
         private string localIp;
+        private int nextAssignedClientId = 0;
+        private int nextAssignedMessageId = 0;
         private List<Client> connectedClients = new List<Client>();
         bool askToClose = true;
-        private System.Windows.Forms.Timer heartbeat = new System.Windows.Forms.Timer();
+        private System.Timers.Timer heartbeat = new System.Timers.Timer();
+
+        private string kickFormat = "/kick [Username] [Reason (optional)]";
+        private string adminFormat = "/admin [Username] [True/False (optional)]";
 
         private delegate void MessageDelegate(Client client, Message message);
+        private delegate void HeartbeatDelegate(Client client);
 
         public FrmChatScreen()
         {
@@ -41,9 +52,10 @@ namespace Chat
             if (FrmHolder.hosting)
             {
                 publicIp = new WebClient().DownloadString("https://ipv4.icanhazip.com/");
-                publicIp = publicIp.TrimEnd();
+                //publicIp = localIp; // For use if unable to access internet/port forward (e.g. C2K Programming Environment)
+                publicIp = publicIp.Trim();
                 serverThread = new Thread(new ThreadStart(StartServer));
-                serverThread.IsBackground = true; //TODO: Abort thread if parentform closes, so that Client.Disconnect() can be properly called
+                serverThread.IsBackground = true; //TODO: Abort thread if parentform closes, so that Disconnect() can be properly called
                 serverThread.Start();
                 xlbxChat.Items.Add($"Server started on: {publicIp}");
             }
@@ -55,6 +67,7 @@ namespace Chat
                 clientThread.Start();
                 xlbxChat.Items.Add($"Connected to server on: {publicIp}");
             }
+            //StartHeartbeat();
         }
 
         private string GetLocalIp()
@@ -71,11 +84,19 @@ namespace Chat
 
         private void StartServer()
         {
+            Thread.Sleep(50);
             IPAddress iPAddress = IPAddress.Parse(localIp);
             TcpListener tcpListener = new TcpListener(iPAddress, port);
+            Client client = new Client();
+            client.clientId = nextAssignedClientId;
+            nextAssignedClientId++;
+            client.username = FrmHolder.username;
+            client.admin = true;
+            connectedClients.Add(client);
             try
             {
                 tcpListener.Start();
+                //StartHeartbeat();
                 while (true)
                 {
                     ServerAcceptIncomingConnection(tcpListener);
@@ -94,6 +115,7 @@ namespace Chat
 
         private void StartClient()
         {
+            Thread.Sleep(50);
             Client client = new Client();
             try
             {
@@ -101,9 +123,7 @@ namespace Chat
                 client.tcpClient.Connect(publicIp, port);
                 connectedClients.Add(client);
                 Send(connectedClients[0], 0, $"{FrmHolder.username}", true);
-                heartbeat.Interval = 5000;
-                heartbeat.Tick += Heartbeat_Tick;
-                heartbeat.Start();
+                //StartHeartbeat();
                 while (true)
                 {
                     RecieveLoopClients();
@@ -118,9 +138,42 @@ namespace Chat
             }
         }
 
+        private void StartHeartbeat()
+        {
+            heartbeat.Interval = 1000;
+            heartbeat.Elapsed += Heartbeat_Tick;
+            heartbeat.Start();
+        }
+
         private void Heartbeat_Tick(object sender, EventArgs e)
         {
-            throw new NotImplementedException();
+            if (connectedClients != null)
+            {
+                for (int i = 0; i < connectedClients.Count; i++)
+                {
+                    Client client = connectedClients[i];
+                    if (client.tcpClient != null)
+                    {
+                        if (FrmHolder.hosting == false)
+                        {
+                            Send(client, 11, null, true);
+                        }
+                        Thread.Sleep(50);
+                        if (client.heartbeatReceieved == false)
+                        {
+                            client.heartbeatFailures++;
+                        }
+                        if (client.heartbeatFailures == 3)
+                        {
+                            if (xlbxChat.InvokeRequired)
+                            {
+                                xlbxChat.BeginInvoke(new HeartbeatDelegate(HeartbeatFailure), client);
+                            }
+                        }
+                        client.heartbeatReceieved = false;
+                    }
+                }
+            }
         }
 
         private void ServerAcceptIncomingConnection(TcpListener tcpListener)
@@ -130,7 +183,8 @@ namespace Chat
                 TcpClient tcpClient = tcpListener.AcceptTcpClient();
                 Client client = new Client();
                 client.tcpClient = tcpClient;
-                client.clientId = connectedClients.Count;
+                client.clientId = nextAssignedClientId;
+                nextAssignedClientId++;
                 connectedClients.Add(client);
                 Send(connectedClients[0], 1, $"{client.clientId}", true);
                 //TODO: Send acknowledement
@@ -141,39 +195,47 @@ namespace Chat
         {
             if (messageType >= 0 && messageType <= 255)
             {
-                NetworkStream networkStream = client.tcpClient.GetStream();
+                if (client.tcpClient != null)
                 {
-                    if (networkStream.CanWrite && networkStream.CanRead)
+                    NetworkStream networkStream = client.tcpClient.GetStream();
                     {
-                        //Mmessage type
-                        byte[] typeBuffer = new byte[1];
-                        typeBuffer = BitConverter.GetBytes(messageType);
-                        // Message content
-                        byte[] messageBuffer = null;
-                        if (message != null)
+                        if (networkStream.CanWrite && networkStream.CanRead)
                         {
-                            messageBuffer = Encoding.ASCII.GetBytes(message);
+                            // Message ID
+                            byte[] idBuffer = new byte[4];
+                            idBuffer = BitConverter.GetBytes(nextAssignedMessageId);
+                            nextAssignedMessageId++;
+                            // Message type
+                            byte[] typeBuffer = new byte[1];
+                            typeBuffer = BitConverter.GetBytes(messageType);
+                            // Message content
+                            byte[] messageBuffer = null;
+                            if (message != null)
+                            {
+                                messageBuffer = Encoding.ASCII.GetBytes(message);
+                            }
+                            // Message length
+                            byte[] lengthBuffer = new byte[4];
+                            if (message != null)
+                            {
+                                lengthBuffer = BitConverter.GetBytes(messageBuffer.Length);
+                            }
+                            if (BitConverter.IsLittleEndian)
+                            {
+                                /*Array.Reverse(typeBuffer);
+                                Array.Reverse(messageBuffer);
+                                Array.Reverse(lengthBuffer);*/
+                            }
+                            networkStream.Write(idBuffer, 0, 4); // Message ID
+                            networkStream.Write(typeBuffer, 0, 1); // Message type
+                            networkStream.Write(lengthBuffer, 0, 4); // Message length
+                            if (message != null)
+                            {
+                                networkStream.Write(messageBuffer, 0, messageBuffer.Length); // Message content
+                            }
+                            //Read acknowledgement
+                            return null; //Response
                         }
-                        // Message length
-                        byte[] lengthBuffer = new byte[4];
-                        if (message != null)
-                        {
-                            lengthBuffer = BitConverter.GetBytes(messageBuffer.Length);
-                        }
-                        if (BitConverter.IsLittleEndian)
-                        {
-                            /*Array.Reverse(typeBuffer);
-                            Array.Reverse(messageBuffer);
-                            Array.Reverse(lengthBuffer);*/
-                        }
-                        networkStream.Write(typeBuffer, 0, 1); // Message type
-                        networkStream.Write(lengthBuffer, 0, 4); // Message length
-                        if (message != null)
-                        {
-                            networkStream.Write(messageBuffer, 0, messageBuffer.Length); // Message content
-                        }
-                        //Read acknowledgement
-                        return null; //Response
                     }
                 }
                 return null;
@@ -186,40 +248,47 @@ namespace Chat
 
         public Message Recieve(Client client, bool process)
         {
-            NetworkStream networkStream = client.tcpClient.GetStream();
+            if (client.tcpClient != null)
             {
-                if (networkStream.CanRead && networkStream.CanWrite && networkStream.DataAvailable)
+                NetworkStream networkStream = client.tcpClient.GetStream();
                 {
-                    // Message type
-                    byte[] typeBuffer = new byte[1];
-                    networkStream.Read(typeBuffer, 0, 1);
-                    int messageType = typeBuffer[0];
-                    // Message length
-                    byte[] lengthBuffer = new byte[4];
-                    networkStream.Read(lengthBuffer, 0, 4);
-                    int messageLength = BitConverter.ToInt32(lengthBuffer, 0);
-                    if (messageLength > 1 * 1024 * 1024)
+                    if (networkStream.CanRead && networkStream.CanWrite && networkStream.DataAvailable)
                     {
-                        throw new ArgumentOutOfRangeException("Length cannot be greater than 1*1024*1024");
-                    }
-                    // Message content
-                    string message = null;
-                    if (messageLength > 0)
-                    {
-                        byte[] messageBuffer = new byte[messageLength];
-                        networkStream.Read(messageBuffer, 0, messageLength);
-                        message = Encoding.ASCII.GetString(messageBuffer);
-                    }
-                    //TODO: Send acknowledement
-                    Message recievedMessage = new Message(messageType, message);
-                    if (process)
-                    {
-                        if (xlbxChat.InvokeRequired)
+                        // Message ID
+                        byte[] idBuffer = new byte[4];
+                        networkStream.Read(idBuffer, 0, 4);
+                        int messageId = BitConverter.ToInt32(idBuffer, 0);
+                        // Message type
+                        byte[] typeBuffer = new byte[1];
+                        networkStream.Read(typeBuffer, 0, 1);
+                        int messageType = typeBuffer[0];
+                        // Message length
+                        byte[] lengthBuffer = new byte[4];
+                        networkStream.Read(lengthBuffer, 0, 4);
+                        int messageLength = BitConverter.ToInt32(lengthBuffer, 0);
+                        if (messageLength > 1 * 1024 * 1024)
                         {
-                            xlbxChat.BeginInvoke(new MessageDelegate(ClientProcessMessage), client, recievedMessage);
+                            throw new ArgumentOutOfRangeException("Length cannot be greater than 1*1024*1024");
                         }
+                        // Message content
+                        string message = null;
+                        if (messageLength > 0)
+                        {
+                            byte[] messageBuffer = new byte[messageLength];
+                            networkStream.Read(messageBuffer, 0, messageLength);
+                            message = Encoding.ASCII.GetString(messageBuffer);
+                        }
+                        //TODO: Send acknowledement
+                        Message recievedMessage = new Message(messageId, messageType, message);
+                        if (process)
+                        {
+                            if (xlbxChat.InvokeRequired)
+                            {
+                                xlbxChat.BeginInvoke(new MessageDelegate(ClientProcessMessage), client, recievedMessage);
+                            }
+                        }
+                        return recievedMessage;
                     }
-                    return recievedMessage;
                 }
             }
             return null;
@@ -233,23 +302,21 @@ namespace Chat
                 bool usernameInUse = false;
                 for (int i = 0; i < connectedClients.Count; i++)
                 {
-                    if (connectedClients[i].username == message.message || FrmHolder.username == message.message)
+                    if (string.Equals(connectedClients[i].username, message.message, StringComparison.OrdinalIgnoreCase) || FrmHolder.username == message.message)
                     {
                         usernameInUse = true;
                         Send(client, 4, null, true);
+                        break;
                     }
                 }
                 if (usernameInUse == false)
                 {
                     client.username = message.message;
-                    xlsvConnectedUsers.Items.Add(client.username);
+                    List<Client> exceptions = new List<Client>();
+                    exceptions.Add(client);
                     xlbxChat.Items.Add($"{client.username} connected");
-                    SendToAll(5, client.username, true);
-                    SendToAll(7, null, true);
-                    for (int i = 0; i < xlsvConnectedUsers.Items.Count; i++)
-                    {
-                        SendToAll(8, xlsvConnectedUsers.Items[i].Text, true);
-                    }
+                    SendToAll(exceptions, 5, client.username, true);
+                    UpdateClientLists();
                 }
             }
             else if (message.messageType == 1) // ClientId set [clientId]
@@ -258,21 +325,18 @@ namespace Chat
             }
             else if (message.messageType == 2) // Message recieve [username, message]
             {
-                string username = "";
+                string[] parts = message.message.Split(' ');
+                string username = parts[0];
                 string messageText = "";
-                bool inUsername = false;
-                bool inMessageText = false;
-                for (int i = 0; i < message.message.Length; i++)
+                for (int i = 1; i < parts.Length; i++)
                 {
-                    if (message.message[i] == '<') { inUsername = true; continue; }
-                    else if (message.message[i] == '>') { inUsername = false; inMessageText = true; continue; }
-                    if (inUsername) { username += message.message[i]; }
-                    else if (inMessageText) { messageText += message.message[i]; }
+                    messageText += parts[i] + ' ';
                 }
+                messageText = messageText.Trim();
                 xlbxChat.Items.Add($"{username}: {messageText}");
                 if (FrmHolder.hosting)
                 {
-                    SendToAll(2, message.message, true);
+                    SendToAll(null, 2, message.message, true);
                 }
             }
             else if (message.messageType == 3) // Disconnect
@@ -281,17 +345,14 @@ namespace Chat
                 {
                     if (client.username != null)
                     {
-                        xlsvConnectedUsers.Items.RemoveAt(connectedClients.IndexOf(client) + 1);
+                        List<Client> exceptions = new List<Client>();
+                        exceptions.Add(client);
                         xlbxChat.Items.Add($"{client.username} disconnected");
-                        SendToAll(6, client.username, true);
+                        SendToAll(exceptions, 6, client.username, true);
                     }
                     connectedClients.Remove(client);
                     Disconnect(client, false, false);
-                    SendToAll(7, null, true);
-                    for (int i = 0; i < xlsvConnectedUsers.Items.Count; i++)
-                    {
-                        SendToAll(8, xlsvConnectedUsers.Items[i].Text, true);
-                    }
+                    UpdateClientLists();
                 }
                 else
                 {
@@ -338,8 +399,8 @@ namespace Chat
                 {
                     reason += parts[i] + ' ';
                 }
-                reason.Trim();
-                if (reason != "" && reason != " ")
+                reason = reason.Trim();
+                if (!string.IsNullOrWhiteSpace(reason))
                 {
                     MessageBox.Show($"You have been kicked by {username} with reason: {reason}", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
@@ -349,7 +410,7 @@ namespace Chat
                 }
                 OpenMainMenu();
             }
-            else if (message.messageType == 10)
+            else if (message.messageType == 10) // Another client kicked
             {
                 string[] parts = message.message.Split(' ');
                 string username = parts[0];
@@ -359,8 +420,8 @@ namespace Chat
                 {
                     reason += parts[i] + ' ';
                 }
-                reason.Trim();
-                if (reason != "" && reason != " ")
+                reason = reason.Trim();
+                if (!string.IsNullOrWhiteSpace(reason))
                 {
                     xlbxChat.Items.Add($"{username} was kicked by {kickerUsername} with reason: {reason}");
                 }
@@ -368,6 +429,85 @@ namespace Chat
                 {
                     xlbxChat.Items.Add($"{username} was kicked by {kickerUsername}");
                 }
+            }
+            else if (message.messageType == 11) // Heartbeat received
+            {
+                client.heartbeatReceieved = true;
+                Send(client, 11, null, true);
+            }
+            else if (message.messageType == 12) // Heartbeat failed
+            {
+                HeartbeatFailure(client);
+            }
+            else if (message.messageType == 13) // Another client heartbeat failed
+            {
+                xlbxChat.Items.Add($"{message.message} has lost connection...");
+            }
+            else if (message.messageType == 14) // Made admin
+            {
+                xlbxChat.Items.Add($"You have been made an Admin by {message.message}");
+            }
+            else if (message.messageType == 15) // Another made admin
+            {
+                string[] parts = message.message.Split(' ');
+                string username = parts[0];
+                string setterUsername = parts[1];
+                xlbxChat.Items.Add($"{username} has been made an Admin by {setterUsername}");
+            }
+            else if (message.messageType == 16) // Removed admin
+            {
+                xlbxChat.Items.Add($"You have been removed from Admin by {message.message}");
+            }
+            else if (message.messageType == 17) // Another removed admin
+            {
+                string[] parts = message.message.Split(' ');
+                string username = parts[0];
+                string setterUsername = parts[1];
+                xlbxChat.Items.Add($"{username} has been removed from Admin by {setterUsername}");
+            }
+        }
+
+        private void HeartbeatFailure(Client client)
+        {
+            if (FrmHolder.hosting)
+            {
+                List<Client> exceptions = new List<Client>();
+                exceptions.Add(client);
+                Send(client, 12, null, true);
+                SendToAll(exceptions, 13, client.username, true);
+                UpdateClientLists();
+                xlbxChat.Items.Add($"Lost connection to {client.username}...");
+            }
+            else
+            {
+                xlbxChat.Items.Add($"Lost connection to server...");
+            }
+            if (client.tcpClient != null)
+            {
+                client.tcpClient.Close();
+            }
+            connectedClients.Remove(client);
+        }
+
+        private string[] GetClientUsernames()
+        {
+            string[] usernames = new string[connectedClients.Count];
+            for (int i = 0; i < connectedClients.Count; i++)
+            {
+                usernames[i] = connectedClients[i].username;
+            }
+            return usernames;
+        }
+
+        private void UpdateClientLists()
+        {
+            xlsvConnectedUsers.Items.Clear();
+            SendToAll(null, 7, null, true);
+            string[] usernames = GetClientUsernames();
+            for (int i = 0; i < usernames.Length; i++)
+            {
+                xlsvConnectedUsers.Items.Add(usernames[i]);
+                SendToAll(null, 8, usernames[i], true);
             }
         }
 
@@ -379,11 +519,25 @@ namespace Chat
             }
         }
 
-        private void SendToAll(int messageType, string message, bool process)
+        private void SendToAll(List<Client> ignoredClients, int messageType, string message, bool process)
         {
             for (int i = 0; i < connectedClients.Count; i++)
             {
-                Send(connectedClients[i], messageType, message, process);
+                if (ignoredClients != null)
+                {
+                    for (int j = 0; j < ignoredClients.Count; j++)
+                    {
+                        if (connectedClients[i] != ignoredClients[j])
+                        {
+                            Send(connectedClients[i], messageType, message, process);
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    Send(connectedClients[i], messageType, message, process);
+                }
             }
         }
 
@@ -392,17 +546,26 @@ namespace Chat
             int type = kick == false ? 3 : 9;
             if (sendToAll)
             {
-                SendToAll(type, null, true);
+                List<Client> exceptions = new List<Client>();
+                exceptions.Add(client);
+                SendToAll(exceptions, type, null, true);
                 for (int i = 0; i < connectedClients.Count; i++)
                 {
-                    connectedClients[i].tcpClient.Close();
+                    if (connectedClients[i].tcpClient != null)
+                    {
+                        connectedClients[i].tcpClient.Close();
+                    }
                 }
                 connectedClients.Clear();
             }
             else
             {
                 Send(client, type, null, true);
-                client.tcpClient.Close();
+                Thread.Sleep(50);
+                if (client.tcpClient != null)
+                {
+                    client.tcpClient.Close();
+                }
                 connectedClients.Remove(client);
             }
         }
@@ -473,40 +636,162 @@ namespace Chat
             {
                 if (FrmHolder.hosting == false)
                 {
-                    xlbxChat.Items.Add($"You must be an admin to execute commands");
+                    xlbxChat.Items.Add($"You must be an admin to execute commands"); //TODO: Allow non-admin commands (e.g. /help)
                     return true;
                 }
                 string command = message.Substring(1, message.Length - 1);
                 string[] commandParts = command.Split(' ');
-                string[] usernames = { commandParts[1] };
-                if (commandParts[0] == "kick")
+                if (commandParts[0] == "help" || commandParts[0] == "commands")
                 {
-                    List<Client> clients = ClientSearch(usernames, null);
-                    if (clients.Count == 0)
-                    {
-                        xlbxChat.Items.Add($"No user with the username {usernames[0]} exists");
-                        return true;
-                    }
-                    string reason = "";
-                    for (int i = 2; i < commandParts.Length; i++)
-                    {
-                        reason += commandParts[i] + ' ';
-                    }
-                    reason.Trim();
-                    if (reason != "")
-                    {
-                        xlbxChat.Items.Add($"You kicked {usernames[0]} with reason: {reason}");
-                    }
-                    else
-                    {
-                        xlbxChat.Items.Add($"You kicked {usernames[0]}");
-                    }
-                    Send(clients[0], 9, $"{FrmHolder.username} {reason}", true); // Kick client
-                    SendToAll(10, $"{usernames[0]} {FrmHolder.username} {reason}", true);
+                    CommandHelp(commandParts);
+                }
+                else if (commandParts[0] == "kick") //TODO: Admin only
+                {
+                    return CommandKick(commandParts);
+                }
+                else if (commandParts[0] == "admin" && FrmHolder.hosting)
+                {
+                    return CommandAdmin(commandParts);
                 }
                 return true;
             }
             return false; //true if commmand
+        }
+
+        private void CommandHelp(string[] commandParts)
+        {
+            if (commandParts.Length == 1)
+            {
+                xlbxChat.Items.Add($"Available commands are 'kick' and 'admin'. Type '/help [command]' for an explanation of the command.");
+            }
+            else if (commandParts[1] == "kick")
+            {
+                xlbxChat.Items.Add($"Explanation: Kicks a user. Format: {kickFormat}");
+            }
+            else if (commandParts[1] == "admin")
+            {
+                xlbxChat.Items.Add($"Explanation: Adds/removes a user from Admin. Format: {adminFormat}");
+            }
+        }
+
+        private bool CommandKick(string[] commandParts)
+        {
+            if (commandParts[1] == null)
+            {
+                xlbxChat.Items.Add($"The format is: {kickFormat}");
+                return true;
+            }
+            string[] username = { commandParts[1] };
+            List<Client> clients = ClientSearch(username, null);
+            if (clients.Count == 0)
+            {
+                xlbxChat.Items.Add($"No user with the username {username[0]} exists");
+                return true;
+            }
+            string reason = "";
+            for (int i = 2; i < commandParts.Length; i++)
+            {
+                reason += commandParts[i] + ' ';
+            }
+            reason = reason.Trim();
+            if (!string.IsNullOrWhiteSpace(reason))
+            {
+                xlbxChat.Items.Add($"You kicked {username[0]} with reason: {reason}");
+            }
+            else
+            {
+                xlbxChat.Items.Add($"You kicked {username[0]}");
+            }
+            List<Client> exceptions = new List<Client>();
+            exceptions.Add(clients[0]);
+            Send(clients[0], 9, $"{FrmHolder.username} {reason}", true); // Kick client
+            SendToAll(exceptions, 10, $"{username[0]} {FrmHolder.username} {reason}", true);
+            return false;
+        }
+
+        private bool CommandAdmin(string[] commandParts)
+        {
+            if (commandParts.Length < 2 || commandParts[1] == null)
+            {
+                xlbxChat.Items.Add($"The format is: {adminFormat}");
+                return true;
+            }
+            string[] username = { commandParts[1] };
+            List<Client> clients = ClientSearch(username, null);
+            if (clients.Count == 0)
+            {
+                xlbxChat.Items.Add($"No user with the username {username[0]} exists");
+                return true;
+            }
+            bool setAsAdmin = false;
+            if (commandParts.Length > 2 && commandParts[2] != null)
+            {
+                if (string.Equals(commandParts[2], "True", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (clients[0].admin)
+                    {
+                        xlbxChat.Items.Add($"This user is already an Admin");
+                        return true;
+                    }
+                    setAsAdmin = true;
+                }
+                else if (string.Equals(commandParts[2], "False", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (clients[0].admin == false)
+                    {
+                        xlbxChat.Items.Add($"This user is already not an Admin");
+                        return true;
+                    }
+                    setAsAdmin = false;
+                }
+                else
+                {
+                    xlbxChat.Items.Add($"The format is: {adminFormat}");
+                    return true;
+                }
+            }
+            else
+            {
+                if (FrmHolder.hosting)
+                {
+                    if (ClientSearch(username, null)[0].admin)
+                    {
+                        setAsAdmin = false;
+                    }
+                    else
+                    {
+                        setAsAdmin = true;
+                    }
+                }
+            }
+            if (FrmHolder.hosting)
+            {
+                clients[0].admin = setAsAdmin;
+                SetAdmin(clients[0], FrmHolder.username, setAsAdmin, null);
+            }
+            return false;
+        }
+
+        private void SetAdmin(Client client, string setter, bool setAsAdmin, List<Client> ignoredClients)
+        {
+            client.admin = setAsAdmin;
+            if (ignoredClients == null)
+            {
+                ignoredClients = new List<Client>();
+            }
+            ignoredClients.Add(client);
+            if (setAsAdmin)
+            {
+                Send(client, 14, setter, true);
+                SendToAll(ignoredClients, 15, $"{client.username} {setter}", true);
+                xlbxChat.Items.Add($"You made {client.username} an Admin");
+            }
+            else
+            {
+                Send(client, 16, setter, true);
+                SendToAll(ignoredClients, 17, $"{client.username} {setter}", true);
+                xlbxChat.Items.Add($"You removed {client.username} from Admin");
+            }
         }
 
         private void xtxxtbxSendMessage_KeyDown(object sender, KeyEventArgs e)
@@ -514,21 +799,25 @@ namespace Chat
             if (e.KeyCode == Keys.Enter)
             {
                 string message = xtbxSendMessage.Text;
-                if (FrmHolder.hosting || message[0] == '/')
+                if (!string.IsNullOrWhiteSpace(message))
                 {
-                    xlbxChat.Items.Add($"{FrmHolder.username}: {message}");
-                }
-                if (ProcessCommand(message) == false)
-                {
-                    if (connectedClients.Count > 0)
+                    if (FrmHolder.hosting || message[0] == '/')
                     {
-                        for (int i = 0; i < connectedClients.Count; i++)
+                        xlbxChat.Items.Add($"{FrmHolder.username}: {message}");
+                    }
+                    if (ProcessCommand(message) == false)
+                    {
+                        if (connectedClients.Count > 0)
                         {
-                            Send(connectedClients[i], 2, $"<{FrmHolder.username}>{message}", true);
+                            message = message.Trim();
+                            for (int i = 0; i < connectedClients.Count; i++)
+                            {
+                                Send(connectedClients[i], 2, $"{FrmHolder.username} {message}", true);
+                            }
                         }
                     }
+                    xtbxSendMessage.Clear();
                 }
-                xtbxSendMessage.Clear();
                 e.SuppressKeyPress = true;
             }
         }
@@ -594,12 +883,25 @@ namespace Chat
         public int clientId;
         public string username;
         public TcpClient tcpClient;
+        public bool admin = false;
+        public bool serverMuted = false;
+        public bool serverDeafened = false;
+        public bool heartbeatReceieved = false;
+        public int heartbeatFailures = 0;
     }
 
     public class Message
     {
+        public int messageId;
         public int messageType;
         public string message;
+
+        public Message(int messageId, int messageType, string message)
+        {
+            this.messageId = messageId;
+            this.messageType = messageType;
+            this.message = message;
+        }
 
         public Message(int messageType, string message)
         {
