@@ -15,11 +15,8 @@ namespace Chat
 {
     public partial class FrmChatScreen : Form
     {
-        //TODO: Heartbeats. Separate heartbeat signal and response messages. https://blog.stephencleary.com/2009/05/detection-of-half-open-dropped.html
         //TODO: Implement clientId
         //TODO: Implement message ID's (each client has its own next message IDs)
-        //TODO: Clients can attempt to use admin commands (server responds with if they are admin/command executed)
-        //TODO: Text channels
         private Thread serverThread;
         private Thread clientThread;
         private int port = 12210;
@@ -40,6 +37,7 @@ namespace Chat
         public FrmChatScreen()
         {
             InitializeComponent();
+            this.Load += new EventHandler(FrmChatScreen_Load);
             this.FormClosing += new FormClosingEventHandler(OnClosing);
             xlsvConnectedUsers.Columns[0].Width = xlsvConnectedUsers.Width - 5;
             CheckHost();
@@ -52,10 +50,10 @@ namespace Chat
             if (FrmHolder.hosting)
             {
                 publicIp = new WebClient().DownloadString("https://ipv4.icanhazip.com/");
-                //publicIp = localIp; // For use if unable to access internet/port forward (e.g. C2K Programming Environment)
+                //publicIp = localIp; // For use if unable to access internet/port forward
                 publicIp = publicIp.Trim();
                 serverThread = new Thread(new ThreadStart(StartServer));
-                serverThread.IsBackground = true; //TODO: Abort thread if parentform closes, so that Disconnect() can be properly called
+                serverThread.IsBackground = true; //TODO: Abort thread if parentform closes, so that Disconnect() can be properly called (For both client and server)
                 serverThread.Start();
                 xlbxChat.Items.Add($"Server started on: {publicIp}");
             }
@@ -596,6 +594,30 @@ namespace Chat
             }
         }
 
+        private void FrmChatScreen_Load(object sender, EventArgs e)
+        {
+            SetParentFormWindowText(true);
+        }
+
+        private void SetParentFormWindowText(bool showConnectionInformation)
+        {
+            if (showConnectionInformation)
+            {
+                if (FrmHolder.hosting)
+                {
+                    this.ParentForm.Text = $"{FrmHolder.applicationWindowText} - {FrmHolder.username} hosting on {publicIp}";
+                }
+                else
+                {
+                    this.ParentForm.Text = $"{FrmHolder.applicationWindowText} - {FrmHolder.username} on {FrmHolder.joinIP}";
+                }
+            }
+            else
+            {
+                this.ParentForm.Text = $"{FrmHolder.applicationWindowText}";
+            }
+        }
+
         private List<Client> ClientSearch(string[] usernames, int[] clientIds)
         {
             List<Client> clients = new List<Client>();
@@ -794,7 +816,7 @@ namespace Chat
             }
         }
 
-        private void xtxxtbxSendMessage_KeyDown(object sender, KeyEventArgs e)
+        private void xtxtbxSendMessage_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
             {
@@ -843,13 +865,13 @@ namespace Chat
         private void xbtnDisconnect_Click(object sender, EventArgs e)
         {
             askToClose = false;
-            bool close = false;
+            bool serverClose = false;
             if (FrmHolder.hosting)
             {
                 DialogResult dialogResult = MessageBox.Show("This will terminate the server. Are you sure?", "Warning", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
                 if (dialogResult == DialogResult.OK)
                 {
-                    close = true;
+                    serverClose = true;
                     if (serverThread != null && serverThread.IsAlive)
                     {
                         serverThread.Abort();
@@ -860,7 +882,7 @@ namespace Chat
             {
                 clientThread.Abort();
             }
-            if (close || FrmHolder.hosting == false)
+            if (serverClose || FrmHolder.hosting == false)
             {
                 OpenMainMenu();
             }
@@ -873,6 +895,7 @@ namespace Chat
                 MdiParent = this.ParentForm,
                 Dock = DockStyle.Fill
             };
+            SetParentFormWindowText(false);
             frmLoginScreen.Show();
             this.Close();
         }

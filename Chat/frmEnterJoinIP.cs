@@ -12,6 +12,8 @@ namespace Chat
 {
     public partial class FrmEnterJoinIp : Form
     {
+        public string ip;
+
         public FrmEnterJoinIp()
         {
             InitializeComponent();
@@ -42,7 +44,8 @@ namespace Chat
         private bool CheckIP()
         {
             int count = 0;
-            foreach (char c in xtbxIp.Text)
+            ip = xtbxIp.Text;
+            foreach (char c in ip)
             {
                 if (c == '.')
                 {

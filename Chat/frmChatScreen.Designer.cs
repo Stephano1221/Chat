@@ -84,7 +84,7 @@
             this.xtbxSendMessage.TabIndex = 0;
             this.xtbxSendMessage.Text = "Enter a message...";
             this.xtbxSendMessage.Enter += new System.EventHandler(this.xtxtbxSendMessage_Enter);
-            this.xtbxSendMessage.KeyDown += new System.Windows.Forms.KeyEventHandler(this.xtxxtbxSendMessage_KeyDown);
+            this.xtbxSendMessage.KeyDown += new System.Windows.Forms.KeyEventHandler(this.xtxtbxSendMessage_KeyDown);
             this.xtbxSendMessage.Leave += new System.EventHandler(this.xtxtbxSendMessage_Leave);
             // 
             // xlbxChat
