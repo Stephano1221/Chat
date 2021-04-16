@@ -22,8 +22,8 @@ namespace Chat
         private int port = 12210;
         private string publicIp;
         private string localIp;
-        private int nextAssignedClientId = 0;
-        private int nextAssignedMessageId = 0;
+        private int nextAssignableClientId = 0;
+        private int nextAssignableMessageId = 0;
         private List<Client> connectedClients = new List<Client>();
         bool askToClose = true;
         private System.Timers.Timer heartbeat = new System.Timers.Timer();
@@ -53,7 +53,7 @@ namespace Chat
                 //publicIp = localIp; // For use if unable to access internet/port forward
                 publicIp = publicIp.Trim();
                 serverThread = new Thread(new ThreadStart(StartServer));
-                serverThread.IsBackground = true; //TODO: Abort thread if parentform closes, so that Disconnect() can be properly called (For both client and server)
+                serverThread.IsBackground = true;
                 serverThread.Start();
                 xlbxChat.Items.Add($"Server started on: {publicIp}");
             }
@@ -86,8 +86,8 @@ namespace Chat
             IPAddress iPAddress = IPAddress.Parse(localIp);
             TcpListener tcpListener = new TcpListener(iPAddress, port);
             Client client = new Client();
-            client.clientId = nextAssignedClientId;
-            nextAssignedClientId++;
+            client.clientId = nextAssignableClientId;
+            nextAssignableClientId++;
             client.username = FrmHolder.username;
             client.admin = true;
             connectedClients.Add(client);
@@ -108,6 +108,10 @@ namespace Chat
                     Disconnect(null, false, true);
                 }
                 tcpListener.Stop();
+                while (serverThread.IsAlive)
+                {
+                    //Loops to keep application open to properly disconnect
+                }
             }
         }
 
@@ -132,6 +136,10 @@ namespace Chat
                 if (connectedClients.Count > 0)
                 {
                     Disconnect(client, false, false);
+                }
+                while (clientThread.IsAlive)
+                {
+                    //Loops to keep application open to properly disconnect
                 }
             }
         }
@@ -181,8 +189,8 @@ namespace Chat
                 TcpClient tcpClient = tcpListener.AcceptTcpClient();
                 Client client = new Client();
                 client.tcpClient = tcpClient;
-                client.clientId = nextAssignedClientId;
-                nextAssignedClientId++;
+                client.clientId = nextAssignableClientId;
+                nextAssignableClientId++;
                 connectedClients.Add(client);
                 Send(connectedClients[0], 1, $"{client.clientId}", true);
                 //TODO: Send acknowledement
@@ -201,8 +209,8 @@ namespace Chat
                         {
                             // Message ID
                             byte[] idBuffer = new byte[4];
-                            idBuffer = BitConverter.GetBytes(nextAssignedMessageId);
-                            nextAssignedMessageId++;
+                            idBuffer = BitConverter.GetBytes(nextAssignableMessageId);
+                            nextAssignableMessageId++;
                             // Message type
                             byte[] typeBuffer = new byte[1];
                             typeBuffer = BitConverter.GetBytes(messageType);
@@ -559,7 +567,7 @@ namespace Chat
             else
             {
                 Send(client, type, null, true);
-                Thread.Sleep(50);
+                //Thread.Sleep(50);
                 if (client.tcpClient != null)
                 {
                     client.tcpClient.Close();
