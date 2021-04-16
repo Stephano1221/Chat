@@ -71,11 +71,11 @@
     <Compile Include="FrmLoginScreen.Designer.cs">
       <DependentUpon>FrmLoginScreen.cs</DependentUpon>
     </Compile>
-    <Compile Include="MicrosoftNetworking.cs" />
-    <Compile Include="NetworkingOld.cs" />
+    <Compile Include="ObsoleteMicrosoftNetworking.cs" />
+    <Compile Include="ObsoleteNetworkingOld.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TcpListenerClient.cs" />
+    <Compile Include="ObsoleteTcpListenerClient.cs" />
     <EmbeddedResource Include="FrmChatScreen.resx">
       <DependentUpon>FrmChatScreen.cs</DependentUpon>
     </EmbeddedResource>
