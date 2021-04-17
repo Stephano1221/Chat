@@ -84,6 +84,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.xtlpUsername.SetColumnSpan(this.xtbxUsername, 2);
             this.xtbxUsername.Location = new System.Drawing.Point(3, 60);
+            this.xtbxUsername.MaxLength = 30;
             this.xtbxUsername.Name = "xtbxUsername";
             this.xtbxUsername.Size = new System.Drawing.Size(710, 20);
             this.xtbxUsername.TabIndex = 1;

@@ -221,25 +221,30 @@ namespace Chat
                             byte[] idBuffer = new byte[4];
                             idBuffer = BitConverter.GetBytes(client.nextAssignableMessageId);
                             client.nextAssignableMessageId++;
+
                             // Message type
                             byte[] typeBuffer = new byte[4];
                             typeBuffer = BitConverter.GetBytes(messageType);
+
                             // Message content
                             byte[] messageBuffer = null;
                             if (message != null)
                             {
                                 messageBuffer = Encoding.ASCII.GetBytes(message);
                             }
+
                             // Message length
                             byte[] lengthBuffer = new byte[4];
                             if (message != null)
                             {
                                 lengthBuffer = BitConverter.GetBytes(messageBuffer.Length);
                             }
+
                             ConvertLittleEndianToBigEndian(idBuffer);
                             ConvertLittleEndianToBigEndian(typeBuffer);
                             ConvertLittleEndianToBigEndian(messageBuffer);
                             ConvertLittleEndianToBigEndian(lengthBuffer);
+
                             networkStream.Write(idBuffer, 0, 4); // Message ID
                             networkStream.Write(typeBuffer, 0, 4); // Message type
                             networkStream.Write(lengthBuffer, 0, 4); // Message length
@@ -247,7 +252,9 @@ namespace Chat
                             {
                                 networkStream.Write(messageBuffer, 0, messageBuffer.Length); // Message content
                             }
+
                             //Read acknowledgement
+
                             return null; //Response
                         }
                     }
@@ -271,35 +278,35 @@ namespace Chat
                         // Message ID
                         byte[] idBuffer = new byte[4];
                         networkStream.Read(idBuffer, 0, 4);
+
                         // Message type
                         byte[] typeBuffer = new byte[4];
                         networkStream.Read(typeBuffer, 0, 4);
+
                         // Message length
                         byte[] lengthBuffer = new byte[4];
                         networkStream.Read(lengthBuffer, 0, 4);
+
                         ConvertLittleEndianToBigEndian(idBuffer);
                         ConvertLittleEndianToBigEndian(typeBuffer);
                         ConvertLittleEndianToBigEndian(lengthBuffer);
+
                         int messageId = BitConverter.ToInt32(idBuffer, 0);
                         int messageType = BitConverter.ToInt32(typeBuffer, 0);
                         int messageLength = BitConverter.ToInt32(lengthBuffer, 0);
-                        if (messageLength > 1 * 1024 * 1024)
-                        {
-                            throw new ArgumentOutOfRangeException("Length cannot be greater than 1*1024*1024");
-                        }
+
                         // Message content
                         string message = null;
                         if (messageLength > 0)
                         {
                             byte[] messageBuffer = new byte[messageLength];
                             networkStream.Read(messageBuffer, 0, messageLength);
-
-                            string beforemessage = Encoding.ASCII.GetString(messageBuffer);
-
                             ConvertLittleEndianToBigEndian(messageBuffer);
                             message = Encoding.ASCII.GetString(messageBuffer);
                         }
+
                         //TODO: Send acknowledement
+
                         Message recievedMessage = new Message(messageId, messageType, message);
                         if (process)
                         {
