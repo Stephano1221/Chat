@@ -23,7 +23,6 @@ namespace Chat
         private string publicIp;
         private string localIp;
         private int nextAssignableClientId = 0;
-        private int nextAssignableMessageId = 0;
         private List<Client> connectedClients = new List<Client>();
         bool askToClose = true;
         private System.Timers.Timer heartbeat = new System.Timers.Timer();
@@ -55,7 +54,7 @@ namespace Chat
                 serverThread = new Thread(new ThreadStart(StartServer));
                 serverThread.IsBackground = true;
                 serverThread.Start();
-                xlbxChat.Items.Add($"Server started on: {publicIp}");
+                PrintChatMessage($"Server started on: {publicIp}");
             }
             else
             {
@@ -63,7 +62,7 @@ namespace Chat
                 clientThread = new Thread(new ThreadStart(StartClient));
                 clientThread.IsBackground = true;
                 clientThread.Start();
-                xlbxChat.Items.Add($"Connected to server on: {publicIp}"); //TODO: Only if succesfully connected - use acknowledgement
+                PrintChatMessage($"Connected to server on: {publicIp}"); //TODO: Only if succesfully connected - use acknowledgement
             }
             //StartHeartbeat();
         }
@@ -197,6 +196,17 @@ namespace Chat
             }
         }
 
+        private void ConvertLittleEndianToBigEndian(byte[] byteArray) // Converts byte array from Little-Endian/Host Byte Order to Big-Endian/Network Byte Order for network tranfer if host machine stores bytes in Little Endian
+        {
+            if (byteArray != null)
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    Array.Reverse(byteArray);
+                }
+            }
+        }
+
         public Message SendMessage(Client client, int messageType, string message, bool process)
         {
             if (messageType >= 0 && messageType <= 255)
@@ -209,10 +219,10 @@ namespace Chat
                         {
                             // Message ID
                             byte[] idBuffer = new byte[4];
-                            idBuffer = BitConverter.GetBytes(nextAssignableMessageId);
-                            nextAssignableMessageId++;
+                            idBuffer = BitConverter.GetBytes(client.nextAssignableMessageId);
+                            client.nextAssignableMessageId++;
                             // Message type
-                            byte[] typeBuffer = new byte[1];
+                            byte[] typeBuffer = new byte[4];
                             typeBuffer = BitConverter.GetBytes(messageType);
                             // Message content
                             byte[] messageBuffer = null;
@@ -226,14 +236,12 @@ namespace Chat
                             {
                                 lengthBuffer = BitConverter.GetBytes(messageBuffer.Length);
                             }
-                            if (BitConverter.IsLittleEndian)
-                            {
-                                /*Array.Reverse(typeBuffer);
-                                Array.Reverse(messageBuffer);
-                                Array.Reverse(lengthBuffer);*/
-                            }
+                            ConvertLittleEndianToBigEndian(idBuffer);
+                            ConvertLittleEndianToBigEndian(typeBuffer);
+                            ConvertLittleEndianToBigEndian(messageBuffer);
+                            ConvertLittleEndianToBigEndian(lengthBuffer);
                             networkStream.Write(idBuffer, 0, 4); // Message ID
-                            networkStream.Write(typeBuffer, 0, 1); // Message type
+                            networkStream.Write(typeBuffer, 0, 4); // Message type
                             networkStream.Write(lengthBuffer, 0, 4); // Message length
                             if (message != null)
                             {
@@ -263,14 +271,17 @@ namespace Chat
                         // Message ID
                         byte[] idBuffer = new byte[4];
                         networkStream.Read(idBuffer, 0, 4);
-                        int messageId = BitConverter.ToInt32(idBuffer, 0);
                         // Message type
-                        byte[] typeBuffer = new byte[1];
-                        networkStream.Read(typeBuffer, 0, 1);
-                        int messageType = typeBuffer[0];
+                        byte[] typeBuffer = new byte[4];
+                        networkStream.Read(typeBuffer, 0, 4);
                         // Message length
                         byte[] lengthBuffer = new byte[4];
                         networkStream.Read(lengthBuffer, 0, 4);
+                        ConvertLittleEndianToBigEndian(idBuffer);
+                        ConvertLittleEndianToBigEndian(typeBuffer);
+                        ConvertLittleEndianToBigEndian(lengthBuffer);
+                        int messageId = BitConverter.ToInt32(idBuffer, 0);
+                        int messageType = BitConverter.ToInt32(typeBuffer, 0);
                         int messageLength = BitConverter.ToInt32(lengthBuffer, 0);
                         if (messageLength > 1 * 1024 * 1024)
                         {
@@ -282,6 +293,10 @@ namespace Chat
                         {
                             byte[] messageBuffer = new byte[messageLength];
                             networkStream.Read(messageBuffer, 0, messageLength);
+
+                            string beforemessage = Encoding.ASCII.GetString(messageBuffer);
+
+                            ConvertLittleEndianToBigEndian(messageBuffer);
                             message = Encoding.ASCII.GetString(messageBuffer);
                         }
                         //TODO: Send acknowledement
@@ -320,7 +335,7 @@ namespace Chat
                     client.username = message.message;
                     List<Client> exceptions = new List<Client>();
                     exceptions.Add(client);
-                    xlbxChat.Items.Add($"{client.username} connected");
+                    PrintChatMessage($"{client.username} connected");
                     SendToAll(exceptions, 5, client.username, true);
                     UpdateClientLists();
                 }
@@ -339,7 +354,7 @@ namespace Chat
                     messageText += parts[i] + ' ';
                 }
                 messageText = messageText.Trim();
-                xlbxChat.Items.Add($"{username}: {messageText}");
+                PrintChatMessage($"{username}: {messageText}");
                 if (FrmHolder.hosting)
                 {
                     SendToAll(null, 2, message.message, true);
@@ -353,7 +368,7 @@ namespace Chat
                     {
                         List<Client> exceptions = new List<Client>();
                         exceptions.Add(client);
-                        xlbxChat.Items.Add($"{client.username} disconnected");
+                        PrintChatMessage($"{client.username} disconnected");
                         SendToAll(exceptions, 6, client.username, true);
                     }
                     connectedClients.Remove(client);
@@ -378,11 +393,11 @@ namespace Chat
             }
             else if (message.messageType == 5) // Client connected
             {
-                xlbxChat.Items.Add($"{message.message} connected");
+                PrintChatMessage($"{message.message} connected");
             }
             else if (message.messageType == 6) // Client disconnected
             {
-                xlbxChat.Items.Add($"{message.message} disconnected");
+                PrintChatMessage($"{message.message} disconnected");
             }
             else if (message.messageType == 7) // Clear user list
             {
@@ -429,11 +444,11 @@ namespace Chat
                 reason = reason.Trim();
                 if (!string.IsNullOrWhiteSpace(reason))
                 {
-                    xlbxChat.Items.Add($"{username} was kicked by {kickerUsername} with reason: {reason}");
+                    PrintChatMessage($"{username} was kicked by {kickerUsername} with reason: {reason}");
                 }
                 else
                 {
-                    xlbxChat.Items.Add($"{username} was kicked by {kickerUsername}");
+                    PrintChatMessage($"{username} was kicked by {kickerUsername}");
                 }
             }
             else if (message.messageType == 11) // Heartbeat received
@@ -447,29 +462,29 @@ namespace Chat
             }
             else if (message.messageType == 13) // Another client heartbeat failed
             {
-                xlbxChat.Items.Add($"{message.message} has lost connection...");
+                PrintChatMessage($"{message.message} has lost connection...");
             }
             else if (message.messageType == 14) // Made admin
             {
-                xlbxChat.Items.Add($"You have been made an Admin by {message.message}");
+                PrintChatMessage($"You have been made an Admin by {message.message}");
             }
             else if (message.messageType == 15) // Another made admin
             {
                 string[] parts = message.message.Split(' ');
                 string username = parts[0];
                 string setterUsername = parts[1];
-                xlbxChat.Items.Add($"{username} has been made an Admin by {setterUsername}");
+                PrintChatMessage($"{username} has been made an Admin by {setterUsername}");
             }
             else if (message.messageType == 16) // Removed admin
             {
-                xlbxChat.Items.Add($"You have been removed from Admin by {message.message}");
+                PrintChatMessage($"You have been removed from Admin by {message.message}");
             }
             else if (message.messageType == 17) // Another removed admin
             {
                 string[] parts = message.message.Split(' ');
                 string username = parts[0];
                 string setterUsername = parts[1];
-                xlbxChat.Items.Add($"{username} has been removed from Admin by {setterUsername}");
+                PrintChatMessage($"{username} has been removed from Admin by {setterUsername}");
             }
         }
 
@@ -482,11 +497,11 @@ namespace Chat
                 SendMessage(client, 12, null, true);
                 SendToAll(exceptions, 13, client.username, true);
                 UpdateClientLists();
-                xlbxChat.Items.Add($"Lost connection to {client.username}...");
+                PrintChatMessage($"Lost connection to {client.username}...");
             }
             else
             {
-                xlbxChat.Items.Add($"Lost connection to server...");
+                PrintChatMessage($"Lost connection to server...");
             }
             if (client.tcpClient != null)
             {
@@ -567,7 +582,6 @@ namespace Chat
             else
             {
                 SendMessage(client, type, null, true);
-                //Thread.Sleep(50);
                 if (client.tcpClient != null)
                 {
                     client.tcpClient.Close();
@@ -666,7 +680,7 @@ namespace Chat
             {
                 if (FrmHolder.hosting == false)
                 {
-                    xlbxChat.Items.Add($"You must be an admin to execute commands"); //TODO: Allow non-admin commands (e.g. /help)
+                    PrintChatMessage("You must be an admin to execute commands"); //TODO: Allow non-admin commands (e.g. /help)
                     return true;
                 }
                 string command = message.Substring(1, message.Length - 1);
@@ -688,23 +702,28 @@ namespace Chat
             return false; //true if commmand
         }
 
+        private void PrintChatMessage(string chatMessage)
+        {
+            xlbxChat.Items.Add(chatMessage);
+        }
+
         private void RunCommandHelp(string[] commandParts)
         {
             if (commandParts.Length == 1)
             {
-                xlbxChat.Items.Add($"Available commands are 'kick' and 'admin'. Type '/help [command]' for an explanation of the command.");
+                PrintChatMessage($"Available commands are 'kick' and 'admin'. Type '/help [command]' for an explanation of the command.");
             }
             else if (commandParts[1] == "kick")
             {
-                xlbxChat.Items.Add($"Explanation: Kicks a user. Format: {kickFormat}");
+                PrintChatMessage($"Explanation: Kicks a user. Format: {kickFormat}");
             }
             else if (commandParts[1] == "admin")
             {
-                xlbxChat.Items.Add($"Explanation: Adds/removes a user from Admin. Format: {adminFormat}");
+                PrintChatMessage($"Explanation: Adds/removes a user from Admin. Format: {adminFormat}");
             }
             else
             {
-                xlbxChat.Items.Add($"No such command exists.");
+                PrintChatMessage($"No command {commandParts[1]} exists.");
             }
         }
 
@@ -712,14 +731,14 @@ namespace Chat
         {
             if (commandParts[1] == null)
             {
-                xlbxChat.Items.Add($"The format is: {kickFormat}");
+                PrintChatMessage($"The format is: {kickFormat}");
                 return true;
             }
             string[] username = { commandParts[1] };
             List<Client> clients = ClientSearch(username, null);
             if (clients.Count == 0)
             {
-                xlbxChat.Items.Add($"No user with the username {username[0]} exists");
+                PrintChatMessage($"No user with the username {username[0]} exists");
                 return true;
             }
             string reason = "";
@@ -730,11 +749,11 @@ namespace Chat
             reason = reason.Trim();
             if (!string.IsNullOrWhiteSpace(reason))
             {
-                xlbxChat.Items.Add($"You kicked {username[0]} with reason: {reason}");
+                PrintChatMessage($"You kicked {username[0]} with reason: {reason}");
             }
             else
             {
-                xlbxChat.Items.Add($"You kicked {username[0]}");
+                PrintChatMessage($"You kicked {username[0]}");
             }
             List<Client> exceptions = new List<Client>();
             exceptions.Add(clients[0]);
@@ -747,14 +766,14 @@ namespace Chat
         {
             if (commandParts.Length < 2 || commandParts[1] == null)
             {
-                xlbxChat.Items.Add($"The format is: {adminFormat}");
+                PrintChatMessage($"The format is: {adminFormat}");
                 return true;
             }
             string[] username = { commandParts[1] };
             List<Client> clients = ClientSearch(username, null);
             if (clients.Count == 0)
             {
-                xlbxChat.Items.Add($"No user with the username {username[0]} exists");
+                PrintChatMessage($"No user with the username {username[0]} exists");
                 return true;
             }
             bool setAsAdmin = false;
@@ -764,7 +783,7 @@ namespace Chat
                 {
                     if (clients[0].admin)
                     {
-                        xlbxChat.Items.Add($"This user is already an Admin");
+                        PrintChatMessage($"This user is already an Admin");
                         return true;
                     }
                     setAsAdmin = true;
@@ -773,14 +792,14 @@ namespace Chat
                 {
                     if (clients[0].admin == false)
                     {
-                        xlbxChat.Items.Add($"This user is already not an Admin");
+                        PrintChatMessage($"This user is already not an Admin");
                         return true;
                     }
                     setAsAdmin = false;
                 }
                 else
                 {
-                    xlbxChat.Items.Add($"The format is: {adminFormat}");
+                    PrintChatMessage($"The format is: {adminFormat}");
                     return true;
                 }
             }
@@ -818,13 +837,13 @@ namespace Chat
             {
                 SendMessage(client, 14, setter, true);
                 SendToAll(ignoredClients, 15, $"{client.username} {setter}", true);
-                xlbxChat.Items.Add($"You made {client.username} an Admin");
+                PrintChatMessage($"You made {client.username} an Admin");
             }
             else
             {
                 SendMessage(client, 16, setter, true);
                 SendToAll(ignoredClients, 17, $"{client.username} {setter}", true);
-                xlbxChat.Items.Add($"You removed {client.username} from Admin");
+                PrintChatMessage($"You removed {client.username} from Admin");
             }
         }
 
@@ -837,7 +856,7 @@ namespace Chat
                 {
                     if (FrmHolder.hosting || message[0] == '/')
                     {
-                        xlbxChat.Items.Add($"{FrmHolder.username}: {message}");
+                        PrintChatMessage($"{FrmHolder.username}: {message}");
                     }
                     if (ProcessCommand(message) == false)
                     {
@@ -916,6 +935,7 @@ namespace Chat
     public class Client
     {
         public int clientId;
+        public int nextAssignableMessageId = 0;
         public string username;
         public TcpClient tcpClient;
         public bool admin = false;
