@@ -599,26 +599,11 @@ namespace Chat
 
         private void OnClosing(object sender, FormClosingEventArgs e)
         {
-            if (askToClose)
+            if (askToClose) // Prevents closing when returning to main menu
             {
-                if (FrmHolder.hosting)
+                if (BeginDisconnect(false) == false)
                 {
-                    DialogResult dialogResult = MessageBox.Show("This will terminate the server. Are you sure?", "Warning", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
-                    if (dialogResult == DialogResult.OK)
-                    {
-                        if (serverThread != null && serverThread.IsAlive)
-                        {
-                            serverThread.Abort();
-                        }
-                    }
-                    else if (dialogResult == DialogResult.Cancel)
-                    {
-                        e.Cancel = true;
-                    }
-                }
-                if (clientThread != null && clientThread.IsAlive)
-                {
-                    clientThread.Abort();
+                    e.Cancel = true;
                 }
             }
         }
@@ -902,7 +887,11 @@ namespace Chat
 
         private void xbtnDisconnect_Click(object sender, EventArgs e)
         {
-            askToClose = false;
+            BeginDisconnect(true);
+        }
+
+        private bool BeginDisconnect(bool returnToMainMenu)
+        {
             bool serverClose = false;
             if (FrmHolder.hosting)
             {
@@ -915,6 +904,10 @@ namespace Chat
                         serverThread.Abort();
                     }
                 }
+                else if (dialogResult == DialogResult.Cancel)
+                {
+                    return false;
+                }
             }
             if (clientThread != null && clientThread.IsAlive)
             {
@@ -924,10 +917,12 @@ namespace Chat
             {
                 OpenMainMenu();
             }
+            return true;
         }
 
         private void OpenMainMenu()
         {
+            askToClose = false;
             FrmLoginScreen frmLoginScreen = new FrmLoginScreen
             {
                 MdiParent = this.ParentForm,
