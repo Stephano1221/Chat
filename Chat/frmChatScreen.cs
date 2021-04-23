@@ -262,60 +262,53 @@ namespace Chat
                 {
                     if (client.tcpClient != null)
                     {
-                        if (client.tcpClient.Connected)
+                        NetworkStream networkStream = client.tcpClient.GetStream();
                         {
-                            NetworkStream networkStream = client.tcpClient.GetStream();
+                            if (networkStream.CanWrite && networkStream.CanRead)
                             {
-                                if (networkStream.CanWrite && networkStream.CanRead)
+                                // Message ID
+                                byte[] idBuffer = new byte[4];
+                                idBuffer = BitConverter.GetBytes(message.messageId);
+
+                                // Message type
+                                byte[] typeBuffer = new byte[4];
+                                typeBuffer = BitConverter.GetBytes(message.messageType);
+
+                                // Message content
+                                byte[] messageBuffer = null;
+                                if (messageText != null)
                                 {
-                                    // Message ID
-                                    byte[] idBuffer = new byte[4];
-                                    idBuffer = BitConverter.GetBytes(message.messageId);
+                                    messageBuffer = Encoding.ASCII.GetBytes(message.messageText);
+                                }
 
-                                    // Message type
-                                    byte[] typeBuffer = new byte[4];
-                                    typeBuffer = BitConverter.GetBytes(message.messageType);
+                                // Message length
+                                byte[] lengthBuffer = new byte[4];
+                                if (messageText != null)
+                                {
+                                    lengthBuffer = BitConverter.GetBytes(messageBuffer.Length);
+                                }
 
-                                    // Message content
-                                    byte[] messageBuffer = null;
-                                    if (messageText != null)
-                                    {
-                                        messageBuffer = Encoding.ASCII.GetBytes(message.messageText);
-                                    }
+                                ConvertLittleEndianToBigEndian(idBuffer);
+                                ConvertLittleEndianToBigEndian(typeBuffer);
+                                ConvertLittleEndianToBigEndian(messageBuffer);
+                                ConvertLittleEndianToBigEndian(lengthBuffer);
 
-                                    // Message length
-                                    byte[] lengthBuffer = new byte[4];
-                                    if (messageText != null)
-                                    {
-                                        lengthBuffer = BitConverter.GetBytes(messageBuffer.Length);
-                                    }
-
-                                    ConvertLittleEndianToBigEndian(idBuffer);
-                                    ConvertLittleEndianToBigEndian(typeBuffer);
-                                    ConvertLittleEndianToBigEndian(messageBuffer);
-                                    ConvertLittleEndianToBigEndian(lengthBuffer);
-
-                                    networkStream.Write(idBuffer, 0, 4); // Message ID
-                                    networkStream.Write(typeBuffer, 0, 4); // Message type
-                                    networkStream.Write(lengthBuffer, 0, 4); // Message length
-                                    if (messageText != null)
-                                    {
-                                        networkStream.Write(messageBuffer, 0, messageBuffer.Length); // Message content
-                                    }
-                                    if (messageType != 1 && messageType != 11)
-                                    {
-                                        client.messageSentNotAcknowledged.Add(message);
-                                    }
+                                networkStream.Write(idBuffer, 0, 4); // Message ID
+                                networkStream.Write(typeBuffer, 0, 4); // Message type
+                                networkStream.Write(lengthBuffer, 0, 4); // Message length
+                                if (messageText != null)
+                                {
+                                    networkStream.Write(messageBuffer, 0, messageBuffer.Length); // Message content
+                                }
+                                if (messageType != 1 && messageType != 11)
+                                {
+                                    client.messageSentNotAcknowledged.Add(message);
                                 }
                             }
                         }
-                        else
-                        {
-                            throw new System.IO.IOException();
-                        }
                     }
                 }
-                catch (System.IO.IOException)
+                catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException)
                 {
                     if (message.messageType != 11) // Heartbeat
                     {
@@ -329,66 +322,59 @@ namespace Chat
             }
         }
 
-        public void RecieveMessage(Client client, bool process)
+        public void ReceiveMessage(Client client, bool process)
         {
             try
             {
                 if (client.tcpClient != null)
                 {
-                    if (client.tcpClient.Connected)
+                    NetworkStream networkStream = client.tcpClient.GetStream();
                     {
-                        NetworkStream networkStream = client.tcpClient.GetStream();
+                        if (networkStream.CanRead && networkStream.CanWrite && networkStream.DataAvailable)
                         {
-                            if (networkStream.CanRead && networkStream.CanWrite && networkStream.DataAvailable)
+                            // Message ID
+                            byte[] idBuffer = new byte[4];
+                            networkStream.Read(idBuffer, 0, 4);
+
+                            // Message type
+                            byte[] typeBuffer = new byte[4];
+                            networkStream.Read(typeBuffer, 0, 4);
+
+                            // Message length
+                            byte[] lengthBuffer = new byte[4];
+                            networkStream.Read(lengthBuffer, 0, 4);
+
+                            ConvertLittleEndianToBigEndian(idBuffer);
+                            ConvertLittleEndianToBigEndian(typeBuffer);
+                            ConvertLittleEndianToBigEndian(lengthBuffer);
+
+                            int messageId = BitConverter.ToInt32(idBuffer, 0);
+                            int messageType = BitConverter.ToInt32(typeBuffer, 0);
+                            int messageLength = BitConverter.ToInt32(lengthBuffer, 0);
+
+                            // Message content
+                            string messageText = null;
+                            if (messageLength > 0)
                             {
-                                // Message ID
-                                byte[] idBuffer = new byte[4];
-                                networkStream.Read(idBuffer, 0, 4);
+                                byte[] messageBuffer = new byte[messageLength];
+                                networkStream.Read(messageBuffer, 0, messageLength);
+                                ConvertLittleEndianToBigEndian(messageBuffer);
+                                messageText = Encoding.ASCII.GetString(messageBuffer);
+                            }
 
-                                // Message type
-                                byte[] typeBuffer = new byte[4];
-                                networkStream.Read(typeBuffer, 0, 4);
-
-                                // Message length
-                                byte[] lengthBuffer = new byte[4];
-                                networkStream.Read(lengthBuffer, 0, 4);
-
-                                ConvertLittleEndianToBigEndian(idBuffer);
-                                ConvertLittleEndianToBigEndian(typeBuffer);
-                                ConvertLittleEndianToBigEndian(lengthBuffer);
-
-                                int messageId = BitConverter.ToInt32(idBuffer, 0);
-                                int messageType = BitConverter.ToInt32(typeBuffer, 0);
-                                int messageLength = BitConverter.ToInt32(lengthBuffer, 0);
-
-                                // Message content
-                                string messageText = null;
-                                if (messageLength > 0)
+                            Message recievedMessage = ComposeMessage(messageId, messageType, messageText);
+                            if (process)
+                            {
+                                if (xlbxChat.InvokeRequired)
                                 {
-                                    byte[] messageBuffer = new byte[messageLength];
-                                    networkStream.Read(messageBuffer, 0, messageLength);
-                                    ConvertLittleEndianToBigEndian(messageBuffer);
-                                    messageText = Encoding.ASCII.GetString(messageBuffer);
-                                }
-
-                                Message recievedMessage = ComposeMessage(messageId, messageType, messageText);
-                                if (process)
-                                {
-                                    if (xlbxChat.InvokeRequired)
-                                    {
-                                        xlbxChat.BeginInvoke(new MessageDelegate(ClientProcessMessage), client, recievedMessage);
-                                    }
+                                    xlbxChat.BeginInvoke(new MessageDelegate(ClientProcessMessage), client, recievedMessage);
                                 }
                             }
                         }
                     }
-                    else
-                    {
-                        throw new System.IO.IOException(); //TODO: Better exception if there are no messages to receive
-                    }
                 }
             }
-            catch (System.IO.IOException)
+            catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException)
             {
                 return;
             }
@@ -639,7 +625,7 @@ namespace Chat
         {
             for (int i = 0; i < connectedClients.Count(); i++)
             {
-                RecieveMessage(connectedClients[i], true);
+                ReceiveMessage(connectedClients[i], true);
             }
         }
 
