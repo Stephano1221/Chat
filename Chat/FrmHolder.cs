@@ -15,6 +15,7 @@ namespace Chat
         public static string username;
         public static bool hosting;
         public static string joinIP;
+        public static int clientId = -1;
         public static string applicationWindowText = "Chat";
 
         private FrmLoginScreen loginScreen;
