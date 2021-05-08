@@ -21,7 +21,7 @@ namespace Chat
             xlblError.Hide();
         }
 
-        private void XbtnJoin_Click(object sender, EventArgs e)
+        private void xbtnJoin_Click(object sender, EventArgs e)
         {
             if (CheckIP())
             {
@@ -36,7 +36,7 @@ namespace Chat
             }
         }
 
-        private void xtxtbxIP_TextChanged(object sender, EventArgs e)
+        private void xtbxIp_TextChanged(object sender, EventArgs e)
         {
             xlblError.Hide();
         }

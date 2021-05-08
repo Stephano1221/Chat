@@ -78,7 +78,7 @@
             this.xbtnJoin.TabIndex = 2;
             this.xbtnJoin.Text = "Join";
             this.xbtnJoin.UseVisualStyleBackColor = true;
-            this.xbtnJoin.Click += new System.EventHandler(this.XbtnJoin_Click);
+            this.xbtnJoin.Click += new System.EventHandler(this.xbtnJoin_Click);
             // 
             // xtbxIp
             // 
@@ -89,7 +89,7 @@
             this.xtbxIp.Name = "xtbxIp";
             this.xtbxIp.Size = new System.Drawing.Size(253, 20);
             this.xtbxIp.TabIndex = 1;
-            this.xtbxIp.TextChanged += new System.EventHandler(this.xtxtbxIP_TextChanged);
+            this.xtbxIp.TextChanged += new System.EventHandler(this.xtbxIp_TextChanged);
             // 
             // xlblError
             // 
