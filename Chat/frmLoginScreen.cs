@@ -21,7 +21,7 @@ namespace Chat
 
         private void DisableTextboxContextMenu()
         {
-            xtbxUsername.ContextMenu = new ContextMenu();
+            xtbxUsername.ContextMenuStrip = new ContextMenuStrip();
         }
 
         private void xbtnHost_Click(object sender, EventArgs e)

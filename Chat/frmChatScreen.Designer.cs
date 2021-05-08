@@ -30,7 +30,7 @@
         {
             this.xlblConnectedUsers = new System.Windows.Forms.Label();
             this.xlsvConnectedUsers = new System.Windows.Forms.ListView();
-            this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeader1 = new System.Windows.Forms.ColumnHeader();
             this.xtbxSendMessage = new System.Windows.Forms.TextBox();
             this.xlbxChat = new System.Windows.Forms.ListBox();
             this.xtlpInterface = new System.Windows.Forms.TableLayoutPanel();
@@ -43,9 +43,10 @@
             this.xlblConnectedUsers.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.xlblConnectedUsers.AutoSize = true;
-            this.xlblConnectedUsers.Location = new System.Drawing.Point(3, 0);
+            this.xlblConnectedUsers.Location = new System.Drawing.Point(4, 0);
+            this.xlblConnectedUsers.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.xlblConnectedUsers.Name = "xlblConnectedUsers";
-            this.xlblConnectedUsers.Size = new System.Drawing.Size(244, 13);
+            this.xlblConnectedUsers.Size = new System.Drawing.Size(284, 15);
             this.xlblConnectedUsers.TabIndex = 0;
             this.xlblConnectedUsers.Text = "Connected Users";
             this.xlblConnectedUsers.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -59,10 +60,11 @@
             this.columnHeader1});
             this.xlsvConnectedUsers.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
             this.xlsvConnectedUsers.HideSelection = false;
-            this.xlsvConnectedUsers.Location = new System.Drawing.Point(3, 23);
+            this.xlsvConnectedUsers.Location = new System.Drawing.Point(4, 26);
+            this.xlsvConnectedUsers.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.xlsvConnectedUsers.Name = "xlsvConnectedUsers";
             this.xtlpInterface.SetRowSpan(this.xlsvConnectedUsers, 2);
-            this.xlsvConnectedUsers.Size = new System.Drawing.Size(244, 524);
+            this.xlsvConnectedUsers.Size = new System.Drawing.Size(284, 514);
             this.xlsvConnectedUsers.TabIndex = 1;
             this.xlsvConnectedUsers.UseCompatibleStateImageBehavior = false;
             this.xlsvConnectedUsers.View = System.Windows.Forms.View.Details;
@@ -77,11 +79,12 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.xtbxSendMessage.ForeColor = System.Drawing.Color.Gray;
-            this.xtbxSendMessage.Location = new System.Drawing.Point(253, 503);
+            this.xtbxSendMessage.Location = new System.Drawing.Point(296, 488);
+            this.xtbxSendMessage.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.xtbxSendMessage.MaxLength = 2000;
             this.xtbxSendMessage.Multiline = true;
             this.xtbxSendMessage.Name = "xtbxSendMessage";
-            this.xtbxSendMessage.Size = new System.Drawing.Size(619, 44);
+            this.xtbxSendMessage.Size = new System.Drawing.Size(571, 52);
             this.xtbxSendMessage.TabIndex = 0;
             this.xtbxSendMessage.Text = "Enter a message...";
             this.xtbxSendMessage.Enter += new System.EventHandler(this.xtxtbxSendMessage_Enter);
@@ -95,10 +98,12 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.xlbxChat.FormattingEnabled = true;
             this.xlbxChat.HorizontalScrollbar = true;
-            this.xlbxChat.Location = new System.Drawing.Point(253, 23);
+            this.xlbxChat.ItemHeight = 15;
+            this.xlbxChat.Location = new System.Drawing.Point(296, 26);
+            this.xlbxChat.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.xlbxChat.Name = "xlbxChat";
             this.xlbxChat.SelectionMode = System.Windows.Forms.SelectionMode.None;
-            this.xlbxChat.Size = new System.Drawing.Size(619, 472);
+            this.xlbxChat.Size = new System.Drawing.Size(571, 454);
             this.xlbxChat.TabIndex = 1;
             // 
             // xtlpInterface
@@ -107,26 +112,28 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.xtlpInterface.ColumnCount = 2;
-            this.xtlpInterface.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 250F));
+            this.xtlpInterface.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 292F));
             this.xtlpInterface.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.xtlpInterface.Controls.Add(this.xlsvConnectedUsers, 0, 1);
             this.xtlpInterface.Controls.Add(this.xtbxSendMessage, 1, 2);
             this.xtlpInterface.Controls.Add(this.xlblConnectedUsers, 0, 0);
             this.xtlpInterface.Controls.Add(this.xlbxChat, 1, 1);
-            this.xtlpInterface.Location = new System.Drawing.Point(13, 38);
+            this.xtlpInterface.Location = new System.Drawing.Point(15, 44);
+            this.xtlpInterface.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.xtlpInterface.Name = "xtlpInterface";
             this.xtlpInterface.RowCount = 3;
-            this.xtlpInterface.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+            this.xtlpInterface.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 23F));
             this.xtlpInterface.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.xtlpInterface.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 50F));
-            this.xtlpInterface.Size = new System.Drawing.Size(875, 550);
+            this.xtlpInterface.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 58F));
+            this.xtlpInterface.Size = new System.Drawing.Size(871, 543);
             this.xtlpInterface.TabIndex = 2;
             // 
             // xbtnDisconnect
             // 
-            this.xbtnDisconnect.Location = new System.Drawing.Point(13, 13);
+            this.xbtnDisconnect.Location = new System.Drawing.Point(15, 15);
+            this.xbtnDisconnect.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.xbtnDisconnect.Name = "xbtnDisconnect";
-            this.xbtnDisconnect.Size = new System.Drawing.Size(75, 23);
+            this.xbtnDisconnect.Size = new System.Drawing.Size(88, 27);
             this.xbtnDisconnect.TabIndex = 3;
             this.xbtnDisconnect.Text = "Disconnect";
             this.xbtnDisconnect.UseVisualStyleBackColor = true;
@@ -134,12 +141,13 @@
             // 
             // FrmChatScreen
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(900, 600);
             this.Controls.Add(this.xbtnDisconnect);
             this.Controls.Add(this.xtlpInterface);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.Name = "FrmChatScreen";
             this.Text = "ChatScreen";
             this.xtlpInterface.ResumeLayout(false);
