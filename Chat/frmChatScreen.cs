@@ -17,6 +17,8 @@ namespace Chat
     {
         private Thread serverThread;
         private Thread clientThread;
+        private CancellationTokenSource serverCancellationTokenSource = new CancellationTokenSource();
+        private CancellationTokenSource clientCancellationTokenSource = new CancellationTokenSource();
         private int port = 12210;
         private string publicIp;
         private string localIp;
@@ -37,10 +39,10 @@ namespace Chat
             this.Load += new EventHandler(FrmChatScreen_Load);
             this.FormClosing += new FormClosingEventHandler(OnClosing);
             xlsvConnectedUsers.Columns[0].Width = xlsvConnectedUsers.Width - 5;
-            CheckHost();
+            BeginNetworkThreads();
         }
 
-        private void CheckHost()
+        private void BeginNetworkThreads()
         {
             localIp = GetLocalIp();
             xlsvConnectedUsers.Items.Add(FrmHolder.username);
@@ -49,17 +51,21 @@ namespace Chat
                 publicIp = new WebClient().DownloadString("https://ipv4.icanhazip.com/");
                 //publicIp = localIp; // For use if unable to access internet/port forward
                 publicIp = publicIp.Trim();
-                serverThread = new Thread(new ThreadStart(StartServer));
+
+                serverThread = new Thread(new ParameterizedThreadStart(StartServer));
                 serverThread.IsBackground = true;
-                serverThread.Start();
+                serverThread.Start(serverCancellationTokenSource.Token);
+
                 PrintChatMessage($"Server started on: {publicIp}");
             }
             else
             {
                 publicIp = FrmHolder.joinIP;
-                clientThread = new Thread(new ThreadStart(StartClient));
+
+                clientThread = new Thread(new ParameterizedThreadStart(StartClient));
                 clientThread.IsBackground = true;
-                clientThread.Start();
+                clientThread.Start(clientCancellationTokenSource.Token);
+
                 PrintChatMessage($"Connected to server on: {publicIp}"); //TODO: Only if succesfully connected - use acknowledgement
             }
             //StartHeartbeat();
@@ -77,66 +83,63 @@ namespace Chat
             return localIp;
         }
 
-        private void StartServer()
+        private void StartServer(object obj)
         {
             Thread.Sleep(50);
+            CancellationToken cancellationToken = (CancellationToken)obj;
+
             IPAddress iPAddress = IPAddress.Parse(localIp);
             TcpListener tcpListener = new TcpListener(iPAddress, port);
+
             Client client = new Client();
             client.clientId = nextAssignableClientId;
             nextAssignableClientId++;
             client.username = FrmHolder.username;
             client.admin = true;
             connectedClients.Add(client);
-            try
+
+            tcpListener.Start();
+            StartHeartbeat();
+
+            while (cancellationToken.IsCancellationRequested == false)
             {
-                tcpListener.Start();
-                StartHeartbeat();
-                while (true)
-                {
-                    ServerAcceptIncomingConnection(tcpListener);
-                    LoopClientsForIncomingMessages();
-                }
+                ServerAcceptIncomingConnection(tcpListener);
+                LoopClientsForIncomingMessages();
             }
-            catch (ThreadAbortException)
+
+            tcpListener.Stop();
+            FrmHolder.clientId = -1;
+            if (connectedClients.Count > 0)
             {
-                tcpListener.Stop();
-                FrmHolder.clientId = -1;
-                if (connectedClients.Count > 0)
-                {
-                    SendDisconnect(null, false, true);
-                }
-                while (serverThread.IsAlive)
-                {
-                    //Loops to keep application open to properly disconnect
-                }
+                SendDisconnect(null, false, true);
+            }
+            while (serverThread.IsAlive)
+            {
+                //Loops to keep application open to properly disconnect
             }
         }
 
-        private void StartClient()
+        private void StartClient(object obj)
         {
             Thread.Sleep(50);
+            CancellationToken cancellationToken = (CancellationToken)obj;
             Client client = new Client();
-            try
+
+            ConnectClient(client);
+            StartHeartbeat();
+
+            while (cancellationToken.IsCancellationRequested == false)
             {
-                ConnectClient(client);
-                StartHeartbeat();
-                while (true)
-                {
-                    LoopClientsForIncomingMessages();
-                }
+                LoopClientsForIncomingMessages();
             }
-            catch (ThreadAbortException)
+            FrmHolder.clientId = -1;
+            if (connectedClients.Count > 0)
             {
-                FrmHolder.clientId = -1;
-                if (connectedClients.Count > 0)
-                {
-                    SendDisconnect(client, false, false);
-                }
-                while (clientThread.IsAlive)
-                {
-                    //Loops to keep application open to properly disconnect
-                }
+                SendDisconnect(client, false, false);
+            }
+            while (clientThread.IsAlive)
+            {
+                //Loops to keep application open to properly disconnect
             }
         }
 
@@ -550,7 +553,7 @@ namespace Chat
                 {
                     if (clientThread != null && clientThread.IsAlive)
                     {
-                        clientThread.Abort();
+                        clientCancellationTokenSource.Cancel();
                     }
                     MessageBox.Show("The server was closed.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     OpenMainMenu();
@@ -558,7 +561,7 @@ namespace Chat
             }
             else if (message.messageType == 4) // Username already used
             {
-                clientThread.Abort();
+                clientCancellationTokenSource.Cancel();
                 MessageBox.Show("This username is already in use", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 OpenMainMenu();
             }
@@ -582,7 +585,7 @@ namespace Chat
             {
                 if (clientThread != null && clientThread.IsAlive)
                 {
-                    clientThread.Abort();
+                    clientCancellationTokenSource.Cancel();
                 }
                 string[] parts = message.messageText.Split(' ');
                 string username = parts[0];
@@ -1007,10 +1010,7 @@ namespace Chat
         private void SetAdmin(Client client, string setter, bool setAsAdmin, List<Client> ignoredClients)
         {
             client.admin = setAsAdmin;
-            if (ignoredClients == null)
-            {
-                ignoredClients = new List<Client>();
-            }
+            ignoredClients ??= new List<Client>();
             ignoredClients.Add(client);
             if (setAsAdmin)
             {
@@ -1037,7 +1037,7 @@ namespace Chat
                     serverClose = true;
                     if (serverThread != null && serverThread.IsAlive)
                     {
-                        serverThread.Abort();
+                        serverCancellationTokenSource.Cancel();
                     }
                 }
                 else if (dialogResult == DialogResult.Cancel)
@@ -1047,7 +1047,7 @@ namespace Chat
             }
             if (clientThread != null && clientThread.IsAlive)
             {
-                clientThread.Abort();
+                clientCancellationTokenSource.Cancel();
             }
             if (serverClose || FrmHolder.hosting == false)
             {
