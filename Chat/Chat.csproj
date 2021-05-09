@@ -8,6 +8,14 @@
 
     <RootNamespace>Chat</RootNamespace>
     <AssemblyName>Chat</AssemblyName>
+    <RepositoryUrl>https://github.com/Stephano1221/Chat</RepositoryUrl>
+    <Authors>Nathan Cole</Authors>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <NoWarn></NoWarn>
+    <WarningLevel>5</WarningLevel>
   </PropertyGroup>
 
   <ItemGroup>

@@ -187,6 +187,27 @@ namespace Chat
             }
         }
 
+        private void HeartbeatTimeoutFailure(Client client)
+        {
+            if (client.tcpClient != null)
+            {
+                client.tcpClient.Close();
+            }
+            connectedClients.Remove(client);
+            if (FrmHolder.hosting)
+            {
+                List<Client> ignoredClients = new List<Client>();
+                ignoredClients.Add(client);
+                SendToAll(ignoredClients, 13, client.username);
+                UpdateClientLists();
+                PrintChatMessage($"Lost connection to {client.username}...");
+            }
+            else
+            {
+                PrintChatMessage($"Lost connection to server...");
+            }
+        }
+
         private void SendFirstMessageInMessageQueue(Client client)
         {
             if (client.messagesSentNotAcknowledged.Count > 0)
@@ -231,37 +252,6 @@ namespace Chat
             }
             SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 0, $"{FrmHolder.username}{clientIdPart}"));
         }
-
-        /*private void Heartbeat_Tick(object sender, EventArgs e)
-        {
-            if (connectedClients != null)
-            {
-                for (int i = 0; i < connectedClients.Count; i++)
-                {
-                    Client client = connectedClients[i];
-                    if (client.tcpClient != null)
-                    {
-                        if (FrmHolder.hosting == false)
-                        {
-                            SendMessage(client, 11, null, true, -1);
-                        }
-                        Thread.Sleep(50);
-                        if (client.heartbeatReceieved == false)
-                        {
-                            client.heartbeatFailures++;
-                        }
-                        if (client.heartbeatFailures == 3)
-                        {
-                            if (xlbxChat.InvokeRequired)
-                            {
-                                xlbxChat.BeginInvoke(new HeartbeatDelegate(HeartbeatTimeoutFailure), client);
-                            }
-                        }
-                        client.heartbeatReceieved = false;
-                    }
-                }
-            }
-        }*/
 
         private void ServerAcceptIncomingConnection(TcpListener tcpListener)
         {
@@ -317,7 +307,7 @@ namespace Chat
                             byte[] textBuffer = null;
                             if (message.messageText != null)
                             {
-                                textBuffer = Encoding.ASCII.GetBytes(message.messageText);
+                                textBuffer = Encoding.Unicode.GetBytes(message.messageText);
                             }
 
                             // Message length
@@ -401,18 +391,33 @@ namespace Chat
 
                             // Message text
                             string messageText = null;
+                            int receivedLength = 0;
+                            int totalReceivedLength = 0;
                             if (messageLength > 0)
                             {
                                 byte[] textBuffer = new byte[messageLength];
-                                networkStream.Read(textBuffer, 0, messageLength);
+                                byte[] tempTextBuffer = new byte[messageLength];
+                                while (totalReceivedLength < messageLength)
+                                {
+                                    receivedLength = 0;
+                                    receivedLength += networkStream.Read(tempTextBuffer, 0, messageLength - totalReceivedLength);
+                                    Array.Resize(ref tempTextBuffer, receivedLength);
+                                    tempTextBuffer.CopyTo(textBuffer, totalReceivedLength);
+                                    tempTextBuffer = new byte[messageLength];
+                                    totalReceivedLength += receivedLength;
+                                }
                                 ConvertLittleEndianToBigEndian(textBuffer);
-                                messageText = Encoding.ASCII.GetString(textBuffer);
+                                messageText = Encoding.Unicode.GetString(textBuffer);
                             }
 
-                            Message recievedMessage = ComposeMessage(client, messageId, messageType, messageText);
+                            Message receivedMessage = ComposeMessage(client, messageId, messageType, messageText);
                             if (xlbxChat.InvokeRequired)
                             {
-                                xlbxChat.BeginInvoke(new MessageDelegate(ProcessMessage), client, recievedMessage);
+                                xlbxChat.BeginInvoke(new MessageDelegate(ProcessMessage), client, receivedMessage);
+                            }
+                            else
+                            {
+                                ProcessMessage(client, receivedMessage);
                             }
                         }
                     }
@@ -669,27 +674,6 @@ namespace Chat
             else if (message.messageType == 19) // Connection setup complete
             {
                 client.connectionSetupComplete = true;
-            }
-        }
-
-        private void HeartbeatTimeoutFailure(Client client)
-        {
-            if (client.tcpClient != null)
-            {
-                client.tcpClient.Close();
-            }
-            connectedClients.Remove(client);
-            if (FrmHolder.hosting)
-            {
-                List<Client> ignoredClients = new List<Client>();
-                ignoredClients.Add(client);
-                SendToAll(ignoredClients, 13, client.username);
-                UpdateClientLists();
-                PrintChatMessage($"Lost connection to {client.username}...");
-            }
-            else
-            {
-                PrintChatMessage($"Lost connection to server...");
             }
         }
 

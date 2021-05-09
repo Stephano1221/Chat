@@ -81,7 +81,7 @@
             this.xtbxSendMessage.ForeColor = System.Drawing.Color.Gray;
             this.xtbxSendMessage.Location = new System.Drawing.Point(296, 488);
             this.xtbxSendMessage.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            this.xtbxSendMessage.MaxLength = 2000;
+            this.xtbxSendMessage.MaxLength = 5000;
             this.xtbxSendMessage.Multiline = true;
             this.xtbxSendMessage.Name = "xtbxSendMessage";
             this.xtbxSendMessage.Size = new System.Drawing.Size(571, 52);
