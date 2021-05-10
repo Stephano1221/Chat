@@ -460,7 +460,7 @@ namespace Chat
             //0 = client-server connection request; 1 = message acknowledgement; 2 = recieve message; 3 = disconnect; 4 = server-client username already used
             if (message.messageType == 0) // Connection Request [username, clientId (if reconnecting)]
             {
-                string[] parts = message.messageText.Split(' ');
+                string[] parts = message.messageText.Split(' ', 2);
                 string username = parts[0];
                 int clientId = -1;
                 if (parts.Length > 1)
@@ -525,14 +525,9 @@ namespace Chat
             }
             else if (message.messageType == 2) // Message recieve [username, message]
             {
-                string[] parts = message.messageText.Split(' ');
+                string[] parts = message.messageText.Split(' ', 2);
                 string username = parts[0];
-                string messageText = "";
-                for (int i = 1; i < parts.Length; i++)
-                {
-                    messageText += parts[i] + ' ';
-                }
-                messageText = messageText.Trim();
+                string messageText = parts[1];
                 PrintChatMessage($"{username}: {messageText}");
                 if (FrmHolder.hosting)
                 {
@@ -551,7 +546,6 @@ namespace Chat
                         SendToAll(ignoredClients, 6, client.username);
                     }
                     connectedClients.Remove(client);
-                    //SendDisconnect(client, false, false);
                     UpdateClientLists();
                 }
                 else
@@ -592,13 +586,9 @@ namespace Chat
                 {
                     clientCancellationTokenSource.Cancel();
                 }
-                string[] parts = message.messageText.Split(' ');
+                string[] parts = message.messageText.Split(' ', 2);
                 string username = parts[0];
-                string reason = "";
-                for (int i = 1; i < parts.Length; i++)
-                {
-                    reason += parts[i] + ' ';
-                }
+                string reason = parts[1];
                 reason = reason.Trim();
                 if (!string.IsNullOrWhiteSpace(reason))
                 {
@@ -612,14 +602,10 @@ namespace Chat
             }
             else if (message.messageType == 10) // Another client kicked
             {
-                string[] parts = message.messageText.Split(' ');
+                string[] parts = message.messageText.Split(' ', 3);
                 string username = parts[0];
                 string kickerUsername = parts[1];
-                string reason = "";
-                for (int i = 2; i < parts.Length; i++)
-                {
-                    reason += parts[i] + ' ';
-                }
+                string reason = parts[2];
                 reason = reason.Trim();
                 if (!string.IsNullOrWhiteSpace(reason))
                 {
@@ -651,7 +637,7 @@ namespace Chat
             }
             else if (message.messageType == 15) // Another made admin
             {
-                string[] parts = message.messageText.Split(' ');
+                string[] parts = message.messageText.Split(' ', 2);
                 string username = parts[0];
                 string setterUsername = parts[1];
                 PrintChatMessage($"{username} has been made an Admin by {setterUsername}");
@@ -662,7 +648,7 @@ namespace Chat
             }
             else if (message.messageType == 17) // Another removed admin
             {
-                string[] parts = message.messageText.Split(' ');
+                string[] parts = message.messageText.Split(' ', 2);
                 string username = parts[0];
                 string setterUsername = parts[1];
                 PrintChatMessage($"{username} has been removed from Admin by {setterUsername}");
@@ -1058,6 +1044,7 @@ namespace Chat
             if (e.KeyCode == Keys.Enter)
             {
                 string message = xtbxSendMessage.Text;
+                message = message.Trim();
                 if (!string.IsNullOrWhiteSpace(message))
                 {
                     if (FrmHolder.hosting || message[0] == '/')
