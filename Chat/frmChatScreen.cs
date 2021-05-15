@@ -156,7 +156,7 @@ namespace Chat
             {
                 foreach (Client client in connectedClients)
                 {
-                    if (FrmHolder.hosting && connectedClients.ElementAtOrDefault(0).Equals(client))
+                    if (FrmHolder.hosting && connectedClients[0].Equals(client))
                     {
                         continue;
                     }
@@ -210,17 +210,10 @@ namespace Chat
 
         private void SendFirstMessageInMessageQueue(Client client)
         {
-            if (client.messagesSentNotAcknowledged.Count > 0 && client.sendingMessageQueue)
+            if (client.messagesToBeSent.Count > 0 && client.sendingMessageQueue)
             {
-                client.sendingMessageQueue = true;
-                Message message = client.messagesSentNotAcknowledged.ElementAtOrDefault(0);
-                SendMessage(client, ComposeMessage(client, message.messageId, message.messageType, message.messageText));
-            }
-            else if (client.messagesToBeSent.Count > 0 && client.sendingMessageQueue)
-            {
-                client.sendingMessageQueue = true;
-                Message message = client.messagesToBeSent.ElementAtOrDefault(0);
-                SendMessage(client, ComposeMessage(client, message.messageId, message.messageType, message.messageText));
+                Message message = client.messagesToBeSent[0];
+                SendMessage(client, message);
             }
             else
             {
@@ -237,6 +230,7 @@ namespace Chat
         {
             client.connectionSetupComplete = false;
             client.sendingMessageQueue = false;
+            client.receivingMessageQueue = false;
             if (client.tcpClient != null)
             {
                 client.tcpClient.Close();
@@ -280,7 +274,7 @@ namespace Chat
 
         public void SendMessage(Client client, Message message)
         {
-            if (CheckAddMessageToMessageQueue(client, message, false) == false)
+            if (CheckAddMessageToQueue(client, message, false))
             {
                 return;
             }
@@ -326,10 +320,9 @@ namespace Chat
                             {
                                 networkStream.Write(textBuffer, 0, textBuffer.Length); // Message text
                             }
-                            if (message.messageType != 1 && message.messageType != 11)
+                            if (message.messageType != 1 && message.messageType != 3 && message.messageType != 11)
                             {
-                                client.messagesSentNotAcknowledged.Add(message);
-                                client.messagesToBeSent.Remove(message);
+                                AddMessageToMessageListBySendPriority(client.messagesToBeSent, message);
                             }
                         }
                     }
@@ -337,7 +330,7 @@ namespace Chat
             }
             catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException)
             {
-                CheckAddMessageToMessageQueue(client, message, true);
+                CheckAddMessageToQueue(client, message, true);
             }
         }
 
@@ -411,55 +404,36 @@ namespace Chat
             }
         }
 
-        private bool CheckAddMessageToMessageQueue(Client client, Message message, bool sendFailed)
+        private bool CheckAddMessageToQueue(Client client, Message message, bool sendFailed)
         {
-            //TODO: Add code to add message to queue if desired
-            return false;
-        }
-
-        /*private bool CheckAddMessageToMessageQueue(Client client, Message message, bool sendFailed)
-        {
-            if (sendFailed == false)
+            if (client.messagesToBeSent.Count > 0 && client.messagesToBeSent[0] == message)
             {
-                if (message.messageType != 0 && message.messageType != 1 && message.messageType != 3 && message.messageType != 11 && message.messageType != 18 && message.messageType != 19)
+                return false;
+            }
+            if (message.messageType != 1 && message.messageType != 11)
+            {
+                if (sendFailed)
                 {
-                    if (client.messagesSentNotAcknowledged.Count > 0 || client.messagesToBeSent.Count > 0) // Connect/Acknowledgement/Disconnect/Heartbeat/Message Queue/Connection Complete
+                    AddMessageToMessageListBySendPriority(client.messagesToBeSent, message);
+                    return true;
+                }
+                else
+                {
+                    if (client.messagesToBeSent.Count > 0)
                     {
-                        if (client.connectionSetupComplete && client.sendingMessageQueue == false)
+                        if (message.messageSendPriority > 0)
                         {
-                            if (client.messagesToBeSent.Contains(message) == false && client.messagesSentNotAcknowledged.Contains(message) == false)
+                            if (client.sendingMessageQueue || client.receivingMessageQueue)
                             {
-                                if (message.messageType != 0 && message.messageType != 1 && message.messageType != 3 && message.messageType != 11 && message.messageType != 18 && message.messageType != 19) //TODO: Replace with message priority
-                                {
-                                    client.messagesToBeSent.Add(message);
-                                }
-                                else
-                                {
-                                    client.messagesToBeSent.Insert(0, message);
-                                }
+                                AddMessageToMessageListBySendPriority(client.messagesToBeSent, message);
+                                return true;
                             }
-                            return false;
                         }
                     }
                 }
             }
-            else
-            {
-                if (client.messagesToBeSent.Contains(message) == false && client.messagesSentNotAcknowledged.Contains(message) == false)
-                {
-                    if (message.messageType != 0 && message.messageType != 1 && message.messageType != 3 && message.messageType != 11 && message.messageType != 18 && message.messageType != 19) //TODO: Replace with message priority
-                    {
-                        client.messagesToBeSent.Add(message);
-                    }
-                    else
-                    {
-                        client.messagesToBeSent.Insert(0, message);
-                    }
-                }
-                return false;
-            }
-            return true;
-        }*/
+            return false;
+        }
 
         private Message ComposeMessage(Client client, int messageId, int messageType, string messageText)
         {
@@ -489,7 +463,6 @@ namespace Chat
                 client.messagesReceived.Add(message);
             }
 
-            //0 = client-server connection request; 1 = message acknowledgement; 2 = recieve message; 3 = disconnect; 4 = server-client username already used
             if (message.messageType == 0) // Connection Request [username, clientId (if reconnecting)]
             {
                 string[] parts = message.messageText.Split(' ', 2);
@@ -542,12 +515,12 @@ namespace Chat
             }
             else if (message.messageType == 1) // Message Acknowledgement
             {
-                foreach (Message item in client.messagesSentNotAcknowledged)
+                foreach (Message item in client.messagesToBeSent)
                 {
                     if (item.messageId == message.messageId)
                     {
-                        client.messagesSentAcknowledged.Add(item);
-                        client.messagesSentNotAcknowledged.Remove(item);
+                        client.messagesSent.Add(item);
+                        client.messagesToBeSent.Remove(item);
                         break;
                     }
                 }
@@ -571,14 +544,16 @@ namespace Chat
             {
                 if (FrmHolder.hosting)
                 {
+                    connectedClients.Remove(client);
+                    if (client.tcpClient != null)
+                    {
+                        client.tcpClient.Close();
+                    }
                     if (client.username != null)
                     {
-                        List<Client> ignoredClients = new List<Client>();
-                        ignoredClients.Add(client);
                         PrintChatMessage($"{client.username} disconnected");
-                        SendToAll(ignoredClients, 6, client.username);
+                        SendToAll(null, 6, client.username);
                     }
-                    connectedClients.Remove(client);
                     UpdateClientLists();
                 }
                 else
@@ -649,7 +624,7 @@ namespace Chat
                     PrintChatMessage($"{username} was kicked by {kickerUsername}");
                 }
             }
-            else if (message.messageType == 11) // Heartbeat received
+            else if (message.messageType == 11) // Heartbeat
             {
                 if (FrmHolder.hosting)
                 {
@@ -688,6 +663,7 @@ namespace Chat
             }
             else if (message.messageType == 18) // Send message queue
             {
+                client.sendingMessageQueue = true;
                 client.receivingMessageQueue = false;
                 SendFirstMessageInMessageQueue(client);
             }
@@ -697,12 +673,60 @@ namespace Chat
             }
         }
 
+        private void AddMessageToMessageListBySendPriority(List<Message> list, Message message)
+        {
+            bool added = false;
+            if (list.Contains(message) == false)
+            {
+                for (int i = 0; i < list.Count(); i++)
+                {
+                    if (list[i].messageSendPriority > message.messageSendPriority)
+                    {
+                        list.Insert(i, message);
+                        added = true;
+                        break;
+                    }
+                }
+                if (added == false)
+                {
+                    list.Add(message);
+                }
+            }
+        }
+
+        private void RemoveMessageFromMessageListByTypeAndOrSendPriority(List<Message> list, int? messageType, int? messageSendPriority)
+        {
+            for (int i = 0; i < list.Count(); i++)
+            {
+                if (messageType != null && messageSendPriority != null)
+                {
+                    if (list[i].messageType == messageType && list[i].messageSendPriority == messageSendPriority)
+                    {
+                        list.RemoveAt(i);
+                    }
+                }
+                else if (messageType != null)
+                {
+                    if (list[i].messageType == messageType)
+                    {
+                        list.RemoveAt(i);
+                    }
+                }
+                else if (messageSendPriority != null)
+                {
+                    if (list[i].messageSendPriority == messageSendPriority)
+                    {
+                        list.RemoveAt(i);
+                    }
+                }
+            }
+        }
+
         private Client MergeClient(Client clientMergeFrom, Client clientMergeTo)
         {
             clientMergeTo.tcpClient = clientMergeFrom.tcpClient;
             clientMergeTo.messagesReceived.AddRange(clientMergeFrom.messagesReceived);
-            clientMergeTo.messagesSentAcknowledged.AddRange(clientMergeFrom.messagesSentAcknowledged);
-            clientMergeTo.messagesSentNotAcknowledged.AddRange(clientMergeFrom.messagesSentNotAcknowledged);
+            clientMergeTo.messagesSent.AddRange(clientMergeFrom.messagesSent);
             clientMergeTo.messagesToBeSent.AddRange(clientMergeFrom.messagesToBeSent);
             clientMergeTo.nextAssignableMessageId = (clientMergeTo.nextAssignableMessageId + clientMergeFrom.nextAssignableMessageId);
             clientMergeTo.heartbeatFailures = clientMergeFrom.heartbeatFailures;
@@ -768,9 +792,9 @@ namespace Chat
             int type = kick == false ? 3 : 9;
             if (sendToAll)
             {
-                List<Client> exceptions = new List<Client>();
-                exceptions.Add(client);
-                SendToAll(exceptions, type, null);
+                List<Client> ignoredClients = new List<Client>();
+                ignoredClients.Add(client);
+                SendToAll(ignoredClients, type, null);
                 for (int i = 0; i < connectedClients.Count; i++)
                 {
                     if (connectedClients[i].tcpClient != null)
@@ -941,10 +965,10 @@ namespace Chat
             {
                 PrintChatMessage($"You kicked {username[0]}");
             }
-            List<Client> exceptions = new List<Client>();
-            exceptions.Add(clients[0]);
+            List<Client> ignoredClients = new List<Client>();
+            ignoredClients.Add(clients[0]);
             SendMessage(clients[0], ComposeMessage(clients[0], -1, 9, $"{FrmHolder.username} {reason}")); // Kick client
-            SendToAll(exceptions, 10, $"{username[0]} {FrmHolder.username} {reason}");
+            SendToAll(ignoredClients, 10, $"{username[0]} {FrmHolder.username} {reason}");
             return false;
         }
 
@@ -1123,49 +1147,6 @@ namespace Chat
         private void xbtnDisconnect_Click(object sender, EventArgs e)
         {
             BeginDisconnect();
-        }
-    }
-
-    public class Client
-    {
-        public int clientId = -1;
-        public int nextAssignableMessageId = 0;
-        public string username;
-        public TcpClient tcpClient;
-
-        public bool admin = false;
-        public bool serverMuted = false;
-        public bool serverDeafened = false;
-
-        public bool heartbeatReceieved = false;
-        public int heartbeatFailures = 0;
-        public bool connectionSetupComplete = false;
-        public bool sendingMessageQueue = false;
-        public bool receivingMessageQueue = false;
-
-        public List<Message> messagesSentNotAcknowledged = new List<Message>();
-        public List<Message> messagesSentAcknowledged = new List<Message>();
-        public List<Message> messagesToBeSent = new List<Message>();
-        public List<Message> messagesReceived = new List<Message>();
-    }
-
-    public class Message
-    {
-        public int messageId;
-        public int messageType;
-        public string messageText;
-
-        public Message(int messageId, int messageType, string messageText)
-        {
-            this.messageId = messageId;
-            this.messageType = messageType;
-            this.messageText = messageText;
-        }
-
-        public Message(int messageType, string messageText)
-        {
-            this.messageType = messageType;
-            this.messageText = messageText;
         }
     }
 }
