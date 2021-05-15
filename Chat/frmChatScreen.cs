@@ -24,7 +24,7 @@ namespace Chat
         private string localIp;
         private int nextAssignableClientId = 0;
         private List<Client> connectedClients = new List<Client>();
-        bool askToClose = true;
+        private bool askToClose = true;
         private System.Timers.Timer heartbeat = new System.Timers.Timer();
 
         private string kickFormat = "/kick [Username] [Reason (optional)]";
@@ -210,13 +210,13 @@ namespace Chat
 
         private void SendFirstMessageInMessageQueue(Client client)
         {
-            if (client.messagesSentNotAcknowledged.Count > 0)
+            if (client.messagesSentNotAcknowledged.Count > 0 && client.sendingMessageQueue)
             {
                 client.sendingMessageQueue = true;
                 Message message = client.messagesSentNotAcknowledged.ElementAtOrDefault(0);
                 SendMessage(client, ComposeMessage(client, message.messageId, message.messageType, message.messageText));
             }
-            else if (client.messagesToBeSent.Count > 0)
+            else if (client.messagesToBeSent.Count > 0 && client.sendingMessageQueue)
             {
                 client.sendingMessageQueue = true;
                 Message message = client.messagesToBeSent.ElementAtOrDefault(0);
@@ -228,6 +228,7 @@ namespace Chat
                 if (FrmHolder.hosting == false)
                 {
                     SendMessage(client, ComposeMessage(client, -1, 18, null));
+                    client.receivingMessageQueue = true;
                 }
             }
         }
@@ -235,6 +236,7 @@ namespace Chat
         private void ConnectClient(Client client)
         {
             client.connectionSetupComplete = false;
+            client.sendingMessageQueue = false;
             if (client.tcpClient != null)
             {
                 client.tcpClient.Close();
@@ -278,13 +280,8 @@ namespace Chat
 
         public void SendMessage(Client client, Message message)
         {
-            if ((client.messagesSentNotAcknowledged.Count > 0 || client.messagesToBeSent.Count > 0) && (message.messageType != 0 && message.messageType != 1 && message.messageType != 3 && message.messageType != 11 && message.messageType != 18 && message.messageType != 19) && client.connectionSetupComplete && client.sendingMessageQueue == false) // Connect/Acknowledgement/Disconnect/Heartbeat/Message Queue/Connection Complete
+            if (CheckAddMessageToMessageQueue(client, message, false) == false)
             {
-                if (client.messagesToBeSent.Contains(message) == false)
-                {
-                    client.messagesToBeSent.Add(message);
-                }
-                client.messagesSentNotAcknowledged.Remove(message);
                 return;
             }
             try
@@ -340,22 +337,7 @@ namespace Chat
             }
             catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException)
             {
-                /*if (message.messageType != 11 || message.messageType != 18) // Heartbeat/Send Message Queue
-                {
-                    if (client.messagesToBeSent.Contains(message) == false)
-                    {
-                        client.messagesToBeSent.Add(message);
-                    }
-                }*/
-                if ((client.messagesSentNotAcknowledged.Count > 0 || client.messagesToBeSent.Count > 0) && (message.messageType != 0 && message.messageType != 1 && message.messageType != 3 && message.messageType != 11 && message.messageType != 18 && message.messageType != 19) && client.connectionSetupComplete && client.sendingMessageQueue == false) // Connect/Acknowledgement/Disconnect/Heartbeat/Message Queue/Connection Complete
-                {
-                    if (client.messagesToBeSent.Contains(message) == false)
-                    {
-                        client.messagesToBeSent.Add(message);
-                    }
-                    client.messagesSentNotAcknowledged.Remove(message);
-                    return;
-                }
+                CheckAddMessageToMessageQueue(client, message, true);
             }
         }
 
@@ -428,6 +410,56 @@ namespace Chat
                 return;
             }
         }
+
+        private bool CheckAddMessageToMessageQueue(Client client, Message message, bool sendFailed)
+        {
+            //TODO: Add code to add message to queue if desired
+            return false;
+        }
+
+        /*private bool CheckAddMessageToMessageQueue(Client client, Message message, bool sendFailed)
+        {
+            if (sendFailed == false)
+            {
+                if (message.messageType != 0 && message.messageType != 1 && message.messageType != 3 && message.messageType != 11 && message.messageType != 18 && message.messageType != 19)
+                {
+                    if (client.messagesSentNotAcknowledged.Count > 0 || client.messagesToBeSent.Count > 0) // Connect/Acknowledgement/Disconnect/Heartbeat/Message Queue/Connection Complete
+                    {
+                        if (client.connectionSetupComplete && client.sendingMessageQueue == false)
+                        {
+                            if (client.messagesToBeSent.Contains(message) == false && client.messagesSentNotAcknowledged.Contains(message) == false)
+                            {
+                                if (message.messageType != 0 && message.messageType != 1 && message.messageType != 3 && message.messageType != 11 && message.messageType != 18 && message.messageType != 19) //TODO: Replace with message priority
+                                {
+                                    client.messagesToBeSent.Add(message);
+                                }
+                                else
+                                {
+                                    client.messagesToBeSent.Insert(0, message);
+                                }
+                            }
+                            return false;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (client.messagesToBeSent.Contains(message) == false && client.messagesSentNotAcknowledged.Contains(message) == false)
+                {
+                    if (message.messageType != 0 && message.messageType != 1 && message.messageType != 3 && message.messageType != 11 && message.messageType != 18 && message.messageType != 19) //TODO: Replace with message priority
+                    {
+                        client.messagesToBeSent.Add(message);
+                    }
+                    else
+                    {
+                        client.messagesToBeSent.Insert(0, message);
+                    }
+                }
+                return false;
+            }
+            return true;
+        }*/
 
         private Message ComposeMessage(Client client, int messageId, int messageType, string messageText)
         {
@@ -505,6 +537,7 @@ namespace Chat
                     client.connectionSetupComplete = true;
                     SendMessage(client, ComposeMessage(client, -1, 19, null));
                     SendMessage(client, ComposeMessage(client, -1, 18, null));
+                    client.receivingMessageQueue = true;
                 }
             }
             else if (message.messageType == 1) // Message Acknowledgement
@@ -655,7 +688,8 @@ namespace Chat
             }
             else if (message.messageType == 18) // Send message queue
             {
-                    SendFirstMessageInMessageQueue(client);
+                client.receivingMessageQueue = false;
+                SendFirstMessageInMessageQueue(client);
             }
             else if (message.messageType == 19) // Connection setup complete
             {
@@ -1107,6 +1141,7 @@ namespace Chat
         public int heartbeatFailures = 0;
         public bool connectionSetupComplete = false;
         public bool sendingMessageQueue = false;
+        public bool receivingMessageQueue = false;
 
         public List<Message> messagesSentNotAcknowledged = new List<Message>();
         public List<Message> messagesSentAcknowledged = new List<Message>();
