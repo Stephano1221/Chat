@@ -724,13 +724,22 @@ namespace Chat
 
         private Client MergeClient(Client clientMergeFrom, Client clientMergeTo)
         {
+            //clientMergeTo.clientId = clientMergeFrom.clientId;
+            clientMergeTo.nextAssignableMessageId = (clientMergeTo.nextAssignableMessageId + clientMergeFrom.nextAssignableMessageId);
+            //clientMergeTo.username = clientMergeFrom.username;
             clientMergeTo.tcpClient = clientMergeFrom.tcpClient;
-            clientMergeTo.messagesReceived.AddRange(clientMergeFrom.messagesReceived);
+
+            //clientMergeTo.admin = clientMergeFrom.admin;
+            //clientMergeTo.serverMuted = clientMergeFrom.serverMuted;
+            //clientMergeTo.serverDeafened = clientMergeFrom.serverDeafened;
+
+            clientMergeTo.heartbeatReceieved = clientMergeFrom.heartbeatReceieved;
+            clientMergeTo.heartbeatFailures = clientMergeFrom.heartbeatFailures;
+
             clientMergeTo.messagesSent.AddRange(clientMergeFrom.messagesSent);
             clientMergeTo.messagesToBeSent.AddRange(clientMergeFrom.messagesToBeSent);
-            clientMergeTo.nextAssignableMessageId = (clientMergeTo.nextAssignableMessageId + clientMergeFrom.nextAssignableMessageId);
-            clientMergeTo.heartbeatFailures = clientMergeFrom.heartbeatFailures;
-            clientMergeTo.heartbeatReceieved = clientMergeFrom.heartbeatReceieved;
+            clientMergeTo.messagesReceived.AddRange(clientMergeFrom.messagesReceived);
+
             connectedClients.Remove(clientMergeFrom);
             return clientMergeTo;
         }
