@@ -70,7 +70,38 @@ namespace Chat
             }
         }
 
-        public string RSAGetKeyXml(string keyContainerName, bool includePrivateParameters)
+        public void RSAXmlToKey(string keyContainerName, string xmlKey)
+        {
+            try
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    CspParameters cspParameters = new CspParameters()
+                    {
+                        KeyContainerName = keyContainerName
+                    };
+                    using (RSACryptoServiceProvider rSACryptoServiceProvider = new RSACryptoServiceProvider(cspParameters))
+                    {
+                        rSACryptoServiceProvider.FromXmlString(xmlKey);
+                    }
+                }
+                else
+                {
+                    using (RSACryptoServiceProvider rSACryptoServiceProvider = new RSACryptoServiceProvider())
+                    {
+                        rSACryptoServiceProvider.FromXmlString(xmlKey);
+                        nonWindowsRSAPublicKey = rSACryptoServiceProvider.ExportParameters(false);
+                        nonWindowsRSAPrivatePublicKey = rSACryptoServiceProvider.ExportParameters(true);
+                    }
+                }
+            }
+            catch(CryptographicException)
+            {
+                throw;
+            }
+        }
+
+        public string RSAGetKeyAsXml(string keyContainerName, bool includePrivateParameters)
         {
             try
             {
