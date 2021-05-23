@@ -15,6 +15,8 @@ namespace Chat
         public string username;
         public TcpClient tcpClient;
 
+        public Encryption encryption;
+
         public bool admin = false;
         public bool serverMuted = false;
         public bool serverDeafened = false;
@@ -28,5 +30,10 @@ namespace Chat
         public List<Message> messagesSent = new List<Message>();
         public List<Message> messagesToBeSent = new List<Message>();
         public List<Message> messagesReceived = new List<Message>();
+
+        public Client()
+        {
+            encryption = new Encryption();
+        }
     }
 }
