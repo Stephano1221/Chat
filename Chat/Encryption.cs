@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -10,31 +11,57 @@ namespace Chat
 {
     public class Encryption
     {
-        RSAParameters nonWindowsRSAPublicKey;
-        RSAParameters nonWindowsRSAPrivatePublicKey;
+        private string keyContainerName;
+        private RSAParameters nonWindowsRsaPublicKey;
+        private RSAParameters nonWindowsRsaPrivatePublicKey;
+        private byte[] aesEncryptedKey;
+        private byte[] aesEncryptedIv;
+        private byte[] aesUnencryptedKey;
+        private byte[] aesUnencryptedIv;
+
 
         public Encryption()
         {
 
         }
 
-        public byte[] RSAEncryptDecrypt(byte[] data, RSAParameters rSAParameters, bool oAEPPadding, bool encrypt)
+        #region RSA
+        public byte[] RsaEncryptDecrypt(byte[] data, string keyContainerName, RSAParameters rsaParameters, bool oAEPPadding, bool encrypt)
         {
             try
             {
-                using (RSACryptoServiceProvider rSACryptoServiceProvider = new RSACryptoServiceProvider())
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && keyContainerName != null)
                 {
-                    rSACryptoServiceProvider.ImportParameters(rSAParameters);
-                    byte[] changedData;
-                    if (encrypt)
+                    CspParameters cspParameters = new CspParameters()
                     {
-                        changedData = rSACryptoServiceProvider.Encrypt(data, oAEPPadding);
-                    }
-                    else
+                        KeyContainerName = keyContainerName
+                    };
+                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider(cspParameters))
                     {
-                        changedData = rSACryptoServiceProvider.Decrypt(data, oAEPPadding);
+                        if (encrypt)
+                        {
+                            return rsaCryptoServiceProvider.Encrypt(data, oAEPPadding);
+                        }
+                        else
+                        {
+                            return rsaCryptoServiceProvider.Decrypt(data, oAEPPadding);
+                        }
                     }
-                    return changedData;
+                }
+                else
+                {
+                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider())
+                    {
+                        rsaCryptoServiceProvider.ImportParameters(rsaParameters);
+                        if (encrypt)
+                        {
+                            return rsaCryptoServiceProvider.Encrypt(data, oAEPPadding);
+                        }
+                        else
+                        {
+                            return rsaCryptoServiceProvider.Decrypt(data, oAEPPadding);
+                        }
+                    }
                 }
             }
             catch(CryptographicException)
@@ -43,24 +70,24 @@ namespace Chat
             }
         }
 
-        public void RSAGenerateKey(string keyContainerName)
+        public void RsaGenerateKey(string keyContainerName)
         {
             try
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && keyContainerName != null)
                 {
                     CspParameters cspParameters = new CspParameters()
                     {
                         KeyContainerName = keyContainerName
                     };
-                    using RSACryptoServiceProvider rSACryptoServiceProvider = new RSACryptoServiceProvider(cspParameters);
+                    using RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider(cspParameters);
                 }
                 else
                 {
-                    using (RSACryptoServiceProvider rSACryptoServiceProvider = new RSACryptoServiceProvider())
+                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider())
                     {
-                        nonWindowsRSAPublicKey = rSACryptoServiceProvider.ExportParameters(false);
-                        nonWindowsRSAPrivatePublicKey = rSACryptoServiceProvider.ExportParameters(true);
+                        nonWindowsRsaPublicKey = rsaCryptoServiceProvider.ExportParameters(false);
+                        nonWindowsRsaPrivatePublicKey = rsaCryptoServiceProvider.ExportParameters(true);
                     }
                 }
             }
@@ -70,28 +97,28 @@ namespace Chat
             }
         }
 
-        public void RSAXmlToKey(string keyContainerName, string xmlKey)
+        public void RsaImportXmlKey(string keyContainerName, string xmlKey)
         {
             try
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && keyContainerName != null)
                 {
                     CspParameters cspParameters = new CspParameters()
                     {
                         KeyContainerName = keyContainerName
                     };
-                    using (RSACryptoServiceProvider rSACryptoServiceProvider = new RSACryptoServiceProvider(cspParameters))
+                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider(cspParameters))
                     {
-                        rSACryptoServiceProvider.FromXmlString(xmlKey);
+                        rsaCryptoServiceProvider.FromXmlString(xmlKey);
                     }
                 }
                 else
                 {
-                    using (RSACryptoServiceProvider rSACryptoServiceProvider = new RSACryptoServiceProvider())
+                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider())
                     {
-                        rSACryptoServiceProvider.FromXmlString(xmlKey);
-                        nonWindowsRSAPublicKey = rSACryptoServiceProvider.ExportParameters(false);
-                        nonWindowsRSAPrivatePublicKey = rSACryptoServiceProvider.ExportParameters(true);
+                        rsaCryptoServiceProvider.FromXmlString(xmlKey);
+                        nonWindowsRsaPublicKey = rsaCryptoServiceProvider.ExportParameters(false);
+                        nonWindowsRsaPrivatePublicKey = rsaCryptoServiceProvider.ExportParameters(true);
                     }
                 }
             }
@@ -101,34 +128,34 @@ namespace Chat
             }
         }
 
-        public string RSAGetKeyAsXml(string keyContainerName, bool includePrivateParameters)
+        public string RsaExportXmlKey(string keyContainerName, bool includePrivateParameters)
         {
             try
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && keyContainerName != null)
                 {
                     CspParameters cspParameters = new CspParameters()
                     {
                         KeyContainerName = keyContainerName
                     };
-                    using (RSACryptoServiceProvider rSACryptoServiceProvider = new RSACryptoServiceProvider(cspParameters))
+                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider(cspParameters))
                     {
-                        return rSACryptoServiceProvider.ToXmlString(includePrivateParameters);
+                        return rsaCryptoServiceProvider.ToXmlString(includePrivateParameters);
                     }
                 }
                 else
                 {
-                    using (RSACryptoServiceProvider rSACryptoServiceProvider = new RSACryptoServiceProvider())
+                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider())
                     {
                         if (includePrivateParameters)
                         {
-                            rSACryptoServiceProvider.ImportParameters(nonWindowsRSAPrivatePublicKey);
+                            rsaCryptoServiceProvider.ImportParameters(nonWindowsRsaPrivatePublicKey);
                         }
                         else
                         {
-                            rSACryptoServiceProvider.ImportParameters(nonWindowsRSAPublicKey);
+                            rsaCryptoServiceProvider.ImportParameters(nonWindowsRsaPublicKey);
                         }
-                        return rSACryptoServiceProvider.ToXmlString(includePrivateParameters);
+                        return rsaCryptoServiceProvider.ToXmlString(includePrivateParameters);
                     }
                 }
             }
@@ -138,27 +165,27 @@ namespace Chat
             }
         }
 
-        public void RSADeleteKey(string keyContainerName)
+        public void RsaDeleteKey(string keyContainerName)
         {
             try
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && keyContainerName != null)
                 {
                     CspParameters cspParameters = new CspParameters()
                     {
                         KeyContainerName = keyContainerName
                     };
-                    using (RSACryptoServiceProvider rSACryptoServiceProvider = new RSACryptoServiceProvider(cspParameters))
+                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider(cspParameters))
                     {
-                        rSACryptoServiceProvider.PersistKeyInCsp = false;
+                        rsaCryptoServiceProvider.PersistKeyInCsp = false;
                     }
                 }
                 else
                 {
-                    using (RSACryptoServiceProvider rSACryptoServiceProvider = new RSACryptoServiceProvider())
+                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider())
                     {
-                        nonWindowsRSAPublicKey = new RSAParameters();
-                        nonWindowsRSAPrivatePublicKey = new RSAParameters();
+                        nonWindowsRsaPublicKey = new RSAParameters();
+                        nonWindowsRsaPrivatePublicKey = new RSAParameters();
                     }
                 }
             }
@@ -167,5 +194,59 @@ namespace Chat
                 throw;
             }
         }
+        #endregion
+
+        #region AES
+        public void AesEncryptDecrypt(byte[] data, (byte[] key, byte[] iv) keyandIv, bool encrypt)
+        {
+            using (Aes aes = Aes.Create())
+            {
+
+            }
+        }
+
+        public void AesGenerateKey()
+        {
+            try
+            {
+                using (Aes aes = Aes.Create())
+                {
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        aesEncryptedKey = ProtectedData.Protect(aes.Key, null, DataProtectionScope.CurrentUser);
+                        aesEncryptedIv = ProtectedData.Protect(aes.IV, null, DataProtectionScope.CurrentUser);
+                    }
+                    else
+                    {
+                        aesUnencryptedKey = aes.Key;
+                        aesUnencryptedIv = aes.IV;
+                    }
+                }
+            }
+            catch(CryptographicException)
+            {
+                throw;
+            }
+        }
+
+        public (byte[] aesDecryptedKey, byte[] aesDecryptedIv) AesGetKeyAndIv(byte[] encryptedKey, byte[] encryptedIv)
+        {
+            try
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    return (ProtectedData.Unprotect(encryptedKey, null, DataProtectionScope.CurrentUser), ProtectedData.Unprotect(encryptedIv, null, DataProtectionScope.CurrentUser));
+                }
+                else
+                {
+                    return (aesUnencryptedKey, aesUnencryptedIv);
+                }
+            }
+            catch(CryptographicException)
+            {
+                throw;
+            }
+        }
+        #endregion
     }
 }
