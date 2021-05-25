@@ -197,12 +197,36 @@ namespace Chat
         #endregion
 
         #region AES
-        public void AesEncryptDecrypt(byte[] data, (byte[] key, byte[] iv) keyandIv, bool encrypt)
+        public byte[] AesEncryptDecrypt(byte[] data, (byte[] key, byte[] iv) keyandIv, bool encrypt)
         {
+            byte[] changedData;
             using (Aes aes = Aes.Create())
             {
+                aes.Key = keyandIv.key;
+                aes.IV = keyandIv.iv;
 
+                ICryptoTransform cryptoTransform;
+                if (encrypt)
+                {
+                    cryptoTransform = aes.CreateEncryptor(aes.Key, aes.IV);
+                }
+                else
+                {
+                    cryptoTransform = aes.CreateDecryptor(aes.Key, aes.IV);
+                }
+                using (MemoryStream memoryStream = new MemoryStream())
+                {
+                    using (CryptoStream cryptoStream = new CryptoStream(memoryStream, cryptoTransform, CryptoStreamMode.Write))
+                    {
+                        using (StreamWriter streamWriter = new StreamWriter(cryptoStream))
+                        {
+                            streamWriter.Write(data);
+                        }
+                    }
+                    changedData = memoryStream.ToArray();
+                }
             }
+            return changedData;
         }
 
         public void AesGenerateKey()
@@ -243,6 +267,54 @@ namespace Chat
                 }
             }
             catch(CryptographicException)
+            {
+                throw;
+            }
+        }
+
+        public void AesImportKeyAndIv(string xmlKey)
+        {
+            try
+            {
+                //TODO: Extract key parts from xmlKey for use below
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    //aesEncryptedKey = ProtectedData.Protect(keyandIv.key, null, DataProtectionScope.CurrentUser);
+                    //aesEncryptedIv = ProtectedData.Protect(keyandIv.iv, null, DataProtectionScope.CurrentUser);
+                }
+                else
+                {
+                    //aesUnencryptedKey = keyandIv.key;
+                    //aesUnencryptedIv = keyandIv.iv;
+                }
+            }
+            catch(CryptographicException)
+            {
+                throw;
+            }
+        }
+
+        public string AesExportKeyAndIv((byte[] key, byte[] iv) keyandIv)
+        {
+            try
+            {
+                //TODO: Put key and IV into an XML string
+                string xmlKey;
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    xmlKey = null;
+                    //aesEncryptedKey = ProtectedData.Unprotect(keyandIv.key, null, DataProtectionScope.CurrentUser);
+                    //aesEncryptedIv = ProtectedData.Unprotect(keyandIv.iv, null, DataProtectionScope.CurrentUser);
+                }
+                else
+                {
+                    xmlKey = null;
+                    //aesUnencryptedKey = keyandIv.key;
+                    //aesUnencryptedIv = keyandIv.iv;
+                }
+                return xmlKey;
+            }
+            catch (CryptographicException)
             {
                 throw;
             }
