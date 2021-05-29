@@ -172,7 +172,7 @@ namespace Chat
                     {
                         if (client.tcpClient != null)
                         {
-                            SendMessage(client, ComposeMessage(client, -1, 11, null)); // Send heartbeat
+                            SendMessage(client, ComposeMessage(client, -1, 11, null, null)); // Send heartbeat
                         }
                     }
                     client.heartbeatReceieved = false;
@@ -213,7 +213,7 @@ namespace Chat
                 client.sendingMessageQueue = false;
                 if (FrmHolder.hosting == false)
                 {
-                    SendMessage(client, ComposeMessage(client, -1, 18, null));
+                    SendMessage(client, ComposeMessage(client, -1, 18, null, null));
                     client.receivingMessageQueue = true;
                 }
             }
@@ -325,7 +325,7 @@ namespace Chat
             client.encryption.RsaGenerateKey(client.encryption.keyContainerName);
             string rsaKey = client.encryption.RsaExportXmlKey(client.encryption.keyContainerName, false);
             //SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 0, $"{FrmHolder.username}{clientIdPart}"));
-            SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 20, $"{rsaKey}"));
+            SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 20, $"{rsaKey}", null));
         }
 
         public void ServerAcceptIncomingConnection(TcpListener tcpListener)
@@ -359,14 +359,23 @@ namespace Chat
             }
         }
 
-        public Message ComposeMessage(Client client, int messageId, int messageType, string messageText)
+        public Message ComposeMessage(Client client, int messageId, int messageType, string messageText, byte[] messageBytes)
         {
             if (messageId == -1)
             {
                 messageId = client.nextAssignableMessageId;
                 client.nextAssignableMessageId += 2;
             }
-            Message message = new Message(messageId, messageType, messageText);
+            Message message;
+            if (messageText != null)
+            {
+                message = new Message(messageId, messageType, messageText);
+            }
+            else
+            {
+                message = new Message(messageId, messageType, messageBytes);
+            }
+
             return message;
         }
 
@@ -393,38 +402,38 @@ namespace Chat
                             byte[] typeBuffer = new byte[4];
                             typeBuffer = BitConverter.GetBytes(message.messageType);
 
-                            // Message text
-                            byte[] textBuffer = null;
-                            if (message.messageText != null)
+                            // Message bytes
+                            byte[] bytesBuffer = null;
+                            if (message.messageBytes != null && message.messageBytes.Count() > 0)
                             {
                                 if (client.encryptionEstablished)
                                 {
-                                    textBuffer = client.encryption.AesEncryptDecrypt(Encoding.Unicode.GetBytes(message.messageText), client.encryption.AesGetKeyAndIv(client.encryption.aesEncryptedKey, client.encryption.aesEncryptedIv), true);
+                                    bytesBuffer = client.encryption.AesEncryptDecrypt(message.messageBytes, client.encryption.AesGetKeyAndIv(client.encryption.aesEncryptedKey, client.encryption.aesEncryptedIv), true);
                                 }
                                 else
                                 {
-                                    textBuffer = Encoding.Unicode.GetBytes(message.messageText);
+                                    bytesBuffer = message.messageBytes;
                                 }
                             }
 
                             // Message length
                             byte[] lengthBuffer = new byte[4];
-                            if (message.messageText != null)
+                            if (bytesBuffer != null)
                             {
-                                lengthBuffer = BitConverter.GetBytes(textBuffer.Length);
+                                lengthBuffer = BitConverter.GetBytes(bytesBuffer.Length);
                             }
 
                             ConvertLittleEndianToBigEndian(idBuffer);
                             ConvertLittleEndianToBigEndian(typeBuffer);
-                            ConvertLittleEndianToBigEndian(textBuffer);
+                            ConvertLittleEndianToBigEndian(bytesBuffer);
                             ConvertLittleEndianToBigEndian(lengthBuffer);
 
                             networkStream.Write(idBuffer, 0, 4); // Message ID
                             networkStream.Write(typeBuffer, 0, 4); // Message type
                             networkStream.Write(lengthBuffer, 0, 4); // Message length
-                            if (message.messageText != null)
+                            if (bytesBuffer != null)
                             {
-                                networkStream.Write(textBuffer, 0, textBuffer.Length); // Message text
+                                networkStream.Write(bytesBuffer, 0, bytesBuffer.Length); // Message text
                             }
                             if (message.messageType != 1 && message.messageType != 3 && message.messageType != 11)
                             {
@@ -470,28 +479,27 @@ namespace Chat
                             int messageType = BitConverter.ToInt32(typeBuffer, 0);
                             int messageLength = BitConverter.ToInt32(lengthBuffer, 0);
 
-                            // Message text
-                            string messageText = null;
+                            // Message bytes
+                            byte[] messageBytes = null;
                             int receivedLength = 0;
                             int totalReceivedLength = 0;
                             if (messageLength > 0)
                             {
-                                byte[] textBuffer = new byte[messageLength];
-                                byte[] tempTextBuffer = new byte[messageLength];
+                                messageBytes = new byte[messageLength];
+                                byte[] tempBytesBuffer = new byte[messageLength];
                                 while (totalReceivedLength < messageLength)
                                 {
                                     receivedLength = 0;
-                                    receivedLength += networkStream.Read(tempTextBuffer, 0, messageLength - totalReceivedLength);
-                                    Array.Resize(ref tempTextBuffer, receivedLength);
-                                    tempTextBuffer.CopyTo(textBuffer, totalReceivedLength);
-                                    tempTextBuffer = new byte[messageLength];
+                                    receivedLength += networkStream.Read(tempBytesBuffer, 0, messageLength - totalReceivedLength);
+                                    Array.Resize(ref tempBytesBuffer, receivedLength);
+                                    tempBytesBuffer.CopyTo(messageBytes, totalReceivedLength);
+                                    tempBytesBuffer = new byte[messageLength];
                                     totalReceivedLength += receivedLength;
                                 }
-                                ConvertLittleEndianToBigEndian(textBuffer);
-                                messageText = Encoding.Unicode.GetString(textBuffer);
+                                ConvertLittleEndianToBigEndian(messageBytes);
                             }
 
-                            Message receivedMessage = ComposeMessage(client, messageId, messageType, messageText);
+                            Message receivedMessage = ComposeMessage(client, messageId, messageType, null, messageBytes);
                             MessageReceivedEvent.Invoke(this, new MessageReceivedEventArgs(client, receivedMessage));
                         }
                     }
@@ -513,14 +521,14 @@ namespace Chat
                     {
                         if (connectedClients[i] != ignoredClients[j])
                         {
-                            SendMessage(connectedClients[i], ComposeMessage(connectedClients[i], -1, messageType, messageText));
+                            SendMessage(connectedClients[i], ComposeMessage(connectedClients[i], -1, messageType, messageText, null));
                             break;
                         }
                     }
                 }
                 else
                 {
-                    SendMessage(connectedClients[i], ComposeMessage(connectedClients[i], -1, messageType, messageText));
+                    SendMessage(connectedClients[i], ComposeMessage(connectedClients[i], -1, messageType, messageText, null));
                 }
             }
         }
@@ -616,13 +624,13 @@ namespace Chat
             ignoredClients.Add(client);
             if (setAsAdmin)
             {
-                SendMessage(client, ComposeMessage(client, -1, 14, setter));
+                SendMessage(client, ComposeMessage(client, -1, 14, setter, null));
                 SendToAll(ignoredClients, 15, $"{client.username} {setter}");
                 PrintChatMessageEvent.Invoke(this, $"You made {client.username} an Admin");
             }
             else
             {
-                SendMessage(client, ComposeMessage(client, -1, 16, setter));
+                SendMessage(client, ComposeMessage(client, -1, 16, setter, null));
                 SendToAll(ignoredClients, 17, $"{client.username} {setter}");
                 PrintChatMessageEvent.Invoke(this, $"You removed {client.username} from Admin");
             }
@@ -647,7 +655,7 @@ namespace Chat
             }
             else
             {
-                SendMessage(client, ComposeMessage(client, -1, type, null));
+                SendMessage(client, ComposeMessage(client, -1, type, null, null));
                 if (client.tcpClient != null)
                 {
                     client.tcpClient.Close();

@@ -11,6 +11,7 @@ namespace Chat
         public int messageId;
         public int messageType;
         public string messageText;
+        public byte[] messageBytes;
 
         public int messageSendPriority;
 
@@ -20,6 +21,7 @@ namespace Chat
             this.messageType = messageType;
             this.messageText = messageText;
 
+            MessageTextToOrFromBytes(true);
             SetPriorityLevelFromMessageType();
         }
 
@@ -28,6 +30,7 @@ namespace Chat
             this.messageType = messageType;
             this.messageText = messageText;
 
+            MessageTextToOrFromBytes(true);
             SetPriorityLevelFromMessageType();
 
         }
@@ -38,6 +41,7 @@ namespace Chat
             this.messageType = messageType;
             this.messageText = messageText;
 
+            MessageTextToOrFromBytes(true);
             this.messageSendPriority = messageSendPriority;
         }
 
@@ -46,7 +50,59 @@ namespace Chat
             this.messageType = messageType;
             this.messageText = messageText;
 
+            MessageTextToOrFromBytes(true);
             this.messageSendPriority = messageSendPriority;
+        }
+
+        public Message(int messageId, int messageType, byte[] messageBytes)
+        {
+            this.messageId = messageId;
+            this.messageType = messageType;
+            this.messageBytes = messageBytes;
+
+            MessageTextToOrFromBytes(false);
+            SetPriorityLevelFromMessageType();
+        }
+
+        public Message(int messageType, byte[] messageBytes)
+        {
+            this.messageType = messageType;
+            this.messageBytes = messageBytes;
+
+            MessageTextToOrFromBytes(false);
+            SetPriorityLevelFromMessageType();
+
+        }
+
+        public Message(int messageId, int messageType, byte[] messageBytes, int messageSendPriority)
+        {
+            this.messageId = messageId;
+            this.messageType = messageType;
+            this.messageBytes = messageBytes;
+
+            MessageTextToOrFromBytes(false);
+            this.messageSendPriority = messageSendPriority;
+        }
+
+        public Message(int messageType, byte[] messageBytes, int messageSendPriority)
+        {
+            this.messageType = messageType;
+            this.messageBytes = messageBytes;
+
+            MessageTextToOrFromBytes(false);
+            this.messageSendPriority = messageSendPriority;
+        }
+
+        private void MessageTextToOrFromBytes(bool toBytes)
+        {
+            if (toBytes && messageText != null)
+            {
+                messageBytes = Encoding.Unicode.GetBytes(messageText);
+            }
+            else if (messageBytes != null && CheckIfCanConvertToText())
+            {
+                messageText = Encoding.Unicode.GetString(messageBytes);
+            }
         }
 
         private void SetPriorityLevelFromMessageType()
@@ -73,6 +129,39 @@ namespace Chat
                 case 17: messageSendPriority = 1; break;
                 case 18: messageSendPriority = 0; break;
                 case 19: messageSendPriority = 0; break;
+                case 20: messageSendPriority = 0; break;
+                case 21: messageSendPriority = 0; break;
+                default: messageSendPriority = 0; break;
+            }
+        }
+
+        private bool CheckIfCanConvertToText()
+        {
+            switch (messageType)
+            {
+                case 0: return true;
+                case 1: return true;
+                case 2: return true;
+                case 3: return true;
+                case 4: return true;
+                case 5: return true;
+                case 6: return true;
+                case 7: return true;
+                case 8: return true;
+                case 9: return true;
+                case 10: return true;
+                case 11: return true;
+                case 12: return true;
+                case 13: return true;
+                case 14: return true;
+                case 15: return true;
+                case 16: return true;
+                case 17: return true;
+                case 18: return true;
+                case 19: return true;
+                case 20: return true;
+                case 21: return true;
+                default: return false;
             }
         }
     }

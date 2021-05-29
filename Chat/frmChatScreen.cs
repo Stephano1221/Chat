@@ -64,7 +64,7 @@ namespace Chat
 
             if (e.message.messageType != 1 && e.message.messageType != 3 && e.message.messageType != 11)
             {
-                network.SendMessage(e.client, network.ComposeMessage(e.client, e.message.messageId, 1, null)); // Acknowledge received message
+                network.SendMessage(e.client, network.ComposeMessage(e.client, e.message.messageId, 1, null, null)); // Acknowledge received message
                 foreach (Message alreadyReceivedMessage in e.client.messagesReceived)
                 {
                     if (e.message.messageId == alreadyReceivedMessage.messageId)
@@ -99,7 +99,7 @@ namespace Chat
                         if (clientId != network.connectedClients[i].clientId)
                         {
                             usernameAlreadyInUse = true;
-                            network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 4, null));
+                            network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 4, null, null));
                             break;
                         }
                     }
@@ -111,7 +111,7 @@ namespace Chat
                     {
                         e.client.clientId = network.nextAssignableClientId;
                         network.nextAssignableClientId++;
-                        network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 12, e.client.clientId.ToString()));
+                        network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 12, e.client.clientId.ToString(), null));
 
                         List<Client> ignoredClients = new List<Client>();
                         ignoredClients.Add(e.client);
@@ -120,8 +120,8 @@ namespace Chat
                         network.UpdateClientLists();
                     }
                     e.client.connectionSetupComplete = true;
-                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 19, null));
-                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 18, null));
+                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 19, null, null));
+                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 18, null, null));
                     e.client.receivingMessageQueue = true;
                 }
             }
@@ -240,7 +240,7 @@ namespace Chat
             {
                 if (FrmHolder.hosting)
                 {
-                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 11, null));
+                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 11, null, null));
                 }
             }
             else if (e.message.messageType == 12) // Set clientId
@@ -289,7 +289,7 @@ namespace Chat
                 e.client.encryption.RsaImportXmlKey(e.client.encryption.keyContainerName, e.message.messageText);
                 e.client.encryption.AesGenerateKey();
                 string symmetricKey = Convert.ToBase64String(e.client.encryption.RsaEncryptDecrypt(Convert.FromBase64String(e.client.encryption.AesExportKeyAndIv()), e.client.encryption.keyContainerName, e.client.encryption.rsaParametersPublicKey, true, true));
-                network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 21, symmetricKey));
+                network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 21, symmetricKey, null));
                 e.client.encryption.RsaDeleteKey(e.client.encryption.keyContainerName);
                 e.client.encryptionEstablished = true;
             }
@@ -307,7 +307,7 @@ namespace Chat
                     {
                         clientIdPart = $" {Convert.ToString(FrmHolder.clientId)}";
                     }
-                    network.SendMessage(network.connectedClients[0], network.ComposeMessage(network.connectedClients[0], -1, 0, $"{FrmHolder.username}{clientIdPart}"));
+                    network.SendMessage(network.connectedClients[0], network.ComposeMessage(network.connectedClients[0], -1, 0, $"{FrmHolder.username}{clientIdPart}", null));
                 }
             }
         }
@@ -320,61 +320,6 @@ namespace Chat
         private void AddClientToClientList(string username)
         {
             xlsvConnectedUsers.Items.Add(username);
-        }
-
-        private void OnHeartbeatTimeoutFailure(object sender, Client client)
-        {
-            if (xlbxChat.InvokeRequired)
-            {
-                xlbxChat.BeginInvoke(new HeartbeatDelegate(network.HeartbeatTimeoutFailure), client);
-            }
-        }
-
-        private void OnMessageReceived(object sender, MessageReceivedEventArgs e)
-        {
-            if (xlbxChat.InvokeRequired)
-            {
-                xlbxChat.BeginInvoke(new MessageDelegate(ProcessMessage), this, e);
-            }
-            else
-            {
-                ProcessMessage(this, e);
-            }
-        }
-
-        private void OnClearClientList(object sender, EventArgs e)
-        {
-            if (xlsvConnectedUsers.InvokeRequired)
-            {
-                xlsvConnectedUsers.BeginInvoke(new ClearClientClistDelegate(ClearClientList));
-            }
-            else
-            {
-                xlsvConnectedUsers.Items.Clear();
-            }
-        }
-
-        private void OnAddClientToClientList(object sender, string username)
-        {
-            if (xlsvConnectedUsers.InvokeRequired)
-            {
-                xlsvConnectedUsers.BeginInvoke(new AddClientToClientListDelegate(AddClientToClientList), username);
-            }
-            else
-            {
-                xlsvConnectedUsers.Items.Add(username);
-            }
-        }
-
-        private void OnClosing(object sender, FormClosingEventArgs e)
-        {
-            if (askToClose) // Prevents closing when returning to main menu
-            {
-                if (BeginDisconnect() == false)
-                {
-                    e.Cancel = true;
-                }
-            }
         }
 
         private void FrmChatScreen_Load(object sender, EventArgs e)
@@ -484,7 +429,7 @@ namespace Chat
             }
             List<Client> ignoredClients = new List<Client>();
             ignoredClients.Add(clients[0]);
-            network.SendMessage(clients[0], network.ComposeMessage(clients[0], -1, 9, $"{FrmHolder.username} {reason}")); // Kick client
+            network.SendMessage(clients[0], network.ComposeMessage(clients[0], -1, 9, $"{FrmHolder.username} {reason}", null)); // Kick client
             network.SendToAll(ignoredClients, 10, $"{username[0]} {FrmHolder.username} {reason}");
             return false;
         }
@@ -595,6 +540,64 @@ namespace Chat
             this.Close();
         }
 
+        #region Event handlers
+        private void OnHeartbeatTimeoutFailure(object sender, Client client)
+        {
+            if (xlbxChat.InvokeRequired)
+            {
+                xlbxChat.BeginInvoke(new HeartbeatDelegate(network.HeartbeatTimeoutFailure), client);
+            }
+        }
+
+        private void OnMessageReceived(object sender, MessageReceivedEventArgs e)
+        {
+            if (xlbxChat.InvokeRequired)
+            {
+                xlbxChat.BeginInvoke(new MessageDelegate(ProcessMessage), this, e);
+            }
+            else
+            {
+                ProcessMessage(this, e);
+            }
+        }
+
+        private void OnClearClientList(object sender, EventArgs e)
+        {
+            if (xlsvConnectedUsers.InvokeRequired)
+            {
+                xlsvConnectedUsers.BeginInvoke(new ClearClientClistDelegate(ClearClientList));
+            }
+            else
+            {
+                xlsvConnectedUsers.Items.Clear();
+            }
+        }
+
+        private void OnAddClientToClientList(object sender, string username)
+        {
+            if (xlsvConnectedUsers.InvokeRequired)
+            {
+                xlsvConnectedUsers.BeginInvoke(new AddClientToClientListDelegate(AddClientToClientList), username);
+            }
+            else
+            {
+                xlsvConnectedUsers.Items.Add(username);
+            }
+        }
+
+        private void OnClosing(object sender, FormClosingEventArgs e)
+        {
+            if (askToClose) // Prevents closing when returning to main menu
+            {
+                if (BeginDisconnect() == false)
+                {
+                    e.Cancel = true;
+                }
+            }
+        }
+        #endregion
+
+        #region Form Event Handlers
         private void xtxtbxSendMessage_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
@@ -614,7 +617,7 @@ namespace Chat
                             message = message.Trim();
                             for (int i = 0; i < network.connectedClients.Count; i++)
                             {
-                                network.SendMessage(network.connectedClients[i], network.ComposeMessage(network.connectedClients[i], -1, 2, $"{FrmHolder.username} {message}"));
+                                network.SendMessage(network.connectedClients[i], network.ComposeMessage(network.connectedClients[i], -1, 2, $"{FrmHolder.username} {message}", null));
                             }
                         }
                     }
@@ -646,5 +649,6 @@ namespace Chat
         {
             BeginDisconnect();
         }
+        #endregion
     }
 }
