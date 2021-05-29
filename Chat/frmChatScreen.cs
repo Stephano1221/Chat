@@ -15,23 +15,18 @@ namespace Chat
 {
     public partial class FrmChatScreen : Form
     {
-        private Thread serverThread;
-        private Thread clientThread;
+        private Network network = new Network();
         private CancellationTokenSource serverCancellationTokenSource = new CancellationTokenSource();
         private CancellationTokenSource clientCancellationTokenSource = new CancellationTokenSource();
-        private int port = 12210;
-        private string publicIp;
-        private string localIp;
-        private int nextAssignableClientId = 0;
-        private List<Client> connectedClients = new List<Client>();
         private bool askToClose = true;
-        private System.Timers.Timer heartbeat = new System.Timers.Timer();
+
+        private delegate void MessageDelegate(object sender, MessageReceivedEventArgs e);
+        private delegate void HeartbeatDelegate(Client client);
+        private delegate void ClearClientClistDelegate();
+        private delegate void AddClientToClientListDelegate(string username);
 
         private string kickFormat = "/kick [Username] [Reason (optional)]";
         private string adminFormat = "/admin [Username] [True/False (optional)]";
-
-        private delegate void MessageDelegate(Client client, Message message);
-        private delegate void HeartbeatDelegate(Client client);
 
         public FrmChatScreen()
         {
@@ -44,450 +39,67 @@ namespace Chat
 
         private void BeginNetworkThreads()
         {
-            localIp = GetLocalIp();
+            network.MessageReceivedEvent += OnMessageReceived;
+            network.HeartbeatTimeoutEvent += OnHeartbeatTimeoutFailure;
+            network.PrintChatMessageEvent += PrintChatMessage;
+            network.ClearClientListEvent += OnClearClientList;
+            network.AddClientToClientListEvent += OnAddClientToClientList;
+
+            network.localIp = network.GetLocalIp();
             xlsvConnectedUsers.Items.Add(FrmHolder.username);
             if (FrmHolder.hosting)
             {
-                publicIp = new WebClient().DownloadString("https://ipv4.icanhazip.com/");
+                network.publicIp = new WebClient().DownloadString("https://ipv4.icanhazip.com/");
                 //publicIp = localIp; // For use if unable to access internet/port forward
-                publicIp = publicIp.Trim();
+                network.publicIp = network.publicIp.Trim();
 
-                serverThread = new Thread(new ParameterizedThreadStart(StartServer));
-                serverThread.IsBackground = true;
-                serverThread.Start(serverCancellationTokenSource.Token);
+                network.serverThread = new Thread(new ParameterizedThreadStart(network.StartServer));
+                network.serverThread.IsBackground = true;
+                network.serverThread.Start(serverCancellationTokenSource.Token);
 
-                PrintChatMessage($"Server started on: {publicIp}");
+                PrintChatMessage(this, $"Server started on: {network.publicIp}");
             }
             else
             {
-                publicIp = FrmHolder.joinIP;
+                network.publicIp = FrmHolder.joinIP;
 
-                clientThread = new Thread(new ParameterizedThreadStart(StartClient));
-                clientThread.IsBackground = true;
-                clientThread.Start(clientCancellationTokenSource.Token);
+                network.clientThread = new Thread(new ParameterizedThreadStart(network.StartClient));
+                network.clientThread.IsBackground = true;
+                network.clientThread.Start(clientCancellationTokenSource.Token);
 
-                PrintChatMessage($"Connected to server on: {publicIp}"); //TODO: Only if succesfully connected - use acknowledgement
+                PrintChatMessage(this, $"Connected to server on: {network.publicIp}"); //TODO: Only if succesfully connected - use acknowledgement
             }
-            //StartHeartbeat();
+            //network.StartHeartbeat();
         }
 
-        private string GetLocalIp()
+        private void ProcessMessage(object sender, MessageReceivedEventArgs e)
         {
-            string localIp;
-            using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0))
+            e.client.heartbeatReceieved = true;
+            e.client.heartbeatFailures = 0;
+            if (e.client.encryptionEstablished)
             {
-                socket.Connect("8.8.8.8", 65530);
-                IPEndPoint endPoint = (IPEndPoint)socket.LocalEndPoint;
-                localIp = endPoint.Address.ToString();
-            }
-            return localIp;
-        }
-
-        private void StartServer(object obj)
-        {
-            Thread.Sleep(50);
-            CancellationToken cancellationToken = (CancellationToken)obj;
-
-            IPAddress iPAddress = IPAddress.Parse(localIp);
-            TcpListener tcpListener = new TcpListener(iPAddress, port);
-
-            Client client = new Client();
-            client.clientId = nextAssignableClientId;
-            nextAssignableClientId++;
-            client.username = FrmHolder.username;
-            client.admin = true;
-            connectedClients.Add(client);
-
-            tcpListener.Start();
-            StartHeartbeat();
-
-            while (cancellationToken.IsCancellationRequested == false)
-            {
-                ServerAcceptIncomingConnection(tcpListener);
-                LoopClientsForIncomingMessages();
-            }
-
-            tcpListener.Stop();
-            FrmHolder.clientId = -1;
-            if (connectedClients.Count > 0)
-            {
-                SendDisconnect(null, false, true);
-            }
-            while (serverThread.IsAlive)
-            {
-                //Loops to keep application open to properly disconnect
-            }
-        }
-
-        private void StartClient(object obj)
-        {
-            Thread.Sleep(50);
-            CancellationToken cancellationToken = (CancellationToken)obj;
-            Client client = new Client();
-
-            ConnectClient(client);
-            StartHeartbeat();
-
-            while (cancellationToken.IsCancellationRequested == false)
-            {
-                LoopClientsForIncomingMessages();
-            }
-            FrmHolder.clientId = -1;
-            if (connectedClients.Count > 0)
-            {
-                SendDisconnect(client, false, false);
-            }
-            while (clientThread.IsAlive)
-            {
-                //Loops to keep application open to properly disconnect
-            }
-        }
-
-        private void StartHeartbeat()
-        {
-            heartbeat.Interval = 1000;
-            heartbeat.Elapsed += Heartbeat_Tick;
-            heartbeat.Start();
-        }
-
-        private void Heartbeat_Tick(object sender, EventArgs e)
-        {
-            if (connectedClients != null)
-            {
-                foreach (Client client in connectedClients)
+                if (e.message.messageText != null)
                 {
-                    if (FrmHolder.hosting && connectedClients[0].Equals(client))
-                    {
-                        continue;
-                    }
-                    if (client.heartbeatReceieved == false)
-                    {
-                        client.heartbeatFailures++;
-                    }
-                    if (client.heartbeatFailures == 5 && FrmHolder.hosting == false)
-                    {
-                        ConnectClient(client);
-                    }
-                    else if ((client.heartbeatFailures >= 12 && FrmHolder.hosting) || (client.heartbeatFailures >= 10 && FrmHolder.hosting == false))
-                    {
-                        if (xlbxChat.InvokeRequired)
-                        {
-                            xlbxChat.BeginInvoke(new HeartbeatDelegate(HeartbeatTimeoutFailure), client);
-                        }
-                    }
-                    if (FrmHolder.hosting == false)
-                    {
-                        if (client.tcpClient != null)
-                        {
-                            SendMessage(client, ComposeMessage(client, -1, 11, null)); // Send heartbeat
-                        }
-                    }
-                    client.heartbeatReceieved = false;
-                }
-            }
-        }
-
-        private void HeartbeatTimeoutFailure(Client client)
-        {
-            if (client.tcpClient != null)
-            {
-                client.tcpClient.Close();
-            }
-            connectedClients.Remove(client);
-            if (FrmHolder.hosting)
-            {
-                List<Client> ignoredClients = new List<Client>();
-                ignoredClients.Add(client);
-                SendToAll(ignoredClients, 13, client.username);
-                UpdateClientLists();
-                PrintChatMessage($"Lost connection to {client.username}...");
-            }
-            else
-            {
-                PrintChatMessage($"Lost connection to server...");
-            }
-        }
-
-        private void SendFirstMessageInMessageQueue(Client client)
-        {
-            if (client.messagesToBeSent.Count > 0 && client.sendingMessageQueue)
-            {
-                Message message = client.messagesToBeSent[0];
-                SendMessage(client, message);
-            }
-            else
-            {
-                client.sendingMessageQueue = false;
-                if (FrmHolder.hosting == false)
-                {
-                    SendMessage(client, ComposeMessage(client, -1, 18, null));
-                    client.receivingMessageQueue = true;
-                }
-            }
-        }
-
-        private void ConnectClient(Client client)
-        {
-            client.encryptionEstablished = false;
-            client.connectionSetupComplete = false;
-            client.sendingMessageQueue = false;
-            client.receivingMessageQueue = false;
-            if (client.tcpClient != null)
-            {
-                client.tcpClient.Close();
-            }
-            if (connectedClients.Contains(client) == false)
-            {
-                connectedClients.Add(client);
-            }
-            client.tcpClient = new TcpClient();
-            client.tcpClient.Connect(publicIp, port);
-            /*string clientIdPart = "";
-            if (FrmHolder.clientId != -1)
-            {
-                clientIdPart = $" {Convert.ToString(FrmHolder.clientId)}";
-            }*/
-            client.encryption = new Encryption();
-            client.encryption.keyContainerName = DateTime.Now.ToString();
-            client.encryption.RsaGenerateKey(client.encryption.keyContainerName);
-            string rsaKey = client.encryption.RsaExportXmlKey(client.encryption.keyContainerName, false);
-            //SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 0, $"{FrmHolder.username}{clientIdPart}"));
-            SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 20, $"{rsaKey}"));
-        }
-
-        private void ServerAcceptIncomingConnection(TcpListener tcpListener)
-        {
-            if (tcpListener.Pending())
-            {
-                TcpClient tcpClient = tcpListener.AcceptTcpClient();
-                Client client = new Client();
-                client.tcpClient = tcpClient;
-                client.nextAssignableMessageId = 1;
-                connectedClients.Add(client);
-            }
-        }
-
-        private void ConvertLittleEndianToBigEndian(byte[] byteArray) // Converts byte array from Little-Endian/Host Byte Order to Big-Endian/Network Byte Order for network tranfer if host machine stores bytes in Little Endian (and back if needed)
-        {
-            if (byteArray != null)
-            {
-                if (BitConverter.IsLittleEndian)
-                {
-                    Array.Reverse(byteArray);
-                }
-            }
-        }
-
-        public void SendMessage(Client client, Message message)
-        {
-            if (CheckAddMessageToQueue(client, message, false))
-            {
-                return;
-            }
-            try
-            {
-                if (client.tcpClient != null)
-                {
-                    NetworkStream networkStream = client.tcpClient.GetStream();
-                    {
-                        if (networkStream.CanWrite && networkStream.CanRead)
-                        
-                        {
-                            // Message ID
-                            byte[] idBuffer = new byte[4];
-                            idBuffer = BitConverter.GetBytes(message.messageId);
-
-                            // Message type
-                            byte[] typeBuffer = new byte[4];
-                            typeBuffer = BitConverter.GetBytes(message.messageType);
-
-                            // Message text
-                            byte[] textBuffer = null;
-                            if (message.messageText != null)
-                            {
-                                if (client.encryptionEstablished)
-                                {
-                                    textBuffer = client.encryption.AesEncryptDecrypt(Encoding.Unicode.GetBytes(message.messageText), client.encryption.AesGetKeyAndIv(client.encryption.aesEncryptedKey, client.encryption.aesEncryptedIv), true);
-                                }
-                                else
-                                {
-                                    textBuffer = Encoding.Unicode.GetBytes(message.messageText);
-                                }
-                            }
-
-                            // Message length
-                            byte[] lengthBuffer = new byte[4];
-                            if (message.messageText != null)
-                            {
-                                lengthBuffer = BitConverter.GetBytes(textBuffer.Length);
-                            }
-
-                            ConvertLittleEndianToBigEndian(idBuffer);
-                            ConvertLittleEndianToBigEndian(typeBuffer);
-                            ConvertLittleEndianToBigEndian(textBuffer);
-                            ConvertLittleEndianToBigEndian(lengthBuffer);
-
-                            networkStream.Write(idBuffer, 0, 4); // Message ID
-                            networkStream.Write(typeBuffer, 0, 4); // Message type
-                            networkStream.Write(lengthBuffer, 0, 4); // Message length
-                            if (message.messageText != null)
-                            {
-                                networkStream.Write(textBuffer, 0, textBuffer.Length); // Message text
-                            }
-                            if (message.messageType != 1 && message.messageType != 3 && message.messageType != 11)
-                            {
-                                AddMessageToMessageListBySendPriority(client.messagesToBeSent, message);
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException)
-            {
-                CheckAddMessageToQueue(client, message, true);
-            }
-        }
-
-        public void ReceiveMessage(Client client)
-        {
-            try
-            {
-                if (client.tcpClient != null)
-                {
-                    NetworkStream networkStream = client.tcpClient.GetStream();
-                    {
-                        if (networkStream.CanRead && networkStream.CanWrite && networkStream.DataAvailable)
-                        {
-                            // Message ID
-                            byte[] idBuffer = new byte[4];
-                            networkStream.Read(idBuffer, 0, 4);
-
-                            // Message type
-                            byte[] typeBuffer = new byte[4];
-                            networkStream.Read(typeBuffer, 0, 4);
-
-                            // Message length
-                            byte[] lengthBuffer = new byte[4];
-                            networkStream.Read(lengthBuffer, 0, 4);
-
-                            ConvertLittleEndianToBigEndian(idBuffer);
-                            ConvertLittleEndianToBigEndian(typeBuffer);
-                            ConvertLittleEndianToBigEndian(lengthBuffer);
-
-                            int messageId = BitConverter.ToInt32(idBuffer, 0);
-                            int messageType = BitConverter.ToInt32(typeBuffer, 0);
-                            int messageLength = BitConverter.ToInt32(lengthBuffer, 0);
-
-                            // Message text
-                            string messageText = null;
-                            int receivedLength = 0;
-                            int totalReceivedLength = 0;
-                            if (messageLength > 0)
-                            {
-                                byte[] textBuffer = new byte[messageLength];
-                                byte[] tempTextBuffer = new byte[messageLength];
-                                while (totalReceivedLength < messageLength)
-                                {
-                                    receivedLength = 0;
-                                    receivedLength += networkStream.Read(tempTextBuffer, 0, messageLength - totalReceivedLength);
-                                    Array.Resize(ref tempTextBuffer, receivedLength);
-                                    tempTextBuffer.CopyTo(textBuffer, totalReceivedLength);
-                                    tempTextBuffer = new byte[messageLength];
-                                    totalReceivedLength += receivedLength;
-                                }
-                                ConvertLittleEndianToBigEndian(textBuffer);
-                                messageText = Encoding.Unicode.GetString(textBuffer);
-                            }
-
-                            Message receivedMessage = ComposeMessage(client, messageId, messageType, messageText);
-                            if (xlbxChat.InvokeRequired)
-                            {
-                                xlbxChat.BeginInvoke(new MessageDelegate(ProcessMessage), client, receivedMessage);
-                            }
-                            else
-                            {
-                                ProcessMessage(client, receivedMessage);
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException) // TODO: Avoid catching exceptions every time a read is done on a non-connected socket
-            {
-                return;
-            }
-        }
-
-        private bool CheckAddMessageToQueue(Client client, Message message, bool sendFailed)
-        {
-            if (client.messagesToBeSent.Count > 0 && client.messagesToBeSent[0] == message)
-            {
-                return false;
-            }
-            if (message.messageType != 1 && message.messageType != 11)
-            {
-                if (sendFailed)
-                {
-                    AddMessageToMessageListBySendPriority(client.messagesToBeSent, message);
-                    return true;
-                }
-                else
-                {
-                    if (client.messagesToBeSent.Count > 0)
-                    {
-                        if (message.messageSendPriority > 0)
-                        {
-                            if (client.sendingMessageQueue || client.receivingMessageQueue)
-                            {
-                                AddMessageToMessageListBySendPriority(client.messagesToBeSent, message);
-                                return true;
-                            }
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-
-        private Message ComposeMessage(Client client, int messageId, int messageType, string messageText)
-        {
-            if (messageId == -1)
-            {
-                messageId = client.nextAssignableMessageId;
-                client.nextAssignableMessageId += 2;
-            }
-            Message message = new Message(messageId, messageType, messageText);
-            return message;
-        }
-
-        private void ProcessMessage(Client client, Message message)
-        {
-            client.heartbeatReceieved = true;
-            client.heartbeatFailures = 0;
-            if (client.encryptionEstablished)
-            {
-                if (message.messageText != null)
-                {
-                    message.messageText = Encoding.Unicode.GetString(client.encryption.AesEncryptDecrypt(Encoding.Unicode.GetBytes(message.messageText), client.encryption.AesGetKeyAndIv(client.encryption.aesEncryptedKey, client.encryption.aesEncryptedIv), false));
+                    e.message.messageText = Encoding.Unicode.GetString(e.client.encryption.AesEncryptDecrypt(Encoding.Unicode.GetBytes(e.message.messageText), e.client.encryption.AesGetKeyAndIv(e.client.encryption.aesEncryptedKey, e.client.encryption.aesEncryptedIv), false));
                 }
             }
 
-            if (message.messageType != 1 && message.messageType != 3 && message.messageType != 11)
+            if (e.message.messageType != 1 && e.message.messageType != 3 && e.message.messageType != 11)
             {
-                SendMessage(client, ComposeMessage(client, message.messageId, 1, null)); // Acknowledge received message
-                foreach (Message alreadyReceivedMessage in client.messagesReceived)
+                network.SendMessage(e.client, network.ComposeMessage(e.client, e.message.messageId, 1, null)); // Acknowledge received message
+                foreach (Message alreadyReceivedMessage in e.client.messagesReceived)
                 {
-                    if (message.messageId == alreadyReceivedMessage.messageId)
+                    if (e.message.messageId == alreadyReceivedMessage.messageId)
                     {
                         return;
                     }
                 }
-                client.messagesReceived.Add(message);
+                e.client.messagesReceived.Add(e.message);
             }
 
-            if (message.messageType == 0) // Connection Request [username, clientId (if reconnecting)]
+            if (e.message.messageType == 0) // Connection Request [username, clientId (if reconnecting)]
             {
-                string[] parts = message.messageText.Split(' ', 2);
+                string[] parts = e.message.messageText.Split(' ', 2);
                 string username = parts[0];
                 int clientId = -1;
                 if (parts.Length > 1)
@@ -495,92 +107,92 @@ namespace Chat
                     clientId = Convert.ToInt32(parts[1]);
                 }
                 bool usernameAlreadyInUse = false;
-                for (int i = 0; i < connectedClients.Count; i++)
+                for (int i = 0; i < network.connectedClients.Count; i++)
                 {
                     if (clientId != -1)
                     {
-                        if (clientId == connectedClients[i].clientId)
+                        if (clientId == network.connectedClients[i].clientId)
                         {
-                            client = MergeClient(client, connectedClients[i]);
+                            e.client = network.MergeClient(e.client, network.connectedClients[i]);
                         }
                     }
-                    if (string.Equals(connectedClients[i].username, username, StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(network.connectedClients[i].username, username, StringComparison.OrdinalIgnoreCase))
                     {
-                        if (clientId != connectedClients[i].clientId)
+                        if (clientId != network.connectedClients[i].clientId)
                         {
                             usernameAlreadyInUse = true;
-                            SendMessage(client, ComposeMessage(client, -1, 4, null));
+                            network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 4, null));
                             break;
                         }
                     }
                 }
                 if (usernameAlreadyInUse == false)
                 {
-                    client.username = username;
-                    if (client.clientId == -1)
+                    e.client.username = username;
+                    if (e.client.clientId == -1)
                     {
-                        client.clientId = nextAssignableClientId;
-                        nextAssignableClientId++;
-                        SendMessage(client, ComposeMessage(client, -1, 12, client.clientId.ToString()));
+                        e.client.clientId = network.nextAssignableClientId;
+                        network.nextAssignableClientId++;
+                        network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 12, e.client.clientId.ToString()));
 
                         List<Client> ignoredClients = new List<Client>();
-                        ignoredClients.Add(client);
-                        PrintChatMessage($"{client.username} connected");
-                        SendToAll(ignoredClients, 5, client.username);
-                        UpdateClientLists();
+                        ignoredClients.Add(e.client);
+                        PrintChatMessage(this, $"{e.client.username} connected");
+                        network.SendToAll(ignoredClients, 5, e.client.username);
+                        network.UpdateClientLists();
                     }
-                    client.connectionSetupComplete = true;
-                    SendMessage(client, ComposeMessage(client, -1, 19, null));
-                    SendMessage(client, ComposeMessage(client, -1, 18, null));
-                    client.receivingMessageQueue = true;
+                    e.client.connectionSetupComplete = true;
+                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 19, null));
+                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 18, null));
+                    e.client.receivingMessageQueue = true;
                 }
             }
-            else if (message.messageType == 1) // Message Acknowledgement
+            else if (e.message.messageType == 1) // Message Acknowledgement
             {
-                foreach (Message item in client.messagesToBeSent)
+                foreach (Message item in e.client.messagesToBeSent)
                 {
-                    if (item.messageId == message.messageId)
+                    if (item.messageId == e.message.messageId)
                     {
-                        client.messagesSent.Add(item);
-                        client.messagesToBeSent.Remove(item);
+                        e.client.messagesSent.Add(item);
+                        e.client.messagesToBeSent.Remove(item);
                         break;
                     }
                 }
-                if (client.sendingMessageQueue)
+                if (e.client.sendingMessageQueue)
                 {
-                    SendFirstMessageInMessageQueue(client);
+                    network.SendFirstMessageInMessageQueue(e.client);
                 }
             }
-            else if (message.messageType == 2) // Message recieve [username, message]
+            else if (e.message.messageType == 2) // Message recieve [username, message]
             {
-                string[] parts = message.messageText.Split(' ', 2);
+                string[] parts = e.message.messageText.Split(' ', 2);
                 string username = parts[0];
                 string messageText = parts[1];
-                PrintChatMessage($"{username}: {messageText}");
+                PrintChatMessage(this, $"{username}: {messageText}");
                 if (FrmHolder.hosting)
                 {
-                    SendToAll(null, 2, message.messageText);
+                    network.SendToAll(null, 2, e.message.messageText);
                 }
             }
-            else if (message.messageType == 3) // Disconnect
+            else if (e.message.messageType == 3) // Disconnect
             {
                 if (FrmHolder.hosting)
                 {
-                    connectedClients.Remove(client);
-                    if (client.tcpClient != null)
+                    network.connectedClients.Remove(e.client);
+                    if (e.client.tcpClient != null)
                     {
-                        client.tcpClient.Close();
+                        e.client.tcpClient.Close();
                     }
-                    if (client.username != null)
+                    if (e.client.username != null)
                     {
-                        PrintChatMessage($"{client.username} disconnected");
-                        SendToAll(null, 6, client.username);
+                        PrintChatMessage(this, $"{e.client.username} disconnected");
+                        network.SendToAll(null, 6, e.client.username);
                     }
-                    UpdateClientLists();
+                    network.UpdateClientLists();
                 }
                 else
                 {
-                    if (clientThread != null && clientThread.IsAlive)
+                    if (network.clientThread != null && network.clientThread.IsAlive)
                     {
                         clientCancellationTokenSource.Cancel();
                     }
@@ -588,35 +200,35 @@ namespace Chat
                     OpenMainMenu();
                 }
             }
-            else if (message.messageType == 4) // Username already used
+            else if (e.message.messageType == 4) // Username already used
             {
                 clientCancellationTokenSource.Cancel();
                 MessageBox.Show("This username is already in use", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 OpenMainMenu();
             }
-            else if (message.messageType == 5) // Client connected
+            else if (e.message.messageType == 5) // Client connected
             {
-                PrintChatMessage($"{message.messageText} connected");
+                PrintChatMessage(this, $"{e.message.messageText} connected");
             }
-            else if (message.messageType == 6) // Client disconnected
+            else if (e.message.messageType == 6) // Client disconnected
             {
-                PrintChatMessage($"{message.messageText} disconnected");
+                PrintChatMessage(this, $"{e.message.messageText} disconnected");
             }
-            else if (message.messageType == 7) // Clear user list
+            else if (e.message.messageType == 7) // Clear user list
             {
                 xlsvConnectedUsers.Items.Clear();
             }
-            else if (message.messageType == 8) // Add to user list
+            else if (e.message.messageType == 8) // Add to user list
             {
-                xlsvConnectedUsers.Items.Add(message.messageText);
+                xlsvConnectedUsers.Items.Add(e.message.messageText);
             }
-            else if (message.messageType == 9) // Kicked
+            else if (e.message.messageType == 9) // Kicked
             {
-                if (clientThread != null && clientThread.IsAlive)
+                if (network.clientThread != null && network.clientThread.IsAlive)
                 {
                     clientCancellationTokenSource.Cancel();
                 }
-                string[] parts = message.messageText.Split(' ', 2);
+                string[] parts = e.message.messageText.Split(' ', 2);
                 string username = parts[0];
                 string reason = parts[1];
                 reason = reason.Trim();
@@ -630,85 +242,85 @@ namespace Chat
                 }
                 OpenMainMenu();
             }
-            else if (message.messageType == 10) // Another client kicked
+            else if (e.message.messageType == 10) // Another client kicked
             {
-                string[] parts = message.messageText.Split(' ', 3);
+                string[] parts = e.message.messageText.Split(' ', 3);
                 string username = parts[0];
                 string kickerUsername = parts[1];
                 string reason = parts[2];
                 reason = reason.Trim();
                 if (!string.IsNullOrWhiteSpace(reason))
                 {
-                    PrintChatMessage($"{username} was kicked by {kickerUsername} with reason: {reason}");
+                    PrintChatMessage(this, $"{username} was kicked by {kickerUsername} with reason: {reason}");
                 }
                 else
                 {
-                    PrintChatMessage($"{username} was kicked by {kickerUsername}");
+                    PrintChatMessage(this, $"{username} was kicked by {kickerUsername}");
                 }
             }
-            else if (message.messageType == 11) // Heartbeat
+            else if (e.message.messageType == 11) // Heartbeat
             {
                 if (FrmHolder.hosting)
                 {
-                    SendMessage(client, ComposeMessage(client, -1, 11, null));
+                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 11, null));
                 }
             }
-            else if (message.messageType == 12) // Set clientId
+            else if (e.message.messageType == 12) // Set clientId
             {
-                FrmHolder.clientId = Convert.ToInt32(message.messageText);
+                FrmHolder.clientId = Convert.ToInt32(e.message.messageText);
             }
-            else if (message.messageType == 13) // Another client heartbeat failed
+            else if (e.message.messageType == 13) // Another client heartbeat failed
             {
-                PrintChatMessage($"{message.messageText} has lost connection...");
+                PrintChatMessage(this, $"{e.message.messageText} has lost connection...");
             }
-            else if (message.messageType == 14) // Made admin
+            else if (e.message.messageType == 14) // Made admin
             {
-                PrintChatMessage($"You have been made an Admin by {message.messageText}");
+                PrintChatMessage(this, $"You have been made an Admin by {e.message.messageText}");
             }
-            else if (message.messageType == 15) // Another made admin
+            else if (e.message.messageType == 15) // Another made admin
             {
-                string[] parts = message.messageText.Split(' ', 2);
+                string[] parts = e.message.messageText.Split(' ', 2);
                 string username = parts[0];
                 string setterUsername = parts[1];
-                PrintChatMessage($"{username} has been made an Admin by {setterUsername}");
+                PrintChatMessage(this, $"{username} has been made an Admin by {setterUsername}");
             }
-            else if (message.messageType == 16) // Removed admin
+            else if (e.message.messageType == 16) // Removed admin
             {
-                PrintChatMessage($"You have been removed from Admin by {message.messageText}");
+                PrintChatMessage(this, $"You have been removed from Admin by {e.message.messageText}");
             }
-            else if (message.messageType == 17) // Another removed admin
+            else if (e.message.messageType == 17) // Another removed admin
             {
-                string[] parts = message.messageText.Split(' ', 2);
+                string[] parts = e.message.messageText.Split(' ', 2);
                 string username = parts[0];
                 string setterUsername = parts[1];
-                PrintChatMessage($"{username} has been removed from Admin by {setterUsername}");
+                PrintChatMessage(this, $"{username} has been removed from Admin by {setterUsername}");
             }
-            else if (message.messageType == 18) // Send message queue
+            else if (e.message.messageType == 18) // Send message queue
             {
-                client.sendingMessageQueue = true;
-                client.receivingMessageQueue = false;
-                SendFirstMessageInMessageQueue(client);
+                e.client.sendingMessageQueue = true;
+                e.client.receivingMessageQueue = false;
+                network.SendFirstMessageInMessageQueue(e.client);
             }
-            else if (message.messageType == 19) // Connection setup complete
+            else if (e.message.messageType == 19) // Connection setup complete
             {
-                client.connectionSetupComplete = true;
+                e.client.connectionSetupComplete = true;
             }
-            else if (message.messageType == 20) // Receive RSA public key
+            else if (e.message.messageType == 20) // Receive RSA public key
             {
-                client.encryption.keyContainerName = DateTime.Now.ToString();
-                client.encryption.RsaImportXmlKey(client.encryption.keyContainerName, message.messageText);
-                client.encryption.AesGenerateKey();
-                string symmetricKey = Convert.ToBase64String(client.encryption.RsaEncryptDecrypt(Convert.FromBase64String(client.encryption.AesExportKeyAndIv()), client.encryption.keyContainerName, client.encryption.rsaParametersPublicKey, true, true));
-                SendMessage(client, ComposeMessage(client, -1, 21, symmetricKey));
-                client.encryption.RsaDeleteKey(client.encryption.keyContainerName);
-                client.encryptionEstablished = true;
+                e.client.encryption.keyContainerName = DateTime.Now.ToString();
+                e.client.encryption.RsaImportXmlKey(e.client.encryption.keyContainerName, e.message.messageText);
+                e.client.encryption.AesGenerateKey();
+                string symmetricKey = Convert.ToBase64String(e.client.encryption.RsaEncryptDecrypt(Convert.FromBase64String(e.client.encryption.AesExportKeyAndIv()), e.client.encryption.keyContainerName, e.client.encryption.rsaParametersPublicKey, true, true));
+                network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 21, symmetricKey));
+                e.client.encryption.RsaDeleteKey(e.client.encryption.keyContainerName);
+                e.client.encryptionEstablished = true;
             }
-            else if (message.messageType == 21) // Receive AES private key
+            else if (e.message.messageType == 21) // Receive AES private key
             {
-                message.messageText = Convert.ToBase64String(client.encryption.RsaEncryptDecrypt(Convert.FromBase64String(message.messageText), client.encryption.keyContainerName, client.encryption.rsaParametersPrivateAndPublicKey, true, false));
-                client.encryption.AesImportKeyAndIv(message.messageText);
-                client.encryption.RsaDeleteKey(client.encryption.keyContainerName);
-                client.encryptionEstablished = true;
+                e.message.messageText = Convert.ToBase64String(e.client.encryption.RsaEncryptDecrypt(Convert.FromBase64String(e.message.messageText), e.client.encryption.keyContainerName, e.client.encryption.rsaParametersPrivateAndPublicKey, true, false));
+                e.client.encryption.AesImportKeyAndIv(e.message.messageText);
+                e.client.encryption.RsaDeleteKey(e.client.encryption.keyContainerName);
+                e.client.encryptionEstablished = true;
 
                 if (FrmHolder.hosting == false)
                 {
@@ -717,165 +329,62 @@ namespace Chat
                     {
                         clientIdPart = $" {Convert.ToString(FrmHolder.clientId)}";
                     }
-                    SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 0, $"{FrmHolder.username}{clientIdPart}"));
+                    network.SendMessage(network.connectedClients[0], network.ComposeMessage(network.connectedClients[0], -1, 0, $"{FrmHolder.username}{clientIdPart}"));
                 }
             }
         }
 
-        private void AddMessageToMessageListBySendPriority(List<Message> list, Message message)
-        {
-            bool added = false;
-            if (list.Contains(message) == false)
-            {
-                for (int i = 0; i < list.Count(); i++)
-                {
-                    if (list[i].messageSendPriority > message.messageSendPriority)
-                    {
-                        list.Insert(i, message);
-                        added = true;
-                        break;
-                    }
-                }
-                if (added == false)
-                {
-                    list.Add(message);
-                }
-            }
-        }
-
-        private void RemoveMessageFromMessageListByTypeAndOrSendPriority(List<Message> list, int? messageType, int? messageSendPriority)
-        {
-            for (int i = 0; i < list.Count(); i++)
-            {
-                if (messageType != null && messageSendPriority != null)
-                {
-                    if (list[i].messageType == messageType && list[i].messageSendPriority == messageSendPriority)
-                    {
-                        list.RemoveAt(i);
-                    }
-                }
-                else if (messageType != null)
-                {
-                    if (list[i].messageType == messageType)
-                    {
-                        list.RemoveAt(i);
-                    }
-                }
-                else if (messageSendPriority != null)
-                {
-                    if (list[i].messageSendPriority == messageSendPriority)
-                    {
-                        list.RemoveAt(i);
-                    }
-                }
-            }
-        }
-
-        private Client MergeClient(Client clientMergeFrom, Client clientMergeTo)
-        {
-            //clientMergeTo.clientId = clientMergeFrom.clientId;
-            clientMergeTo.nextAssignableMessageId = (clientMergeTo.nextAssignableMessageId + clientMergeFrom.nextAssignableMessageId);
-            //clientMergeTo.username = clientMergeFrom.username;
-            clientMergeTo.tcpClient = clientMergeFrom.tcpClient;
-            clientMergeTo.encryption = clientMergeFrom.encryption;
-
-            //clientMergeTo.admin = clientMergeFrom.admin;
-            //clientMergeTo.serverMuted = clientMergeFrom.serverMuted;
-            //clientMergeTo.serverDeafened = clientMergeFrom.serverDeafened;
-
-            clientMergeTo.heartbeatReceieved = clientMergeFrom.heartbeatReceieved;
-            clientMergeTo.heartbeatFailures = clientMergeFrom.heartbeatFailures;
-            clientMergeTo.encryptionEstablished = clientMergeFrom.encryptionEstablished;
-            //clientMergeTo.connectionSetupComplete = clientMergeFrom.connectionSetupComplete;
-            //clientMergeTo.sendingMessageQueue = clientMergeFrom.sendingMessageQueue;
-            //clientMergeTo.receivingMessageQueue = clientMergeFrom.receivingMessageQueue;
-
-            //TODO: Add messages to queue based on priority
-            clientMergeTo.messagesSent.AddRange(clientMergeFrom.messagesSent);
-            clientMergeTo.messagesToBeSent.AddRange(clientMergeFrom.messagesToBeSent);
-            clientMergeTo.messagesReceived.AddRange(clientMergeFrom.messagesReceived);
-
-            connectedClients.Remove(clientMergeFrom);
-            return clientMergeTo;
-        }
-
-        private string[] GetClientUsernames()
-        {
-            string[] usernames = new string[connectedClients.Count];
-            for (int i = 0; i < connectedClients.Count; i++)
-            {
-                usernames[i] = connectedClients[i].username;
-            }
-            return usernames;
-        }
-
-        private void UpdateClientLists()
+        private void ClearClientList()
         {
             xlsvConnectedUsers.Items.Clear();
-            SendToAll(null, 7, null);
-            string[] usernames = GetClientUsernames();
-            for (int i = 0; i < usernames.Length; i++)
+        }
+
+        private void AddClientToClientList(string username)
+        {
+            xlsvConnectedUsers.Items.Add(username);
+        }
+
+        private void OnHeartbeatTimeoutFailure(object sender, Client client)
+        {
+            if (xlbxChat.InvokeRequired)
             {
-                xlsvConnectedUsers.Items.Add(usernames[i]);
-                SendToAll(null, 8, usernames[i]);
+                xlbxChat.BeginInvoke(new HeartbeatDelegate(network.HeartbeatTimeoutFailure), client);
             }
         }
 
-        private void LoopClientsForIncomingMessages()
+        private void OnMessageReceived(object sender, MessageReceivedEventArgs e)
         {
-            for (int i = 0; i < connectedClients.Count(); i++)
+            if (xlbxChat.InvokeRequired)
             {
-                ReceiveMessage(connectedClients[i]);
-            }
-        }
-
-        private void SendToAll(List<Client> ignoredClients, int messageType, string messageText) //TODO: Replace messagType and messagText with Message class
-        {
-            for (int i = 0; i < connectedClients.Count; i++)
-            {
-                if (ignoredClients != null)
-                {
-                    for (int j = 0; j < ignoredClients.Count; j++)
-                    {
-                        if (connectedClients[i] != ignoredClients[j])
-                        {
-                            SendMessage(connectedClients[i], ComposeMessage(connectedClients[i], -1, messageType, messageText));
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    SendMessage(connectedClients[i], ComposeMessage(connectedClients[i], -1, messageType, messageText));
-                }
-            }
-        }
-
-        private void SendDisconnect(Client client, bool kick, bool sendToAll)
-        {
-            int type = kick == false ? 3 : 9;
-            if (sendToAll)
-            {
-                List<Client> ignoredClients = new List<Client>();
-                ignoredClients.Add(client);
-                SendToAll(ignoredClients, type, null);
-                for (int i = 0; i < connectedClients.Count; i++)
-                {
-                    if (connectedClients[i].tcpClient != null)
-                    {
-                        connectedClients[i].tcpClient.Close();
-                    }
-                }
-                connectedClients.Clear();
+                xlbxChat.BeginInvoke(new MessageDelegate(ProcessMessage), this, e);
             }
             else
             {
-                SendMessage(client, ComposeMessage(client, -1, type, null));
-                if (client.tcpClient != null)
-                {
-                    client.tcpClient.Close();
-                }
-                connectedClients.Remove(client);
+                ProcessMessage(this, e);
+            }
+        }
+
+        private void OnClearClientList(object sender, EventArgs e)
+        {
+            if (xlsvConnectedUsers.InvokeRequired)
+            {
+                xlsvConnectedUsers.BeginInvoke(new ClearClientClistDelegate(ClearClientList));
+            }
+            else
+            {
+                xlsvConnectedUsers.Items.Clear();
+            }
+        }
+
+        private void OnAddClientToClientList(object sender, string username)
+        {
+            if (xlsvConnectedUsers.InvokeRequired)
+            {
+                xlsvConnectedUsers.BeginInvoke(new AddClientToClientListDelegate(AddClientToClientList), username);
+            }
+            else
+            {
+                xlsvConnectedUsers.Items.Add(username);
             }
         }
 
@@ -901,7 +410,7 @@ namespace Chat
             {
                 if (FrmHolder.hosting)
                 {
-                    this.ParentForm.Text = $"{FrmHolder.applicationWindowText} - {FrmHolder.username} hosting on {publicIp}";
+                    this.ParentForm.Text = $"{FrmHolder.applicationWindowText} - {FrmHolder.username} hosting on {network.publicIp}";
                 }
                 else
                 {
@@ -914,47 +423,13 @@ namespace Chat
             }
         }
 
-        private List<Client> ClientSearch(string[] usernames, int[] clientIds)
-        {
-            List<Client> clients = new List<Client>();
-            if (usernames != null)
-            {
-                for (int i = 0; i < usernames.Length; i++)
-                {
-                    for (int j = 0; j < connectedClients.Count; j++)
-                    {
-                        if (usernames[i] == connectedClients[j].username)
-                        {
-                            clients.Add(connectedClients[j]);
-                            break;
-                        }
-                    }
-                }
-            }
-            if (clientIds != null)
-            {
-                for (int i = 0; i < clientIds.Length; i++)
-                {
-                    for (int j = 0; j < connectedClients.Count; j++)
-                    {
-                        if (clientIds[i] == connectedClients[j].clientId && clients.Contains(connectedClients[j]) == false)
-                        {
-                            clients.Add(connectedClients[j]);
-                            break;
-                        }
-                    }
-                }
-            }
-            return clients;
-        }
-
         private bool ProcessCommand(string message)
         {
             if (message[0] == '/')
             {
                 if (FrmHolder.hosting == false)
                 {
-                    PrintChatMessage("You must be an admin to execute commands"); //TODO: Allow non-admin commands (e.g. /help)
+                    PrintChatMessage(this, "You must be an admin to execute commands"); //TODO: Allow non-admin commands (e.g. /help)
                     return true;
                 }
                 string command = message.Substring(1, message.Length - 1);
@@ -976,7 +451,7 @@ namespace Chat
             return false; //true if commmand
         }
 
-        private void PrintChatMessage(string chatMessage)
+        private void PrintChatMessage(object sender, string chatMessage)
         {
             xlbxChat.Items.Add(chatMessage);
         }
@@ -985,19 +460,19 @@ namespace Chat
         {
             if (commandParts.Length == 1)
             {
-                PrintChatMessage($"Available commands are 'kick' and 'admin'. Type '/help [command]' for an explanation of the command.");
+                PrintChatMessage(this, $"Available commands are 'kick' and 'admin'. Type '/help [command]' for an explanation of the command.");
             }
             else if (commandParts[1] == "kick")
             {
-                PrintChatMessage($"Explanation: Kicks a user. Format: {kickFormat}");
+                PrintChatMessage(this, $"Explanation: Kicks a user. Format: {kickFormat}");
             }
             else if (commandParts[1] == "admin")
             {
-                PrintChatMessage($"Explanation: Adds/removes a user from Admin. Format: {adminFormat}");
+                PrintChatMessage(this, $"Explanation: Adds/removes a user from Admin. Format: {adminFormat}");
             }
             else
             {
-                PrintChatMessage($"No command {commandParts[1]} exists.");
+                PrintChatMessage(this, $"No command {commandParts[1]} exists.");
             }
         }
 
@@ -1005,14 +480,14 @@ namespace Chat
         {
             if (commandParts[1] == null)
             {
-                PrintChatMessage($"The format is: {kickFormat}");
+                PrintChatMessage(this, $"The format is: {kickFormat}");
                 return true;
             }
             string[] username = { commandParts[1] };
-            List<Client> clients = ClientSearch(username, null);
+            List<Client> clients = network.ClientSearch(username, null);
             if (clients.Count == 0)
             {
-                PrintChatMessage($"No user with the username {username[0]} exists");
+                PrintChatMessage(this, $"No user with the username {username[0]} exists");
                 return true;
             }
             string reason = "";
@@ -1023,16 +498,16 @@ namespace Chat
             reason = reason.Trim();
             if (!string.IsNullOrWhiteSpace(reason))
             {
-                PrintChatMessage($"You kicked {username[0]} with reason: {reason}");
+                PrintChatMessage(this, $"You kicked {username[0]} with reason: {reason}");
             }
             else
             {
-                PrintChatMessage($"You kicked {username[0]}");
+                PrintChatMessage(this, $"You kicked {username[0]}");
             }
             List<Client> ignoredClients = new List<Client>();
             ignoredClients.Add(clients[0]);
-            SendMessage(clients[0], ComposeMessage(clients[0], -1, 9, $"{FrmHolder.username} {reason}")); // Kick client
-            SendToAll(ignoredClients, 10, $"{username[0]} {FrmHolder.username} {reason}");
+            network.SendMessage(clients[0], network.ComposeMessage(clients[0], -1, 9, $"{FrmHolder.username} {reason}")); // Kick client
+            network.SendToAll(ignoredClients, 10, $"{username[0]} {FrmHolder.username} {reason}");
             return false;
         }
 
@@ -1040,14 +515,14 @@ namespace Chat
         {
             if (commandParts.Length < 2 || commandParts[1] == null)
             {
-                PrintChatMessage($"The format is: {adminFormat}");
+                PrintChatMessage(this, $"The format is: {adminFormat}");
                 return true;
             }
             string[] username = { commandParts[1] };
-            List<Client> clients = ClientSearch(username, null);
+            List<Client> clients = network.ClientSearch(username, null);
             if (clients.Count == 0)
             {
-                PrintChatMessage($"No user with the username {username[0]} exists");
+                PrintChatMessage(this, $"No user with the username {username[0]} exists");
                 return true;
             }
             bool setAsAdmin = false;
@@ -1057,7 +532,7 @@ namespace Chat
                 {
                     if (clients[0].admin)
                     {
-                        PrintChatMessage($"This user is already an Admin");
+                        PrintChatMessage(this, $"This user is already an Admin");
                         return true;
                     }
                     setAsAdmin = true;
@@ -1066,14 +541,14 @@ namespace Chat
                 {
                     if (clients[0].admin == false)
                     {
-                        PrintChatMessage($"This user is already not an Admin");
+                        PrintChatMessage(this, $"This user is already not an Admin");
                         return true;
                     }
                     setAsAdmin = false;
                 }
                 else
                 {
-                    PrintChatMessage($"The format is: {adminFormat}");
+                    PrintChatMessage(this, $"The format is: {adminFormat}");
                     return true;
                 }
             }
@@ -1081,7 +556,7 @@ namespace Chat
             {
                 if (FrmHolder.hosting)
                 {
-                    if (ClientSearch(username, null)[0].admin)
+                    if (network.ClientSearch(username, null)[0].admin)
                     {
                         setAsAdmin = false;
                     }
@@ -1094,28 +569,9 @@ namespace Chat
             if (FrmHolder.hosting)
             {
                 clients[0].admin = setAsAdmin;
-                SetAdmin(clients[0], FrmHolder.username, setAsAdmin, null);
+                network.SetAdmin(clients[0], FrmHolder.username, setAsAdmin, null);
             }
             return false;
-        }
-
-        private void SetAdmin(Client client, string setter, bool setAsAdmin, List<Client> ignoredClients)
-        {
-            client.admin = setAsAdmin;
-            ignoredClients ??= new List<Client>();
-            ignoredClients.Add(client);
-            if (setAsAdmin)
-            {
-                SendMessage(client, ComposeMessage(client, -1, 14, setter));
-                SendToAll(ignoredClients, 15, $"{client.username} {setter}");
-                PrintChatMessage($"You made {client.username} an Admin");
-            }
-            else
-            {
-                SendMessage(client, ComposeMessage(client, -1, 16, setter));
-                SendToAll(ignoredClients, 17, $"{client.username} {setter}");
-                PrintChatMessage($"You removed {client.username} from Admin");
-            }
         }
 
         private bool BeginDisconnect()
@@ -1127,7 +583,7 @@ namespace Chat
                 if (dialogResult == DialogResult.OK)
                 {
                     serverClose = true;
-                    if (serverThread != null && serverThread.IsAlive)
+                    if (network.serverThread != null && network.serverThread.IsAlive)
                     {
                         serverCancellationTokenSource.Cancel();
                     }
@@ -1137,7 +593,7 @@ namespace Chat
                     return false;
                 }
             }
-            if (clientThread != null && clientThread.IsAlive)
+            if (network.clientThread != null && network.clientThread.IsAlive)
             {
                 clientCancellationTokenSource.Cancel();
             }
@@ -1171,16 +627,16 @@ namespace Chat
                 {
                     if (FrmHolder.hosting || message[0] == '/')
                     {
-                        PrintChatMessage($"{FrmHolder.username}: {message}");
+                        PrintChatMessage(this, $"{FrmHolder.username}: {message}");
                     }
                     if (ProcessCommand(message) == false)
                     {
-                        if (connectedClients.Count > 0)
+                        if (network.connectedClients.Count > 0)
                         {
                             message = message.Trim();
-                            for (int i = 0; i < connectedClients.Count; i++)
+                            for (int i = 0; i < network.connectedClients.Count; i++)
                             {
-                                SendMessage(connectedClients[i], ComposeMessage(connectedClients[i], -1, 2, $"{FrmHolder.username} {message}"));
+                                network.SendMessage(network.connectedClients[i], network.ComposeMessage(network.connectedClients[i], -1, 2, $"{FrmHolder.username} {message}"));
                             }
                         }
                     }
