@@ -11,21 +11,61 @@ namespace Chat
 {
     class Network
     {
+        #region Connection Info
         public int port = 12210;
         public string publicIp;
         public string localIp;
         public int nextAssignableClientId = 0;
         public List<Client> connectedClients = new List<Client>();
+        #endregion
 
+        #region Event Handlers
         public event EventHandler<MessageReceivedEventArgs> MessageReceivedEvent;
         public event EventHandler<string> PrintChatMessageEvent;
         public event EventHandler<Client> HeartbeatTimeoutEvent;
         public event EventHandler ClearClientListEvent;
         public event EventHandler<string> AddClientToClientListEvent;
+        #endregion
 
+        #region Threads
         public Thread serverThread;
         public Thread clientThread;
+        public CancellationTokenSource serverCancellationTokenSource = new CancellationTokenSource();
+        public CancellationTokenSource clientCancellationTokenSource = new CancellationTokenSource();
+        #endregion
+
+        #region Timers
         public System.Timers.Timer heartbeat = new System.Timers.Timer();
+        #endregion
+
+        public void BeginNetworkThreads()
+        {
+            localIp = GetLocalIp();
+            AddClientToClientListEvent(this, FrmHolder.username);
+            if (FrmHolder.hosting)
+            {
+                publicIp = new WebClient().DownloadString("https://ipv4.icanhazip.com/");
+                //publicIp = localIp; // For use if unable to access internet/port forward
+                publicIp = publicIp.Trim();
+
+                serverThread = new Thread(new ParameterizedThreadStart(StartServer));
+                serverThread.IsBackground = true;
+                serverThread.Start(serverCancellationTokenSource.Token);
+
+                PrintChatMessageEvent(this, $"Server started on: {publicIp}");
+            }
+            else
+            {
+                publicIp = FrmHolder.joinIP;
+
+                clientThread = new Thread(new ParameterizedThreadStart(StartClient));
+                clientThread.IsBackground = true;
+                clientThread.Start(clientCancellationTokenSource.Token);
+
+                PrintChatMessageEvent(this, $"Connected to server on: {publicIp}"); //TODO: Only if succesfully connected - use acknowledgement
+            }
+            //network.StartHeartbeat();
+        }
 
         public string GetLocalIp()
         {

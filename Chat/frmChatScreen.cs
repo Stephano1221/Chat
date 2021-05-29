@@ -16,8 +16,6 @@ namespace Chat
     public partial class FrmChatScreen : Form
     {
         private Network network = new Network();
-        private CancellationTokenSource serverCancellationTokenSource = new CancellationTokenSource();
-        private CancellationTokenSource clientCancellationTokenSource = new CancellationTokenSource();
         private bool askToClose = true;
 
         private delegate void MessageDelegate(object sender, MessageReceivedEventArgs e);
@@ -31,45 +29,25 @@ namespace Chat
         public FrmChatScreen()
         {
             InitializeComponent();
-            this.Load += new EventHandler(FrmChatScreen_Load);
-            this.FormClosing += new FormClosingEventHandler(OnClosing);
+            SetNetworkEventHandlers();
+            SetFormEventHandlers();
             xlsvConnectedUsers.Columns[0].Width = xlsvConnectedUsers.Width - 5;
-            BeginNetworkThreads();
+            network.BeginNetworkThreads();
         }
 
-        private void BeginNetworkThreads()
+        private void SetFormEventHandlers()
+        {
+            this.Load += new EventHandler(FrmChatScreen_Load);
+            this.FormClosing += new FormClosingEventHandler(OnClosing);
+        }
+
+        private void SetNetworkEventHandlers()
         {
             network.MessageReceivedEvent += OnMessageReceived;
             network.HeartbeatTimeoutEvent += OnHeartbeatTimeoutFailure;
             network.PrintChatMessageEvent += PrintChatMessage;
             network.ClearClientListEvent += OnClearClientList;
             network.AddClientToClientListEvent += OnAddClientToClientList;
-
-            network.localIp = network.GetLocalIp();
-            xlsvConnectedUsers.Items.Add(FrmHolder.username);
-            if (FrmHolder.hosting)
-            {
-                network.publicIp = new WebClient().DownloadString("https://ipv4.icanhazip.com/");
-                //publicIp = localIp; // For use if unable to access internet/port forward
-                network.publicIp = network.publicIp.Trim();
-
-                network.serverThread = new Thread(new ParameterizedThreadStart(network.StartServer));
-                network.serverThread.IsBackground = true;
-                network.serverThread.Start(serverCancellationTokenSource.Token);
-
-                PrintChatMessage(this, $"Server started on: {network.publicIp}");
-            }
-            else
-            {
-                network.publicIp = FrmHolder.joinIP;
-
-                network.clientThread = new Thread(new ParameterizedThreadStart(network.StartClient));
-                network.clientThread.IsBackground = true;
-                network.clientThread.Start(clientCancellationTokenSource.Token);
-
-                PrintChatMessage(this, $"Connected to server on: {network.publicIp}"); //TODO: Only if succesfully connected - use acknowledgement
-            }
-            //network.StartHeartbeat();
         }
 
         private void ProcessMessage(object sender, MessageReceivedEventArgs e)
@@ -194,7 +172,7 @@ namespace Chat
                 {
                     if (network.clientThread != null && network.clientThread.IsAlive)
                     {
-                        clientCancellationTokenSource.Cancel();
+                        network.clientCancellationTokenSource.Cancel();
                     }
                     MessageBox.Show("The server was closed.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     OpenMainMenu();
@@ -202,7 +180,7 @@ namespace Chat
             }
             else if (e.message.messageType == 4) // Username already used
             {
-                clientCancellationTokenSource.Cancel();
+                network.clientCancellationTokenSource.Cancel();
                 MessageBox.Show("This username is already in use", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 OpenMainMenu();
             }
@@ -226,7 +204,7 @@ namespace Chat
             {
                 if (network.clientThread != null && network.clientThread.IsAlive)
                 {
-                    clientCancellationTokenSource.Cancel();
+                    network.clientCancellationTokenSource.Cancel();
                 }
                 string[] parts = e.message.messageText.Split(' ', 2);
                 string username = parts[0];
@@ -585,7 +563,7 @@ namespace Chat
                     serverClose = true;
                     if (network.serverThread != null && network.serverThread.IsAlive)
                     {
-                        serverCancellationTokenSource.Cancel();
+                        network.serverCancellationTokenSource.Cancel();
                     }
                 }
                 else if (dialogResult == DialogResult.Cancel)
@@ -595,7 +573,7 @@ namespace Chat
             }
             if (network.clientThread != null && network.clientThread.IsAlive)
             {
-                clientCancellationTokenSource.Cancel();
+                network.clientCancellationTokenSource.Cancel();
             }
             if (serverClose || FrmHolder.hosting == false)
             {
