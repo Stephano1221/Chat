@@ -11,14 +11,16 @@ namespace Chat
 {
     public class Encryption
     {
-        private string keyContainerName;
-        private RSAParameters nonWindowsRsaPublicKey;
-        private RSAParameters nonWindowsRsaPrivatePublicKey;
-        private byte[] aesEncryptedKey;
-        private byte[] aesEncryptedIv;
+        int rsaKeySize = 2048;
+        public string keyContainerName;
+
+        public RSAParameters rsaParametersPublicKey;
+        public RSAParameters rsaParametersPrivateAndPublicKey;
+
+        public byte[] aesEncryptedKey;
+        public byte[] aesEncryptedIv;
         private byte[] aesUnencryptedKey;
         private byte[] aesUnencryptedIv;
-
 
         public Encryption()
         {
@@ -36,7 +38,7 @@ namespace Chat
                     {
                         KeyContainerName = keyContainerName
                     };
-                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider(cspParameters))
+                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider(rsaKeySize, cspParameters))
                     {
                         if (encrypt)
                         {
@@ -50,7 +52,7 @@ namespace Chat
                 }
                 else
                 {
-                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider())
+                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider(rsaKeySize))
                     {
                         rsaCryptoServiceProvider.ImportParameters(rsaParameters);
                         if (encrypt)
@@ -80,14 +82,14 @@ namespace Chat
                     {
                         KeyContainerName = keyContainerName
                     };
-                    using RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider(cspParameters);
+                    using RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider(rsaKeySize, cspParameters);
                 }
                 else
                 {
-                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider())
+                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider(rsaKeySize))
                     {
-                        nonWindowsRsaPublicKey = rsaCryptoServiceProvider.ExportParameters(false);
-                        nonWindowsRsaPrivatePublicKey = rsaCryptoServiceProvider.ExportParameters(true);
+                        rsaParametersPublicKey = rsaCryptoServiceProvider.ExportParameters(false);
+                        rsaParametersPrivateAndPublicKey = rsaCryptoServiceProvider.ExportParameters(true);
                     }
                 }
             }
@@ -107,18 +109,18 @@ namespace Chat
                     {
                         KeyContainerName = keyContainerName
                     };
-                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider(cspParameters))
+                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider(rsaKeySize, cspParameters))
                     {
                         rsaCryptoServiceProvider.FromXmlString(xmlKey);
                     }
                 }
                 else
                 {
-                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider())
+                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider(rsaKeySize))
                     {
                         rsaCryptoServiceProvider.FromXmlString(xmlKey);
-                        nonWindowsRsaPublicKey = rsaCryptoServiceProvider.ExportParameters(false);
-                        nonWindowsRsaPrivatePublicKey = rsaCryptoServiceProvider.ExportParameters(true);
+                        rsaParametersPublicKey = rsaCryptoServiceProvider.ExportParameters(false);
+                        rsaParametersPrivateAndPublicKey = rsaCryptoServiceProvider.ExportParameters(true);
                     }
                 }
             }
@@ -138,22 +140,22 @@ namespace Chat
                     {
                         KeyContainerName = keyContainerName
                     };
-                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider(cspParameters))
+                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider(rsaKeySize, cspParameters))
                     {
                         return rsaCryptoServiceProvider.ToXmlString(includePrivateParameters);
                     }
                 }
                 else
                 {
-                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider())
+                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider(rsaKeySize))
                     {
                         if (includePrivateParameters)
                         {
-                            rsaCryptoServiceProvider.ImportParameters(nonWindowsRsaPrivatePublicKey);
+                            rsaCryptoServiceProvider.ImportParameters(rsaParametersPrivateAndPublicKey);
                         }
                         else
                         {
-                            rsaCryptoServiceProvider.ImportParameters(nonWindowsRsaPublicKey);
+                            rsaCryptoServiceProvider.ImportParameters(rsaParametersPublicKey);
                         }
                         return rsaCryptoServiceProvider.ToXmlString(includePrivateParameters);
                     }
@@ -175,17 +177,17 @@ namespace Chat
                     {
                         KeyContainerName = keyContainerName
                     };
-                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider(cspParameters))
+                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider(rsaKeySize, cspParameters))
                     {
                         rsaCryptoServiceProvider.PersistKeyInCsp = false;
                     }
                 }
                 else
                 {
-                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider())
+                    using (RSACryptoServiceProvider rsaCryptoServiceProvider = new RSACryptoServiceProvider(rsaKeySize))
                     {
-                        nonWindowsRsaPublicKey = new RSAParameters();
-                        nonWindowsRsaPrivatePublicKey = new RSAParameters();
+                        rsaParametersPublicKey = new RSAParameters();
+                        rsaParametersPrivateAndPublicKey = new RSAParameters();
                     }
                 }
             }
@@ -204,6 +206,7 @@ namespace Chat
             {
                 aes.Key = keyandIv.key;
                 aes.IV = keyandIv.iv;
+                aes.Padding = PaddingMode.PKCS7;
 
                 ICryptoTransform cryptoTransform;
                 if (encrypt)
@@ -218,10 +221,12 @@ namespace Chat
                 {
                     using (CryptoStream cryptoStream = new CryptoStream(memoryStream, cryptoTransform, CryptoStreamMode.Write))
                     {
+                        cryptoStream.Write(data);
+                        /*Use only if input data is a string
                         using (StreamWriter streamWriter = new StreamWriter(cryptoStream))
                         {
                             streamWriter.Write(data);
-                        }
+                        }*/
                     }
                     changedData = memoryStream.ToArray();
                 }
@@ -253,6 +258,31 @@ namespace Chat
             }
         }
 
+        public void AesImportKeyAndIv(string xmlKey)
+        {
+            try
+            {
+                string[] parts = xmlKey.Split(' ', 2);
+                byte[] key = Convert.FromBase64String(parts[0]);
+                byte[] iv = Convert.FromBase64String(parts[1]);
+                //TODO: Extract key parts from xmlKey for use below
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    aesEncryptedKey = ProtectedData.Protect(key, null, DataProtectionScope.CurrentUser);
+                    aesEncryptedIv = ProtectedData.Protect(iv, null, DataProtectionScope.CurrentUser);
+                }
+                else
+                {
+                    aesUnencryptedKey = key;
+                    aesUnencryptedIv = iv;
+                }
+            }
+            catch(CryptographicException)
+            {
+                throw;
+            }
+        }
+
         public (byte[] aesDecryptedKey, byte[] aesDecryptedIv) AesGetKeyAndIv(byte[] encryptedKey, byte[] encryptedIv)
         {
             try
@@ -266,53 +296,30 @@ namespace Chat
                     return (aesUnencryptedKey, aesUnencryptedIv);
                 }
             }
-            catch(CryptographicException)
+            catch (CryptographicException)
             {
                 throw;
             }
         }
 
-        public void AesImportKeyAndIv(string xmlKey)
-        {
-            try
-            {
-                //TODO: Extract key parts from xmlKey for use below
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    //aesEncryptedKey = ProtectedData.Protect(keyandIv.key, null, DataProtectionScope.CurrentUser);
-                    //aesEncryptedIv = ProtectedData.Protect(keyandIv.iv, null, DataProtectionScope.CurrentUser);
-                }
-                else
-                {
-                    //aesUnencryptedKey = keyandIv.key;
-                    //aesUnencryptedIv = keyandIv.iv;
-                }
-            }
-            catch(CryptographicException)
-            {
-                throw;
-            }
-        }
-
-        public string AesExportKeyAndIv((byte[] key, byte[] iv) keyandIv)
+        public string AesExportKeyAndIv()
         {
             try
             {
                 //TODO: Put key and IV into an XML string
-                string xmlKey;
+                (byte[] key, byte[] iv) keyAndIv = AesGetKeyAndIv(aesEncryptedKey, aesEncryptedIv);
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
-                    xmlKey = null;
+                    return $"{Convert.ToBase64String(keyAndIv.key)} {Convert.ToBase64String(keyAndIv.iv)}";
                     //aesEncryptedKey = ProtectedData.Unprotect(keyandIv.key, null, DataProtectionScope.CurrentUser);
                     //aesEncryptedIv = ProtectedData.Unprotect(keyandIv.iv, null, DataProtectionScope.CurrentUser);
                 }
                 else
                 {
-                    xmlKey = null;
+                    return $"{Convert.ToBase64String(keyAndIv.key)} {Convert.ToBase64String(keyAndIv.iv)}";
                     //aesUnencryptedKey = keyandIv.key;
                     //aesUnencryptedIv = keyandIv.iv;
                 }
-                return xmlKey;
             }
             catch (CryptographicException)
             {

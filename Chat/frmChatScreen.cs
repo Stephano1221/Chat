@@ -228,6 +228,7 @@ namespace Chat
 
         private void ConnectClient(Client client)
         {
+            client.encryptionEstablished = false;
             client.connectionSetupComplete = false;
             client.sendingMessageQueue = false;
             client.receivingMessageQueue = false;
@@ -241,12 +242,17 @@ namespace Chat
             }
             client.tcpClient = new TcpClient();
             client.tcpClient.Connect(publicIp, port);
-            string clientIdPart = "";
+            /*string clientIdPart = "";
             if (FrmHolder.clientId != -1)
             {
                 clientIdPart = $" {Convert.ToString(FrmHolder.clientId)}";
-            }
-            SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 0, $"{FrmHolder.username}{clientIdPart}"));
+            }*/
+            client.encryption = new Encryption();
+            client.encryption.keyContainerName = DateTime.Now.ToString();
+            client.encryption.RsaGenerateKey(client.encryption.keyContainerName);
+            string rsaKey = client.encryption.RsaExportXmlKey(client.encryption.keyContainerName, false);
+            //SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 0, $"{FrmHolder.username}{clientIdPart}"));
+            SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 20, $"{rsaKey}"));
         }
 
         private void ServerAcceptIncomingConnection(TcpListener tcpListener)
@@ -285,6 +291,7 @@ namespace Chat
                     NetworkStream networkStream = client.tcpClient.GetStream();
                     {
                         if (networkStream.CanWrite && networkStream.CanRead)
+                        
                         {
                             // Message ID
                             byte[] idBuffer = new byte[4];
@@ -298,7 +305,14 @@ namespace Chat
                             byte[] textBuffer = null;
                             if (message.messageText != null)
                             {
-                                textBuffer = Encoding.Unicode.GetBytes(message.messageText);
+                                if (client.encryptionEstablished)
+                                {
+                                    textBuffer = client.encryption.AesEncryptDecrypt(Encoding.Unicode.GetBytes(message.messageText), client.encryption.AesGetKeyAndIv(client.encryption.aesEncryptedKey, client.encryption.aesEncryptedIv), true);
+                                }
+                                else
+                                {
+                                    textBuffer = Encoding.Unicode.GetBytes(message.messageText);
+                                }
                             }
 
                             // Message length
@@ -450,6 +464,14 @@ namespace Chat
         {
             client.heartbeatReceieved = true;
             client.heartbeatFailures = 0;
+            if (client.encryptionEstablished)
+            {
+                if (message.messageText != null)
+                {
+                    message.messageText = Encoding.Unicode.GetString(client.encryption.AesEncryptDecrypt(Encoding.Unicode.GetBytes(message.messageText), client.encryption.AesGetKeyAndIv(client.encryption.aesEncryptedKey, client.encryption.aesEncryptedIv), false));
+                }
+            }
+
             if (message.messageType != 1 && message.messageType != 3 && message.messageType != 11)
             {
                 SendMessage(client, ComposeMessage(client, message.messageId, 1, null)); // Acknowledge received message
@@ -671,6 +693,33 @@ namespace Chat
             {
                 client.connectionSetupComplete = true;
             }
+            else if (message.messageType == 20) // Receive RSA public key
+            {
+                client.encryption.keyContainerName = DateTime.Now.ToString();
+                client.encryption.RsaImportXmlKey(client.encryption.keyContainerName, message.messageText);
+                client.encryption.AesGenerateKey();
+                string symmetricKey = Convert.ToBase64String(client.encryption.RsaEncryptDecrypt(Convert.FromBase64String(client.encryption.AesExportKeyAndIv()), client.encryption.keyContainerName, client.encryption.rsaParametersPublicKey, true, true));
+                SendMessage(client, ComposeMessage(client, -1, 21, symmetricKey));
+                client.encryption.RsaDeleteKey(client.encryption.keyContainerName);
+                client.encryptionEstablished = true;
+            }
+            else if (message.messageType == 21) // Receive AES private key
+            {
+                message.messageText = Convert.ToBase64String(client.encryption.RsaEncryptDecrypt(Convert.FromBase64String(message.messageText), client.encryption.keyContainerName, client.encryption.rsaParametersPrivateAndPublicKey, true, false));
+                client.encryption.AesImportKeyAndIv(message.messageText);
+                client.encryption.RsaDeleteKey(client.encryption.keyContainerName);
+                client.encryptionEstablished = true;
+
+                if (FrmHolder.hosting == false)
+                {
+                    string clientIdPart = "";
+                    if (FrmHolder.clientId != -1)
+                    {
+                        clientIdPart = $" {Convert.ToString(FrmHolder.clientId)}";
+                    }
+                    SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 0, $"{FrmHolder.username}{clientIdPart}"));
+                }
+            }
         }
 
         private void AddMessageToMessageListBySendPriority(List<Message> list, Message message)
@@ -728,6 +777,7 @@ namespace Chat
             clientMergeTo.nextAssignableMessageId = (clientMergeTo.nextAssignableMessageId + clientMergeFrom.nextAssignableMessageId);
             //clientMergeTo.username = clientMergeFrom.username;
             clientMergeTo.tcpClient = clientMergeFrom.tcpClient;
+            clientMergeTo.encryption = clientMergeFrom.encryption;
 
             //clientMergeTo.admin = clientMergeFrom.admin;
             //clientMergeTo.serverMuted = clientMergeFrom.serverMuted;
@@ -735,7 +785,12 @@ namespace Chat
 
             clientMergeTo.heartbeatReceieved = clientMergeFrom.heartbeatReceieved;
             clientMergeTo.heartbeatFailures = clientMergeFrom.heartbeatFailures;
+            clientMergeTo.encryptionEstablished = clientMergeFrom.encryptionEstablished;
+            //clientMergeTo.connectionSetupComplete = clientMergeFrom.connectionSetupComplete;
+            //clientMergeTo.sendingMessageQueue = clientMergeFrom.sendingMessageQueue;
+            //clientMergeTo.receivingMessageQueue = clientMergeFrom.receivingMessageQueue;
 
+            //TODO: Add messages to queue based on priority
             clientMergeTo.messagesSent.AddRange(clientMergeFrom.messagesSent);
             clientMergeTo.messagesToBeSent.AddRange(clientMergeFrom.messagesToBeSent);
             clientMergeTo.messagesReceived.AddRange(clientMergeFrom.messagesReceived);
