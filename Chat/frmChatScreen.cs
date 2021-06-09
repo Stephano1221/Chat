@@ -56,9 +56,12 @@ namespace Chat
             e.client.heartbeatFailures = 0;
             if (e.client.encryptionEstablished)
             {
-                if (e.message.messageText != null)
+                if (e.message.messageBytes != null)
                 {
-                    e.message.messageText = Encoding.Unicode.GetString(e.client.encryption.AesEncryptDecrypt(Encoding.Unicode.GetBytes(e.message.messageText), e.client.encryption.AesGetKeyAndIv(e.client.encryption.aesEncryptedKey, e.client.encryption.aesEncryptedIv), false));
+                    if (e.message.CheckIfCanConvertToText())
+                    {
+                        e.message.MessageTextToOrFromBytes();
+                    }
                 }
             }
 
@@ -116,7 +119,7 @@ namespace Chat
                         List<Client> ignoredClients = new List<Client>();
                         ignoredClients.Add(e.client);
                         PrintChatMessage(this, $"{e.client.username} connected");
-                        network.SendToAll(ignoredClients, 5, e.client.username);
+                        network.SendToAll(ignoredClients, 5, e.client.username, null);
                         network.UpdateClientLists();
                     }
                     e.client.connectionSetupComplete = true;
@@ -149,7 +152,7 @@ namespace Chat
                 PrintChatMessage(this, $"{username}: {messageText}");
                 if (FrmHolder.hosting)
                 {
-                    network.SendToAll(null, 2, e.message.messageText);
+                    network.SendToAll(null, 2, e.message.messageText, null);
                 }
             }
             else if (e.message.messageType == 3) // Disconnect
@@ -164,7 +167,7 @@ namespace Chat
                     if (e.client.username != null)
                     {
                         PrintChatMessage(this, $"{e.client.username} disconnected");
-                        network.SendToAll(null, 6, e.client.username);
+                        network.SendToAll(null, 6, e.client.username, null);
                     }
                     network.UpdateClientLists();
                 }
@@ -286,28 +289,37 @@ namespace Chat
             else if (e.message.messageType == 20) // Receive RSA public key
             {
                 e.client.encryption.keyContainerName = DateTime.Now.ToString();
+                e.client.encryption.RsaDeleteKey(e.client.encryption.keyContainerName);
                 e.client.encryption.RsaImportXmlKey(e.client.encryption.keyContainerName, e.message.messageText);
                 e.client.encryption.AesGenerateKey();
-                string symmetricKey = Convert.ToBase64String(e.client.encryption.RsaEncryptDecrypt(Convert.FromBase64String(e.client.encryption.AesExportKeyAndIv()), e.client.encryption.keyContainerName, e.client.encryption.rsaParametersPublicKey, true, true));
-                network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 21, symmetricKey, null));
+                (byte[] aesDecryptedKey, byte[] aesDecryptedIv) aesKeyAndIv = e.client.encryption.AesExportKeyAndIv(e.client.encryption.aesEncryptedKey, e.client.encryption.aesEncryptedIv);
+                byte[] aesKey = e.client.encryption.RsaEncryptDecrypt(aesKeyAndIv.aesDecryptedKey, e.client.encryption.keyContainerName, e.client.encryption.rsaParametersPublicKey, true, true);
+                byte[] aesIv = e.client.encryption.RsaEncryptDecrypt(aesKeyAndIv.aesDecryptedIv, e.client.encryption.keyContainerName, e.client.encryption.rsaParametersPublicKey, true, true);
+                network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 21, null, aesKey));
+                network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 22, null, aesIv));
                 e.client.encryption.RsaDeleteKey(e.client.encryption.keyContainerName);
-                e.client.encryptionEstablished = true;
+                e.client.encryptionEstablished = true; //TODO Only set to true if test message is decrypted
             }
             else if (e.message.messageType == 21) // Receive AES private key
             {
-                e.message.messageText = Convert.ToBase64String(e.client.encryption.RsaEncryptDecrypt(Convert.FromBase64String(e.message.messageText), e.client.encryption.keyContainerName, e.client.encryption.rsaParametersPrivateAndPublicKey, true, false));
-                e.client.encryption.AesImportKeyAndIv(e.message.messageText);
+                e.message.messageBytes = e.client.encryption.RsaEncryptDecrypt(e.message.messageBytes, e.client.encryption.keyContainerName, e.client.encryption.rsaParametersPrivateAndPublicKey, true, false);
+                e.client.encryption.AesImportKeyOrIv(e.message.messageBytes, true);
+            }
+            else if (e.message.messageType == 22) // Receive AES IV
+            {
+                e.message.messageBytes = e.client.encryption.RsaEncryptDecrypt(e.message.messageBytes, e.client.encryption.keyContainerName, e.client.encryption.rsaParametersPrivateAndPublicKey, true, false);
+                e.client.encryption.AesImportKeyOrIv(e.message.messageBytes, false);
                 e.client.encryption.RsaDeleteKey(e.client.encryption.keyContainerName);
                 e.client.encryptionEstablished = true;
 
                 if (FrmHolder.hosting == false)
                 {
-                    string clientIdPart = "";
+                    string clientId = "";
                     if (FrmHolder.clientId != -1)
                     {
-                        clientIdPart = $" {Convert.ToString(FrmHolder.clientId)}";
+                        clientId = $" {Convert.ToString(FrmHolder.clientId)}";
                     }
-                    network.SendMessage(network.connectedClients[0], network.ComposeMessage(network.connectedClients[0], -1, 0, $"{FrmHolder.username}{clientIdPart}", null));
+                    network.SendMessage(network.connectedClients[0], network.ComposeMessage(network.connectedClients[0], -1, 0, $"{FrmHolder.username}{clientId}", null));
                 }
             }
         }
@@ -430,7 +442,7 @@ namespace Chat
             List<Client> ignoredClients = new List<Client>();
             ignoredClients.Add(clients[0]);
             network.SendMessage(clients[0], network.ComposeMessage(clients[0], -1, 9, $"{FrmHolder.username} {reason}", null)); // Kick client
-            network.SendToAll(ignoredClients, 10, $"{username[0]} {FrmHolder.username} {reason}");
+            network.SendToAll(ignoredClients, 10, $"{username[0]} {FrmHolder.username} {reason}", null);
             return false;
         }
 

@@ -44,7 +44,7 @@ namespace Chat
             AddClientToClientListEvent(this, FrmHolder.username);
             if (FrmHolder.hosting)
             {
-                publicIp = new WebClient().DownloadString("https://ipv4.icanhazip.com/");
+                publicIp = new WebClient().DownloadString("https://ipv4.icanhazip.com/"); //TODO: Implement backup URLs
                 //publicIp = localIp; // For use if unable to access internet/port forward
                 publicIp = publicIp.Trim();
 
@@ -105,6 +105,7 @@ namespace Chat
 
             tcpListener.Stop();
             FrmHolder.clientId = -1;
+            DeleteAllRSAKeys();
             if (connectedClients.Count > 0)
             {
                 SendDisconnect(null, false, true);
@@ -129,6 +130,7 @@ namespace Chat
                 LoopClientsForIncomingMessages();
             }
             FrmHolder.clientId = -1;
+            DeleteAllRSAKeys();
             if (connectedClients.Count > 0)
             {
                 SendDisconnect(client, false, false);
@@ -191,7 +193,7 @@ namespace Chat
             {
                 List<Client> ignoredClients = new List<Client>();
                 ignoredClients.Add(client);
-                SendToAll(ignoredClients, 13, client.username);
+                SendToAll(ignoredClients, 13, client.username, null);
                 UpdateClientLists();
                 PrintChatMessageEvent(this, $"Lost connection to {client.username}...");
             }
@@ -322,10 +324,11 @@ namespace Chat
             }*/
             client.encryption = new Encryption();
             client.encryption.keyContainerName = DateTime.Now.ToString();
+            client.encryption.RsaDeleteKey(client.encryption.keyContainerName);
             client.encryption.RsaGenerateKey(client.encryption.keyContainerName);
             string rsaKey = client.encryption.RsaExportXmlKey(client.encryption.keyContainerName, false);
             //SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 0, $"{FrmHolder.username}{clientIdPart}"));
-            SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 20, $"{rsaKey}", null));
+            SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 20, rsaKey, null));
         }
 
         public void ServerAcceptIncomingConnection(TcpListener tcpListener)
@@ -408,7 +411,7 @@ namespace Chat
                             {
                                 if (client.encryptionEstablished)
                                 {
-                                    bytesBuffer = client.encryption.AesEncryptDecrypt(message.messageBytes, client.encryption.AesGetKeyAndIv(client.encryption.aesEncryptedKey, client.encryption.aesEncryptedIv), true);
+                                    bytesBuffer = client.encryption.AesEncryptDecrypt(message.messageBytes, client.encryption.AesExportKeyAndIv(client.encryption.aesEncryptedKey, client.encryption.aesEncryptedIv), true);
                                 }
                                 else
                                 {
@@ -497,6 +500,11 @@ namespace Chat
                                     totalReceivedLength += receivedLength;
                                 }
                                 ConvertLittleEndianToBigEndian(messageBytes);
+
+                                if (client.encryptionEstablished)
+                                {
+                                    messageBytes = client.encryption.AesEncryptDecrypt(messageBytes, client.encryption.AesExportKeyAndIv(client.encryption.aesEncryptedKey, client.encryption.aesEncryptedIv), false);
+                                }
                             }
 
                             Message receivedMessage = ComposeMessage(client, messageId, messageType, null, messageBytes);
@@ -511,24 +519,31 @@ namespace Chat
             }
         }
 
-        public void SendToAll(List<Client> ignoredClients, int messageType, string messageText) //TODO: Replace messagType and messagText with Message class
+        public void SendToAll(List<Client> ignoredClients, int messageType, string messageText, byte[] messageBytes) //TODO: Replace messagType and messagText with Message class
         {
             for (int i = 0; i < connectedClients.Count; i++)
             {
                 if (ignoredClients != null)
                 {
+                    bool ignoreClient = false;
                     for (int j = 0; j < ignoredClients.Count; j++)
                     {
-                        if (connectedClients[i] != ignoredClients[j])
+                        if (connectedClients[i] == ignoredClients[j])
                         {
-                            SendMessage(connectedClients[i], ComposeMessage(connectedClients[i], -1, messageType, messageText, null));
+                            ignoreClient = true;
                             break;
                         }
+                    }
+                    if (ignoreClient == false)
+                    {
+                        SendMessage(connectedClients[i], ComposeMessage(connectedClients[i], -1, messageType, messageText, messageBytes));
+                        continue;
                     }
                 }
                 else
                 {
-                    SendMessage(connectedClients[i], ComposeMessage(connectedClients[i], -1, messageType, messageText, null));
+                    SendMessage(connectedClients[i], ComposeMessage(connectedClients[i], -1, messageType, messageText, messageBytes));
+                    continue;
                 }
             }
         }
@@ -608,12 +623,12 @@ namespace Chat
         public void UpdateClientLists()
         {
             ClearClientListEvent.Invoke(this, null);
-            SendToAll(null, 7, null);
+            SendToAll(null, 7, null, null);
             string[] usernames = GetClientUsernames();
             for (int i = 0; i < usernames.Length; i++)
             {
                 AddClientToClientListEvent.Invoke(this, usernames[i]);
-                SendToAll(null, 8, usernames[i]);
+                SendToAll(null, 8, usernames[i], null);
             }
         }
 
@@ -625,13 +640,13 @@ namespace Chat
             if (setAsAdmin)
             {
                 SendMessage(client, ComposeMessage(client, -1, 14, setter, null));
-                SendToAll(ignoredClients, 15, $"{client.username} {setter}");
+                SendToAll(ignoredClients, 15, $"{client.username} {setter}", null);
                 PrintChatMessageEvent.Invoke(this, $"You made {client.username} an Admin");
             }
             else
             {
                 SendMessage(client, ComposeMessage(client, -1, 16, setter, null));
-                SendToAll(ignoredClients, 17, $"{client.username} {setter}");
+                SendToAll(ignoredClients, 17, $"{client.username} {setter}", null);
                 PrintChatMessageEvent.Invoke(this, $"You removed {client.username} from Admin");
             }
         }
@@ -643,7 +658,7 @@ namespace Chat
             {
                 List<Client> ignoredClients = new List<Client>();
                 ignoredClients.Add(client);
-                SendToAll(ignoredClients, type, null);
+                SendToAll(ignoredClients, type, null, null);
                 for (int i = 0; i < connectedClients.Count; i++)
                 {
                     if (connectedClients[i].tcpClient != null)
@@ -661,6 +676,14 @@ namespace Chat
                     client.tcpClient.Close();
                 }
                 connectedClients.Remove(client);
+            }
+        }
+
+        public void DeleteAllRSAKeys()
+        {
+            for(int i = 0; i < connectedClients.Count(); i++)
+            {
+                connectedClients[i].encryption.RsaDeleteKey(connectedClients[i].encryption.keyContainerName);
             }
         }
     }

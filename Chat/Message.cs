@@ -21,7 +21,7 @@ namespace Chat
             this.messageType = messageType;
             this.messageText = messageText;
 
-            MessageTextToOrFromBytes(true);
+            MessageTextToOrFromBytes();
             SetPriorityLevelFromMessageType();
         }
 
@@ -30,7 +30,7 @@ namespace Chat
             this.messageType = messageType;
             this.messageText = messageText;
 
-            MessageTextToOrFromBytes(true);
+            MessageTextToOrFromBytes();
             SetPriorityLevelFromMessageType();
 
         }
@@ -41,7 +41,7 @@ namespace Chat
             this.messageType = messageType;
             this.messageText = messageText;
 
-            MessageTextToOrFromBytes(true);
+            MessageTextToOrFromBytes();
             this.messageSendPriority = messageSendPriority;
         }
 
@@ -50,7 +50,7 @@ namespace Chat
             this.messageType = messageType;
             this.messageText = messageText;
 
-            MessageTextToOrFromBytes(true);
+            MessageTextToOrFromBytes();
             this.messageSendPriority = messageSendPriority;
         }
 
@@ -60,7 +60,7 @@ namespace Chat
             this.messageType = messageType;
             this.messageBytes = messageBytes;
 
-            MessageTextToOrFromBytes(false);
+            MessageTextToOrFromBytes();
             SetPriorityLevelFromMessageType();
         }
 
@@ -69,7 +69,7 @@ namespace Chat
             this.messageType = messageType;
             this.messageBytes = messageBytes;
 
-            MessageTextToOrFromBytes(false);
+            MessageTextToOrFromBytes();
             SetPriorityLevelFromMessageType();
 
         }
@@ -80,7 +80,7 @@ namespace Chat
             this.messageType = messageType;
             this.messageBytes = messageBytes;
 
-            MessageTextToOrFromBytes(false);
+            MessageTextToOrFromBytes();
             this.messageSendPriority = messageSendPriority;
         }
 
@@ -89,23 +89,23 @@ namespace Chat
             this.messageType = messageType;
             this.messageBytes = messageBytes;
 
-            MessageTextToOrFromBytes(false);
+            MessageTextToOrFromBytes();
             this.messageSendPriority = messageSendPriority;
         }
 
-        private void MessageTextToOrFromBytes(bool toBytes)
+        public void MessageTextToOrFromBytes()
         {
-            if (toBytes && messageText != null)
-            {
-                messageBytes = Encoding.Unicode.GetBytes(messageText);
-            }
-            else if (messageBytes != null && CheckIfCanConvertToText())
-            {
-                messageText = Encoding.Unicode.GetString(messageBytes);
-            }
+                if (messageText != null)
+                {
+                    messageBytes = Encoding.Unicode.GetBytes(messageText);
+                }
+                else if (messageBytes != null && CheckIfCanConvertToText())
+                {
+                    messageText = Encoding.Unicode.GetString(messageBytes);
+                }
         }
 
-        private void SetPriorityLevelFromMessageType()
+        public void SetPriorityLevelFromMessageType()
         {
             switch(messageType)
             {
@@ -131,11 +131,12 @@ namespace Chat
                 case 19: messageSendPriority = 0; break;
                 case 20: messageSendPriority = 0; break;
                 case 21: messageSendPriority = 0; break;
+                case 22: messageSendPriority = 0; break;
                 default: messageSendPriority = 0; break;
             }
         }
 
-        private bool CheckIfCanConvertToText()
+        public bool CheckIfCanConvertToText()
         {
             switch (messageType)
             {
@@ -160,7 +161,8 @@ namespace Chat
                 case 18: return true;
                 case 19: return true;
                 case 20: return true;
-                case 21: return true;
+                case 21: return false;
+                case 22: return false;
                 default: return false;
             }
         }
