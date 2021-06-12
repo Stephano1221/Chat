@@ -325,6 +325,7 @@ namespace Chat
             client.connectionSetupComplete = false;
             client.sendingMessageQueue = false;
             client.receivingMessageQueue = false;
+
             if (client.tcpClient != null)
             {
                 client.tcpClient.Close();
@@ -333,18 +334,20 @@ namespace Chat
             {
                 connectedClients.Add(client);
             }
-            client.tcpClient = new TcpClient();
-            client.tcpClient.Connect(publicIp, port);
             /*string clientIdPart = "";
             if (FrmHolder.clientId != -1)
             {
                 clientIdPart = $" {Convert.ToString(FrmHolder.clientId)}";
             }*/
+
             client.encryption = new Encryption();
             client.encryption.keyContainerName = DateTime.Now.ToString();
             client.encryption.RsaDeleteKey(client.encryption.keyContainerName);
             client.encryption.RsaGenerateKey(client.encryption.keyContainerName);
             string rsaKey = client.encryption.RsaExportXmlKey(client.encryption.keyContainerName, false);
+
+            client.tcpClient = new TcpClient();
+            client.tcpClient.Connect(publicIp, port);
             //SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 0, $"{FrmHolder.username}{clientIdPart}"));
             SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 20, rsaKey, null));
         }
