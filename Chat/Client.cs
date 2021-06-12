@@ -26,6 +26,7 @@ namespace Chat
         public int nextAssignableMessageId = 0;
         public bool heartbeatReceieved = false;
         public int heartbeatFailures = 0;
+        public bool disconnectHandled = false;
         public bool encryptionEstablished = false;
         public bool connectionSetupComplete = false;
         public bool sendingMessageQueue = false;

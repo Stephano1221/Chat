@@ -168,7 +168,10 @@ namespace Chat
                     }
                     else if ((client.heartbeatFailures >= 12 && FrmHolder.hosting) || (client.heartbeatFailures >= 10 && FrmHolder.hosting == false))
                     {
-                        HeartbeatTimeoutEvent.Invoke(this, client);
+                        if (client.disconnectHandled == false)
+                        {
+                            HeartbeatTimeoutEvent.Invoke(this, client);
+                        }
                     }
                     if (FrmHolder.hosting == false)
                     {
@@ -184,22 +187,26 @@ namespace Chat
 
         public void HeartbeatTimeoutFailure(Client client)
         {
-            if (client.tcpClient != null)
+            if (client.disconnectHandled == false)
             {
-                client.tcpClient.Close();
-            }
-            connectedClients.Remove(client);
-            if (FrmHolder.hosting)
-            {
-                List<Client> ignoredClients = new List<Client>();
-                ignoredClients.Add(client);
-                SendToAll(ignoredClients, 13, client.username, null);
-                UpdateClientLists();
-                PrintChatMessageEvent(this, $"Lost connection to {client.username}...");
-            }
-            else
-            {
-                PrintChatMessageEvent(this, $"Lost connection to server...");
+                client.disconnectHandled = true;
+                if (client.tcpClient != null)
+                {
+                    client.tcpClient.Close();
+                }
+                connectedClients.Remove(client);
+                if (FrmHolder.hosting)
+                {
+                    List<Client> ignoredClients = new List<Client>();
+                    ignoredClients.Add(client);
+                    SendToAll(ignoredClients, 13, client.username, null);
+                    UpdateClientLists();
+                    PrintChatMessageEvent(this, $"Lost connection to {client.username}...");
+                }
+                else
+                {
+                    PrintChatMessageEvent(this, $"Lost connection to server...");
+                }
             }
         }
 
