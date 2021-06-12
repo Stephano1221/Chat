@@ -231,7 +231,7 @@ namespace Chat
             {
                 if (sendFailed)
                 {
-                    AddMessageToMessageListBySendPriority(client.messagesToBeSent, message);
+                    AddMessageToMessageListBySendPriority(client.messagesToBeSent, message, true);
                     return true;
                 }
                 else
@@ -242,7 +242,7 @@ namespace Chat
                         {
                             if (client.sendingMessageQueue || client.receivingMessageQueue)
                             {
-                                AddMessageToMessageListBySendPriority(client.messagesToBeSent, message);
+                                AddMessageToMessageListBySendPriority(client.messagesToBeSent, message, true);
                                 return true;
                             }
                         }
@@ -252,50 +252,68 @@ namespace Chat
             return false;
         }
 
-        public void AddMessageToMessageListBySendPriority(List<Message> list, Message message)
+        public void AddMessageToMessageListBySendPriority(List<Message> messageList, Message message, bool addToEndOfPriorityGroup)
         {
-            bool added = false;
-            if (list.Contains(message) == false)
+            if (messageList != null && messageList.Count() > 0)
             {
-                for (int i = 0; i < list.Count(); i++)
+                if (messageList.Contains(message) == false)
                 {
-                    if (list[i].messageSendPriority > message.messageSendPriority)
+                    bool added = false;
+                    if (addToEndOfPriorityGroup)
                     {
-                        list.Insert(i, message);
-                        added = true;
-                        break;
+                        for (int i = 0; i < messageList.Count(); i++)
+                        {
+                            if (messageList[i].messageSendPriority > message.messageSendPriority)
+                            {
+                                messageList.Insert(i, message);
+                                added = true;
+                                break;
+                            }
+                        }
                     }
-                }
-                if (added == false)
-                {
-                    list.Add(message);
+                    else
+                    {
+                        for (int i = messageList.Count() - 1; i >= 0; i--)
+                        {
+                            if (messageList[i].messageSendPriority < message.messageSendPriority)
+                            {
+                                messageList.Insert(i + 1, message);
+                                added = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (added == false)
+                    {
+                        messageList.Add(message);
+                    }
                 }
             }
         }
 
-        public void RemoveMessageFromMessageListByTypeAndOrSendPriority(List<Message> list, int? messageType, int? messageSendPriority)
+        public void RemoveMessageFromMessageListByTypeAndOrSendPriority(List<Message> messageList, int? messageType, int? messageSendPriority)
         {
-            for (int i = 0; i < list.Count(); i++)
+            for (int i = 0; i < messageList.Count(); i++)
             {
                 if (messageType != null && messageSendPriority != null)
                 {
-                    if (list[i].messageType == messageType && list[i].messageSendPriority == messageSendPriority)
+                    if (messageList[i].messageType == messageType && messageList[i].messageSendPriority == messageSendPriority)
                     {
-                        list.RemoveAt(i);
+                        messageList.RemoveAt(i);
                     }
                 }
                 else if (messageType != null)
                 {
-                    if (list[i].messageType == messageType)
+                    if (messageList[i].messageType == messageType)
                     {
-                        list.RemoveAt(i);
+                        messageList.RemoveAt(i);
                     }
                 }
                 else if (messageSendPriority != null)
                 {
-                    if (list[i].messageSendPriority == messageSendPriority)
+                    if (messageList[i].messageSendPriority == messageSendPriority)
                     {
-                        list.RemoveAt(i);
+                        messageList.RemoveAt(i);
                     }
                 }
             }
@@ -440,7 +458,7 @@ namespace Chat
                             }
                             if (message.messageType != 1 && message.messageType != 3 && message.messageType != 11)
                             {
-                                AddMessageToMessageListBySendPriority(client.messagesToBeSent, message);
+                                AddMessageToMessageListBySendPriority(client.messagesToBeSent, message, true);
                             }
                         }
                     }
