@@ -148,6 +148,11 @@ namespace Chat
             heartbeat.Start();
         }
 
+        private void StopHeartbeat()
+        {
+            heartbeat.Stop();
+        }
+
         public void Heartbeat_Tick(object sender, EventArgs e)
         {
             if (connectedClients != null)
