@@ -330,6 +330,7 @@ namespace Chat
         {
             client.encryptionEstablished = false;
             client.connectionSetupComplete = false;
+            client.disconnectHandled = false;
             client.sendingMessageQueue = false;
             client.receivingMessageQueue = false;
 
@@ -591,9 +592,10 @@ namespace Chat
             clientMergeTo.heartbeatReceieved = clientMergeFrom.heartbeatReceieved;
             clientMergeTo.heartbeatFailures = clientMergeFrom.heartbeatFailures;
             clientMergeTo.encryptionEstablished = clientMergeFrom.encryptionEstablished;
-            //clientMergeTo.connectionSetupComplete = clientMergeFrom.connectionSetupComplete;
-            //clientMergeTo.sendingMessageQueue = clientMergeFrom.sendingMessageQueue;
-            //clientMergeTo.receivingMessageQueue = clientMergeFrom.receivingMessageQueue;
+            clientMergeTo.connectionSetupComplete = clientMergeFrom.connectionSetupComplete;
+            clientMergeTo.disconnectHandled = clientMergeFrom.disconnectHandled;
+            clientMergeTo.sendingMessageQueue = clientMergeFrom.sendingMessageQueue;
+            clientMergeTo.receivingMessageQueue = clientMergeFrom.receivingMessageQueue;
 
             //TODO: Add messages to queue based on priority
             clientMergeTo.messagesSent.AddRange(clientMergeFrom.messagesSent);
