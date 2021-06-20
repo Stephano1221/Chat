@@ -1,4 +1,5 @@
-﻿using System;
+﻿#define messageSentReceivedUpdates
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -475,6 +476,18 @@ namespace Chat
                             if (message.messageType != 1 && message.messageType != 3 && message.messageType != 11)
                             {
                                 AddMessageToMessageListBySendPriority(client.messagesToBeSent, message, true);
+#if DEBUG && messageSentReceivedUpdates
+                                string text;
+                                if (message.messageText != null)
+                                {
+                                    text = $"[SENT] Type: {message.messageType}. ID: {message.messageId}. Text: {message.messageText}";
+                                }
+                                else
+                                {
+                                    text = $"[SENT] Type: {message.messageType}. ID: {message.messageId}";
+                                }
+                                PrintChatMessageEvent.Invoke(this, text);
+#endif
                             }
                         }
                     }

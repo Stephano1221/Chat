@@ -1,4 +1,5 @@
-﻿using System;
+﻿#define messageSentReceivedUpdates
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -22,6 +23,7 @@ namespace Chat
         private delegate void HeartbeatDelegate(Client client);
         private delegate void ClearClientClistDelegate();
         private delegate void AddClientToClientListDelegate(string username);
+        private delegate void PrintChatMessageDelegate(string text);
 
         private string kickFormat = "/kick [Username] [Reason (optional)]";
         private string adminFormat = "/admin [Username] [True/False (optional)]";
@@ -45,7 +47,7 @@ namespace Chat
         {
             network.MessageReceivedEvent += OnMessageReceived;
             network.HeartbeatTimeoutEvent += OnHeartbeatTimeoutFailure;
-            network.PrintChatMessageEvent += PrintChatMessage;
+            network.PrintChatMessageEvent += OnPrintChatMessage;
             network.ClearClientListEvent += OnClearClientList;
             network.AddClientToClientListEvent += OnAddClientToClientList;
         }
@@ -68,14 +70,27 @@ namespace Chat
             if (e.message.messageType != 1 && e.message.messageType != 3 && e.message.messageType != 11)
             {
                 network.SendMessage(e.client, network.ComposeMessage(e.client, e.message.messageId, 1, null, null)); // Acknowledge received message
-                foreach (Message alreadyReceivedMessage in e.client.messagesReceived)
+                if (e.client.connectionSetupComplete)
                 {
-                    if (e.message.messageId == alreadyReceivedMessage.messageId)
+                    foreach (Message alreadyReceivedMessage in e.client.messagesReceived)
                     {
-                        return;
+                        if (e.message.messageId == alreadyReceivedMessage.messageId)
+                        {
+                            return;
+                        }
                     }
                 }
                 e.client.messagesReceived.Add(e.message);
+#if DEBUG && messageSentReceivedUpdates
+                if (e.message.messageText != null)
+                {
+                    PrintChatMessage($"[RECEIVED] Type: {e.message.messageType}. ID: {e.message.messageId}. Text: {e.message.messageText}");
+                }
+                else
+                {
+                    PrintChatMessage($"[RECEIVED] Type: {e.message.messageType}. ID: {e.message.messageId}");
+                }
+#endif
             }
 
             if (e.message.messageType == 0) // Connection Request [username, clientId (if reconnecting)]
@@ -118,7 +133,7 @@ namespace Chat
 
                         List<Client> ignoredClients = new List<Client>();
                         ignoredClients.Add(e.client);
-                        PrintChatMessage(this, $"{e.client.username} connected");
+                        PrintChatMessage($"{e.client.username} connected");
                         network.SendToAll(ignoredClients, 5, e.client.username, null);
                         network.UpdateClientLists();
                     }
@@ -149,7 +164,7 @@ namespace Chat
                 string[] parts = e.message.messageText.Split(' ', 2);
                 string username = parts[0];
                 string messageText = parts[1];
-                PrintChatMessage(this, $"{username}: {messageText}");
+                PrintChatMessage($"{username}: {messageText}");
                 if (FrmHolder.hosting)
                 {
                     network.SendToAll(null, 2, e.message.messageText, null);
@@ -166,7 +181,7 @@ namespace Chat
                     }
                     if (e.client.username != null)
                     {
-                        PrintChatMessage(this, $"{e.client.username} disconnected");
+                        PrintChatMessage($"{e.client.username} disconnected");
                         network.SendToAll(null, 6, e.client.username, null);
                     }
                     network.UpdateClientLists();
@@ -189,11 +204,11 @@ namespace Chat
             }
             else if (e.message.messageType == 5) // Client connected
             {
-                PrintChatMessage(this, $"{e.message.messageText} connected");
+                PrintChatMessage($"{e.message.messageText} connected");
             }
             else if (e.message.messageType == 6) // Client disconnected
             {
-                PrintChatMessage(this, $"{e.message.messageText} disconnected");
+                PrintChatMessage($"{e.message.messageText} disconnected");
             }
             else if (e.message.messageType == 7) // Clear user list
             {
@@ -232,11 +247,11 @@ namespace Chat
                 reason = reason.Trim();
                 if (!string.IsNullOrWhiteSpace(reason))
                 {
-                    PrintChatMessage(this, $"{username} was kicked by {kickerUsername} with reason: {reason}");
+                    PrintChatMessage($"{username} was kicked by {kickerUsername} with reason: {reason}");
                 }
                 else
                 {
-                    PrintChatMessage(this, $"{username} was kicked by {kickerUsername}");
+                    PrintChatMessage($"{username} was kicked by {kickerUsername}");
                 }
             }
             else if (e.message.messageType == 11) // Heartbeat
@@ -252,29 +267,29 @@ namespace Chat
             }
             else if (e.message.messageType == 13) // Another client heartbeat failed
             {
-                PrintChatMessage(this, $"{e.message.messageText} has lost connection...");
+                PrintChatMessage($"{e.message.messageText} has lost connection...");
             }
             else if (e.message.messageType == 14) // Made admin
             {
-                PrintChatMessage(this, $"You have been made an Admin by {e.message.messageText}");
+                PrintChatMessage($"You have been made an Admin by {e.message.messageText}");
             }
             else if (e.message.messageType == 15) // Another made admin
             {
                 string[] parts = e.message.messageText.Split(' ', 2);
                 string username = parts[0];
                 string setterUsername = parts[1];
-                PrintChatMessage(this, $"{username} has been made an Admin by {setterUsername}");
+                PrintChatMessage($"{username} has been made an Admin by {setterUsername}");
             }
             else if (e.message.messageType == 16) // Removed admin
             {
-                PrintChatMessage(this, $"You have been removed from Admin by {e.message.messageText}");
+                PrintChatMessage($"You have been removed from Admin by {e.message.messageText}");
             }
             else if (e.message.messageType == 17) // Another removed admin
             {
                 string[] parts = e.message.messageText.Split(' ', 2);
                 string username = parts[0];
                 string setterUsername = parts[1];
-                PrintChatMessage(this, $"{username} has been removed from Admin by {setterUsername}");
+                PrintChatMessage($"{username} has been removed from Admin by {setterUsername}");
             }
             else if (e.message.messageType == 18) // Send message queue
             {
@@ -364,7 +379,7 @@ namespace Chat
             {
                 if (FrmHolder.hosting == false)
                 {
-                    PrintChatMessage(this, "You must be an admin to execute commands"); //TODO: Allow non-admin commands (e.g. /help)
+                    PrintChatMessage("You must be an admin to execute commands"); //TODO: Allow non-admin commands (e.g. /help)
                     return true;
                 }
                 string command = message.Substring(1, message.Length - 1);
@@ -386,7 +401,7 @@ namespace Chat
             return false; //true if commmand
         }
 
-        private void PrintChatMessage(object sender, string chatMessage)
+        private void PrintChatMessage(string chatMessage)
         {
             xlbxChat.Items.Add(chatMessage);
         }
@@ -395,19 +410,19 @@ namespace Chat
         {
             if (commandParts.Length == 1)
             {
-                PrintChatMessage(this, $"Available commands are 'kick' and 'admin'. Type '/help [command]' for an explanation of the command.");
+                PrintChatMessage($"Available commands are 'kick' and 'admin'. Type '/help [command]' for an explanation of the command.");
             }
             else if (commandParts[1] == "kick")
             {
-                PrintChatMessage(this, $"Explanation: Kicks a user. Format: {kickFormat}");
+                PrintChatMessage($"Explanation: Kicks a user. Format: {kickFormat}");
             }
             else if (commandParts[1] == "admin")
             {
-                PrintChatMessage(this, $"Explanation: Adds/removes a user from Admin. Format: {adminFormat}");
+                PrintChatMessage($"Explanation: Adds/removes a user from Admin. Format: {adminFormat}");
             }
             else
             {
-                PrintChatMessage(this, $"No command {commandParts[1]} exists.");
+                PrintChatMessage($"No command {commandParts[1]} exists.");
             }
         }
 
@@ -415,14 +430,14 @@ namespace Chat
         {
             if (commandParts[1] == null)
             {
-                PrintChatMessage(this, $"The format is: {kickFormat}");
+                PrintChatMessage($"The format is: {kickFormat}");
                 return true;
             }
             string[] username = { commandParts[1] };
             List<Client> clients = network.ClientSearch(username, null);
             if (clients.Count == 0)
             {
-                PrintChatMessage(this, $"No user with the username {username[0]} exists");
+                PrintChatMessage($"No user with the username {username[0]} exists");
                 return true;
             }
             string reason = "";
@@ -433,11 +448,11 @@ namespace Chat
             reason = reason.Trim();
             if (!string.IsNullOrWhiteSpace(reason))
             {
-                PrintChatMessage(this, $"You kicked {username[0]} with reason: {reason}");
+                PrintChatMessage($"You kicked {username[0]} with reason: {reason}");
             }
             else
             {
-                PrintChatMessage(this, $"You kicked {username[0]}");
+                PrintChatMessage($"You kicked {username[0]}");
             }
             List<Client> ignoredClients = new List<Client>();
             ignoredClients.Add(clients[0]);
@@ -450,14 +465,14 @@ namespace Chat
         {
             if (commandParts.Length < 2 || commandParts[1] == null)
             {
-                PrintChatMessage(this, $"The format is: {adminFormat}");
+                PrintChatMessage($"The format is: {adminFormat}");
                 return true;
             }
             string[] username = { commandParts[1] };
             List<Client> clients = network.ClientSearch(username, null);
             if (clients.Count == 0)
             {
-                PrintChatMessage(this, $"No user with the username {username[0]} exists");
+                PrintChatMessage($"No user with the username {username[0]} exists");
                 return true;
             }
             bool setAsAdmin = false;
@@ -467,7 +482,7 @@ namespace Chat
                 {
                     if (clients[0].admin)
                     {
-                        PrintChatMessage(this, $"This user is already an Admin");
+                        PrintChatMessage($"This user is already an Admin");
                         return true;
                     }
                     setAsAdmin = true;
@@ -476,14 +491,14 @@ namespace Chat
                 {
                     if (clients[0].admin == false)
                     {
-                        PrintChatMessage(this, $"This user is already not an Admin");
+                        PrintChatMessage($"This user is already not an Admin");
                         return true;
                     }
                     setAsAdmin = false;
                 }
                 else
                 {
-                    PrintChatMessage(this, $"The format is: {adminFormat}");
+                    PrintChatMessage($"The format is: {adminFormat}");
                     return true;
                 }
             }
@@ -597,6 +612,18 @@ namespace Chat
             }
         }
 
+        private void OnPrintChatMessage(object sender, string text)
+        {
+            if (xlbxChat.InvokeRequired)
+            {
+                xlbxChat.BeginInvoke(new PrintChatMessageDelegate(PrintChatMessage), text);
+            }
+            else
+            {
+                xlbxChat.Items.Add(text);
+            }
+        }
+
         private void OnClosing(object sender, FormClosingEventArgs e)
         {
             if (askToClose) // Prevents closing when returning to main menu
@@ -620,7 +647,7 @@ namespace Chat
                 {
                     if (FrmHolder.hosting || message[0] == '/')
                     {
-                        PrintChatMessage(this, $"{FrmHolder.username}: {message}");
+                        PrintChatMessage($"{FrmHolder.username}: {message}");
                     }
                     if (ProcessCommand(message) == false)
                     {
