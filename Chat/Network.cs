@@ -1,4 +1,4 @@
-﻿#define messageSentReceivedUpdates
+﻿//#define messageSentReceivedUpdates
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -267,9 +267,13 @@ namespace Chat
 
         public void AddMessageToMessageListBySendPriority(List<Message> messageList, Message message, bool addToEndOfPriorityGroup)
         {
-            if (messageList != null && messageList.Count() > 0)
+            if (messageList != null)
             {
-                if (messageList.Contains(message) == false)
+                if (messageList.Count() == 0)
+                {
+                    messageList.Add(message);
+                }
+                else if (messageList.Contains(message) == false)
                 {
                     bool added = false;
                     if (addToEndOfPriorityGroup)

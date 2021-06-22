@@ -1,4 +1,4 @@
-﻿#define messageSentReceivedUpdates
+﻿//#define messageSentReceivedUpdates
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
