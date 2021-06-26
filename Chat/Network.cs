@@ -434,7 +434,6 @@ namespace Chat
                     NetworkStream networkStream = client.tcpClient.GetStream();
                     {
                         if (networkStream.CanWrite && networkStream.CanRead)
-
                         {
                             // Message ID
                             byte[] idBuffer = new byte[4];
