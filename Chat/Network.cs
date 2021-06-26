@@ -434,9 +434,9 @@ namespace Chat
             {
                 if (client.tcpClient != null)
                 {
-                    NetworkStream networkStream = client.tcpClient.GetStream();
+                    SslStream sslStream = new SslStream(client.tcpClient.GetStream(), false);
                     {
-                        if (networkStream.CanWrite && networkStream.CanRead)
+                        if (sslStream.CanWrite && sslStream.CanRead)
                         {
                             // Message ID
                             byte[] idBuffer = new byte[4];
@@ -472,12 +472,12 @@ namespace Chat
                             ConvertLittleEndianToBigEndian(bytesBuffer);
                             ConvertLittleEndianToBigEndian(lengthBuffer);
 
-                            networkStream.Write(idBuffer, 0, 4); // Message ID
-                            networkStream.Write(typeBuffer, 0, 4); // Message type
-                            networkStream.Write(lengthBuffer, 0, 4); // Message length
+                            sslStream.Write(idBuffer, 0, 4); // Message ID
+                            sslStream.Write(typeBuffer, 0, 4); // Message type
+                            sslStream.Write(lengthBuffer, 0, 4); // Message length
                             if (bytesBuffer != null)
                             {
-                                networkStream.Write(bytesBuffer, 0, bytesBuffer.Length); // Message text
+                                sslStream.Write(bytesBuffer, 0, bytesBuffer.Length); // Message text
                             }
                             if (message.messageType != 1 && message.messageType != 3 && message.messageType != 11)
                             {
@@ -511,21 +511,21 @@ namespace Chat
             {
                 if (client.tcpClient != null)
                 {
-                    NetworkStream networkStream = client.tcpClient.GetStream();
+                    SslStream sslStream = new SslStream(client.tcpClient.GetStream(), false);
                     {
-                        if (networkStream.CanRead && networkStream.CanWrite && networkStream.DataAvailable)
+                        if (sslStream.CanRead && sslStream.CanWrite && client.tcpClient.GetStream().DataAvailable)
                         {
                             // Message ID
                             byte[] idBuffer = new byte[4];
-                            networkStream.Read(idBuffer, 0, 4);
+                            sslStream.Read(idBuffer, 0, 4);
 
                             // Message type
                             byte[] typeBuffer = new byte[4];
-                            networkStream.Read(typeBuffer, 0, 4);
+                            sslStream.Read(typeBuffer, 0, 4);
 
                             // Message length
                             byte[] lengthBuffer = new byte[4];
-                            networkStream.Read(lengthBuffer, 0, 4);
+                            sslStream.Read(lengthBuffer, 0, 4);
 
                             ConvertLittleEndianToBigEndian(idBuffer);
                             ConvertLittleEndianToBigEndian(typeBuffer);
@@ -546,7 +546,7 @@ namespace Chat
                                 while (totalReceivedLength < messageLength)
                                 {
                                     receivedLength = 0;
-                                    receivedLength += networkStream.Read(tempBytesBuffer, 0, messageLength - totalReceivedLength);
+                                    receivedLength += sslStream.Read(tempBytesBuffer, 0, messageLength - totalReceivedLength);
                                     Array.Resize(ref tempBytesBuffer, receivedLength);
                                     tempBytesBuffer.CopyTo(messageBytes, totalReceivedLength);
                                     tempBytesBuffer = new byte[messageLength];
