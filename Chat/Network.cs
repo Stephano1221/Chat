@@ -239,6 +239,15 @@ namespace Chat
             }
         }
 
+        public bool ValidateServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        {
+            if (sslPolicyErrors == SslPolicyErrors.None)
+            {
+                return true;
+            }
+            return false;
+        }
+
         public void SendFirstMessageInMessageQueue(Client client)
         {
             if (client.messagesToBeSent.Count > 0 && client.sendingMessageQueue)
@@ -389,6 +398,19 @@ namespace Chat
 
             client.tcpClient = new TcpClient();
             client.tcpClient.Connect(publicIp, port);
+
+            SslStream sslStream = new SslStream(client.tcpClient.GetStream(), true, new RemoteCertificateValidationCallback(ValidateServerCertificate), null);
+            try
+            {
+                sslStream.AuthenticateAsClient(publicIp);
+            }
+            catch
+            {
+                sslStream.Close();
+                client.tcpClient.Close();
+                throw new AuthenticationFailedException("Failed to authenticate the servers certificate.");
+            }
+
             //SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 0, $"{FrmHolder.username}{clientIdPart}"));
             SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 20, rsaKey, null));
         }
