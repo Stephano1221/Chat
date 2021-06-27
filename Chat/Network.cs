@@ -232,12 +232,9 @@ namespace Chat
                 X509Certificate2Collection matchingCertificates = validCertificates.Find(X509FindType.FindBySubjectDistinguishedName, certificateName, false);
                 if (matchingCertificates.Count == 0)
                 {
-                    return null;
+                    throw new CertificateNotFoundException($"No valid certificate matching the name '{certificateName}' found.");
                 }
-                else
-                {
-                    return matchingCertificates[0];
-                }
+                return matchingCertificates[0];
             }
         }
 
