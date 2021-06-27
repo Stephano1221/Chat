@@ -93,7 +93,7 @@ namespace Chat
         {
             Thread.Sleep(50);
             CancellationToken cancellationToken = (CancellationToken)obj;
-            x509Certificate = GetCertificateFromStore(certificateName, false, certificateFilePath, keyFilePath);
+            x509Certificate = ImportCertificateFromStoreOrFile(certificateName, false, certificateFilePath, keyFilePath);
 
             IPAddress iPAddress = IPAddress.Parse(localIp);
             TcpListener tcpListener = new TcpListener(iPAddress, port);
@@ -226,7 +226,7 @@ namespace Chat
             }
         }
 
-        public X509Certificate2 GetCertificateFromStore(string certificateName, bool inStore, string certificateFilePath, string keyFilePath)
+        public X509Certificate2 ImportCertificateFromStoreOrFile(string certificateName, bool inStore, string certificateFilePath, string keyFilePath)
         {
             if (inStore)
             {
