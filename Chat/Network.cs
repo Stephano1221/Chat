@@ -230,12 +230,12 @@ namespace Chat
         {
             if (inStore)
             {
-                using (X509Store x509Store = new X509Store(StoreLocation.CurrentUser))
+                using (X509Store x509Store = new X509Store(StoreLocation.LocalMachine))
                 {
                     x509Store.Open(OpenFlags.ReadOnly);
                     X509Certificate2Collection allCertificates = x509Store.Certificates;
                     X509Certificate2Collection validCertificates = allCertificates.Find(X509FindType.FindByTimeValid, DateTime.Now, false);
-                    X509Certificate2Collection matchingCertificates = validCertificates.Find(X509FindType.FindBySubjectDistinguishedName, certificateName, false);
+                    X509Certificate2Collection matchingCertificates = validCertificates.Find(X509FindType.FindBySubjectDistinguishedName, "CN=" + certificateName, false);
                     if (matchingCertificates.Count == 0)
                     {
                         throw new CertificateNotFoundException($"No valid certificate matching the name '{certificateName}' found in the certificate store.");
@@ -448,7 +448,7 @@ namespace Chat
                 {
                     sslStream.AuthenticateAsServer(x509Certificate, false, true);
                 }
-                catch
+                catch (Exception e)
                 {
                     sslStream.Close();
                     client.tcpClient.Close();
