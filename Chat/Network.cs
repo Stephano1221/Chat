@@ -1,6 +1,7 @@
 ﻿//#define messageSentReceivedUpdates
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Security;
 using System.Security.Authentication;
@@ -251,7 +252,7 @@ namespace Chat
                 }
                 catch
                 {
-                    throw new CertificateNotFoundException($"No valid certificate matching the name '{certificateName}' found at {certificateFilePath}.");
+                    throw new CertificateNotFoundException($"No valid certificate matching the name '{Path.GetFileName(certificateFilePath)}' found at {Path.GetDirectoryName(certificateFilePath)}.");
                 }
             }
         }
