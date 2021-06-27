@@ -16,7 +16,9 @@ namespace Chat
     class Network
     {
         public X509Certificate2 x509Certificate;
-        public string certificateName = "Chat Server";
+        public string certificateName = "chatappserver.ddns.net";
+        public string certificateFilePath = "C:\\Certbot\\live\\chatappserver.ddns.net\\fullchain.pem";
+        public string keyFilePath = "C:\\Certbot\\live\\chatappserver.ddns.net\\privkey.pem";
 
         #region Connection Info
         public int port = 12210;
@@ -90,7 +92,7 @@ namespace Chat
         {
             Thread.Sleep(50);
             CancellationToken cancellationToken = (CancellationToken)obj;
-            x509Certificate = GetCertificateFromStore(certificateName);
+            x509Certificate = GetCertificateFromStore(certificateName, false, certificateFilePath, keyFilePath);
 
             IPAddress iPAddress = IPAddress.Parse(localIp);
             TcpListener tcpListener = new TcpListener(iPAddress, port);
@@ -223,19 +225,34 @@ namespace Chat
             }
         }
 
-        public X509Certificate2 GetCertificateFromStore(string certificateName)
+        public X509Certificate2 GetCertificateFromStore(string certificateName, bool inStore, string certificateFilePath, string keyFilePath)
         {
-            using (X509Store x509Store = new X509Store(StoreLocation.CurrentUser))
+            if (inStore)
             {
-                x509Store.Open(OpenFlags.ReadOnly);
-                X509Certificate2Collection allCertificates = x509Store.Certificates;
-                X509Certificate2Collection validCertificates = allCertificates.Find(X509FindType.FindByTimeValid, DateTime.Now, false);
-                X509Certificate2Collection matchingCertificates = validCertificates.Find(X509FindType.FindBySubjectDistinguishedName, certificateName, false);
-                if (matchingCertificates.Count == 0)
+                using (X509Store x509Store = new X509Store(StoreLocation.CurrentUser))
                 {
-                    throw new CertificateNotFoundException($"No valid certificate matching the name '{certificateName}' found.");
+                    x509Store.Open(OpenFlags.ReadOnly);
+                    X509Certificate2Collection allCertificates = x509Store.Certificates;
+                    X509Certificate2Collection validCertificates = allCertificates.Find(X509FindType.FindByTimeValid, DateTime.Now, false);
+                    X509Certificate2Collection matchingCertificates = validCertificates.Find(X509FindType.FindBySubjectDistinguishedName, certificateName, false);
+                    if (matchingCertificates.Count == 0)
+                    {
+                        throw new CertificateNotFoundException($"No valid certificate matching the name '{certificateName}' found in the certificate store.");
+                    }
+                    return matchingCertificates[0];
                 }
-                return matchingCertificates[0];
+            }
+            else
+            {
+                try
+                {
+                    X509Certificate2 matchingCertificate = X509Certificate2.CreateFromPemFile(certificateFilePath, keyFilePath);
+                    return matchingCertificate;
+                }
+                catch
+                {
+                    throw new CertificateNotFoundException($"No valid certificate matching the name '{certificateName}' found at {certificateFilePath}.");
+                }
             }
         }
 
