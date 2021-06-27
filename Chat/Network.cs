@@ -444,7 +444,16 @@ namespace Chat
                 connectedClients.Add(client);
 
                 SslStream sslStream = new SslStream(client.tcpClient.GetStream(), true);
-                sslStream.AuthenticateAsServer(x509Certificate, false, true);
+                try
+                {
+                    sslStream.AuthenticateAsServer(x509Certificate, false, true);
+                }
+                catch
+                {
+                    sslStream.Close();
+                    client.tcpClient.Close();
+                    throw new AuthenticationFailedException("Failed to authenticate the servers certificate.");
+                }
             }
         }
 
