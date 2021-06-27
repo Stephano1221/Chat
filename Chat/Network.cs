@@ -420,7 +420,7 @@ namespace Chat
             SslStream sslStream = new SslStream(client.tcpClient.GetStream(), true, new RemoteCertificateValidationCallback(ValidateServerCertificate), null);
             try
             {
-                sslStream.AuthenticateAsClient(publicIp);
+                sslStream.AuthenticateAsClient("chatappserver.ddns.net");
             }
             catch
             {
@@ -497,7 +497,7 @@ namespace Chat
             {
                 if (client.tcpClient != null)
                 {
-                    SslStream sslStream = new SslStream(client.tcpClient.GetStream(), false);
+                    SslStream sslStream = new SslStream(client.tcpClient.GetStream(), true);
                     {
                         if (sslStream.CanWrite && sslStream.CanRead)
                         {
@@ -574,7 +574,7 @@ namespace Chat
             {
                 if (client.tcpClient != null)
                 {
-                    SslStream sslStream = new SslStream(client.tcpClient.GetStream(), false);
+                    SslStream sslStream = new SslStream(client.tcpClient.GetStream(), true);
                     {
                         if (sslStream.CanRead && sslStream.CanWrite && client.tcpClient.GetStream().DataAvailable)
                         {
