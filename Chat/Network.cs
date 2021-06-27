@@ -16,7 +16,7 @@ namespace Chat
     class Network
     {
         public X509Certificate2 x509Certificate;
-        public string certificateName;
+        public string certificateName = "Chat Server";
 
         #region Connection Info
         public int port = 12210;
@@ -90,6 +90,7 @@ namespace Chat
         {
             Thread.Sleep(50);
             CancellationToken cancellationToken = (CancellationToken)obj;
+            x509Certificate = GetCertificateFromStore(certificateName);
 
             IPAddress iPAddress = IPAddress.Parse(localIp);
             TcpListener tcpListener = new TcpListener(iPAddress, port);
@@ -401,6 +402,9 @@ namespace Chat
                 client.tcpClient = tcpClient;
                 client.nextAssignableMessageId = 1;
                 connectedClients.Add(client);
+
+                SslStream sslStream = new SslStream(client.tcpClient.GetStream(), true);
+                sslStream.AuthenticateAsServer(x509Certificate, false, true);
             }
         }
 
