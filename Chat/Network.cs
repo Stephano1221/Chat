@@ -15,6 +15,9 @@ namespace Chat
 {
     class Network
     {
+        public X509Certificate2 x509Certificate;
+        public string certificateName;
+
         #region Connection Info
         public int port = 12210;
         public string publicIp;
@@ -215,6 +218,25 @@ namespace Chat
                 else
                 {
                     PrintChatMessageEvent(this, $"Lost connection to server...");
+                }
+            }
+        }
+
+        public X509Certificate2 GetCertificateFromStore(string certificateName)
+        {
+            using (X509Store x509Store = new X509Store(StoreLocation.CurrentUser))
+            {
+                x509Store.Open(OpenFlags.ReadOnly);
+                X509Certificate2Collection allCertificates = x509Store.Certificates;
+                X509Certificate2Collection validCertificates = allCertificates.Find(X509FindType.FindByTimeValid, DateTime.Now, false);
+                X509Certificate2Collection matchingCertificates = validCertificates.Find(X509FindType.FindBySubjectDistinguishedName, certificateName, false);
+                if (matchingCertificates.Count == 0)
+                {
+                    return null;
+                }
+                else
+                {
+                    return matchingCertificates[0];
                 }
             }
         }
