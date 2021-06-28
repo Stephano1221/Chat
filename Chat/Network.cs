@@ -93,7 +93,6 @@ namespace Chat
         {
             Thread.Sleep(50);
             CancellationToken cancellationToken = (CancellationToken)obj;
-            x509Certificate = ImportCertificateFromStoreOrFile(certificateName, false, certificateFilePath, keyFilePath);
 
             IPAddress iPAddress = IPAddress.Parse(localIp);
             TcpListener tcpListener = new TcpListener(iPAddress, port);
@@ -105,13 +104,16 @@ namespace Chat
             client.admin = true;
             connectedClients.Add(client);
 
-            tcpListener.Start();
-            StartHeartbeat();
-
-            while (cancellationToken.IsCancellationRequested == false)
+            using (x509Certificate = ImportCertificateFromStoreOrFile(certificateName, false, certificateFilePath, keyFilePath))
             {
-                ServerAcceptIncomingConnection(tcpListener);
-                LoopClientsForIncomingMessages();
+                tcpListener.Start();
+                StartHeartbeat();
+
+                while (cancellationToken.IsCancellationRequested == false)
+                {
+                    ServerAcceptIncomingConnection(tcpListener);
+                    LoopClientsForIncomingMessages();
+                }
             }
 
             tcpListener.Stop();
