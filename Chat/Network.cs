@@ -118,7 +118,6 @@ namespace Chat
 
             tcpListener.Stop();
             FrmHolder.clientId = -1;
-            DeleteAllRSAKeys();
             if (connectedClients.Count > 0)
             {
                 SendDisconnect(null, false, true);
@@ -143,7 +142,6 @@ namespace Chat
                 LoopClientsForIncomingMessages();
             }
             FrmHolder.clientId = -1;
-            DeleteAllRSAKeys();
             if (connectedClients.Count > 0)
             {
                 SendDisconnect(client, false, false);
@@ -390,7 +388,6 @@ namespace Chat
 
         public void ConnectClient(Client client)
         {
-            client.encryptionEstablished = false;
             client.connectionSetupComplete = false;
             client.disconnectHandled = false;
             client.sendingMessageQueue = false;
@@ -404,17 +401,6 @@ namespace Chat
             {
                 connectedClients.Add(client);
             }
-            /*string clientIdPart = "";
-            if (FrmHolder.clientId != -1)
-            {
-                clientIdPart = $" {Convert.ToString(FrmHolder.clientId)}";
-            }*/
-
-            client.encryption = new Encryption();
-            client.encryption.keyContainerName = DateTime.Now.ToString();
-            client.encryption.RsaDeleteKey(client.encryption.keyContainerName);
-            client.encryption.RsaGenerateKey(client.encryption.keyContainerName);
-            string rsaKey = client.encryption.RsaExportXmlKey(client.encryption.keyContainerName, false);
 
             client.tcpClient = new TcpClient();
             client.tcpClient.Connect(publicIp, port);
@@ -435,8 +421,12 @@ namespace Chat
                 throw new AuthenticationFailedException("Failed to authenticate the servers certificate.");
             }
 
-            //SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 0, $"{FrmHolder.username}{clientIdPart}"));
-            SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 20, rsaKey, null));
+            string clientId = "";
+            if (FrmHolder.clientId != -1)
+            {
+                clientId = $" {Convert.ToString(FrmHolder.clientId)}";
+            }
+            SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 0, $"{FrmHolder.username}{clientId}", null));
         }
 
         public void ServerAcceptIncomingConnection(TcpListener tcpListener)
@@ -532,14 +522,7 @@ namespace Chat
                             byte[] bytesBuffer = null;
                             if (message.messageBytes != null && message.messageBytes.Count() > 0)
                             {
-                                if (client.encryptionEstablished)
-                                {
-                                    bytesBuffer = client.encryption.AesEncryptDecrypt(message.messageBytes, client.encryption.AesExportKeyAndIv(client.encryption.aesEncryptedKey, client.encryption.aesEncryptedIv), true);
-                                }
-                                else
-                                {
-                                    bytesBuffer = message.messageBytes;
-                                }
+                                bytesBuffer = message.messageBytes;
                             }
 
                             // Message length
@@ -635,11 +618,6 @@ namespace Chat
                                     totalReceivedLength += receivedLength;
                                 }
                                 ConvertLittleEndianToBigEndian(messageBytes);
-
-                                if (client.encryptionEstablished)
-                                {
-                                    messageBytes = client.encryption.AesEncryptDecrypt(messageBytes, client.encryption.AesExportKeyAndIv(client.encryption.aesEncryptedKey, client.encryption.aesEncryptedIv), false);
-                                }
                             }
 
                             Message receivedMessage = ComposeMessage(client, messageId, messageType, null, messageBytes);
@@ -689,7 +667,6 @@ namespace Chat
             clientMergeTo.nextAssignableMessageId = (clientMergeTo.nextAssignableMessageId + clientMergeFrom.nextAssignableMessageId);
             //clientMergeTo.username = clientMergeFrom.username;
             clientMergeTo.tcpClient = clientMergeFrom.tcpClient;
-            clientMergeTo.encryption = clientMergeFrom.encryption;
 
             //clientMergeTo.admin = clientMergeFrom.admin;
             //clientMergeTo.serverMuted = clientMergeFrom.serverMuted;
@@ -697,7 +674,6 @@ namespace Chat
 
             clientMergeTo.heartbeatReceieved = clientMergeFrom.heartbeatReceieved;
             clientMergeTo.heartbeatFailures = clientMergeFrom.heartbeatFailures;
-            clientMergeTo.encryptionEstablished = clientMergeFrom.encryptionEstablished;
             clientMergeTo.connectionSetupComplete = clientMergeFrom.connectionSetupComplete;
             clientMergeTo.disconnectHandled = clientMergeFrom.disconnectHandled;
             clientMergeTo.sendingMessageQueue = clientMergeFrom.sendingMessageQueue;
@@ -812,14 +788,6 @@ namespace Chat
                     client.tcpClient.Close();
                 }
                 connectedClients.Remove(client);
-            }
-        }
-
-        public void DeleteAllRSAKeys()
-        {
-            for(int i = 0; i < connectedClients.Count(); i++)
-            {
-                connectedClients[i].encryption.RsaDeleteKey(connectedClients[i].encryption.keyContainerName);
             }
         }
     }

@@ -56,14 +56,11 @@ namespace Chat
         {
             e.client.heartbeatReceieved = true;
             e.client.heartbeatFailures = 0;
-            if (e.client.encryptionEstablished)
+            if (e.message.messageBytes != null)
             {
-                if (e.message.messageBytes != null)
+                if (e.message.CheckIfCanConvertToText())
                 {
-                    if (e.message.CheckIfCanConvertToText())
-                    {
-                        e.message.MessageTextToOrFromBytes();
-                    }
+                    e.message.MessageTextToOrFromBytes();
                 }
             }
 
@@ -300,42 +297,6 @@ namespace Chat
             else if (e.message.messageType == 19) // Connection setup complete
             {
                 e.client.connectionSetupComplete = true;
-            }
-            else if (e.message.messageType == 20) // Receive RSA public key
-            {
-                e.client.encryption.keyContainerName = DateTime.Now.ToString();
-                e.client.encryption.RsaDeleteKey(e.client.encryption.keyContainerName);
-                e.client.encryption.RsaImportXmlKey(e.client.encryption.keyContainerName, e.message.messageText);
-                e.client.encryption.AesGenerateKey();
-                (byte[] aesDecryptedKey, byte[] aesDecryptedIv) aesKeyAndIv = e.client.encryption.AesExportKeyAndIv(e.client.encryption.aesEncryptedKey, e.client.encryption.aesEncryptedIv);
-                byte[] aesKey = e.client.encryption.RsaEncryptDecrypt(aesKeyAndIv.aesDecryptedKey, e.client.encryption.keyContainerName, e.client.encryption.rsaParametersPublicKey, true, true);
-                byte[] aesIv = e.client.encryption.RsaEncryptDecrypt(aesKeyAndIv.aesDecryptedIv, e.client.encryption.keyContainerName, e.client.encryption.rsaParametersPublicKey, true, true);
-                network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 21, null, aesKey));
-                network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 22, null, aesIv));
-                e.client.encryption.RsaDeleteKey(e.client.encryption.keyContainerName);
-                e.client.encryptionEstablished = true; //TODO Only set to true if test message is decrypted
-            }
-            else if (e.message.messageType == 21) // Receive AES private key
-            {
-                e.message.messageBytes = e.client.encryption.RsaEncryptDecrypt(e.message.messageBytes, e.client.encryption.keyContainerName, e.client.encryption.rsaParametersPrivateAndPublicKey, true, false);
-                e.client.encryption.AesImportKeyOrIv(e.message.messageBytes, true);
-            }
-            else if (e.message.messageType == 22) // Receive AES IV
-            {
-                e.message.messageBytes = e.client.encryption.RsaEncryptDecrypt(e.message.messageBytes, e.client.encryption.keyContainerName, e.client.encryption.rsaParametersPrivateAndPublicKey, true, false);
-                e.client.encryption.AesImportKeyOrIv(e.message.messageBytes, false);
-                e.client.encryption.RsaDeleteKey(e.client.encryption.keyContainerName);
-                e.client.encryptionEstablished = true;
-
-                if (FrmHolder.hosting == false)
-                {
-                    string clientId = "";
-                    if (FrmHolder.clientId != -1)
-                    {
-                        clientId = $" {Convert.ToString(FrmHolder.clientId)}";
-                    }
-                    network.SendMessage(network.connectedClients[0], network.ComposeMessage(network.connectedClients[0], -1, 0, $"{FrmHolder.username}{clientId}", null));
-                }
             }
         }
 
