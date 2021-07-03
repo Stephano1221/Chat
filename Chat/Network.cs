@@ -671,6 +671,7 @@ namespace Chat
             clientMergeTo.nextAssignableMessageId = (clientMergeTo.nextAssignableMessageId + clientMergeFrom.nextAssignableMessageId);
             //clientMergeTo.username = clientMergeFrom.username;
             clientMergeTo.tcpClient = clientMergeFrom.tcpClient;
+            clientMergeTo.sslStream = clientMergeFrom.sslStream;
 
             //clientMergeTo.admin = clientMergeFrom.admin;
             //clientMergeTo.serverMuted = clientMergeFrom.serverMuted;
