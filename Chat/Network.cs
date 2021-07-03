@@ -419,21 +419,19 @@ namespace Chat
             client.tcpClient = new TcpClient();
             client.tcpClient.Connect(publicIp, port);
 
-            SslStream sslStream = new SslStream(client.tcpClient.GetStream(), true, new RemoteCertificateValidationCallback(ValidateServerCertificate), null);
+            SslStream sslStream = new SslStream(client.tcpClient.GetStream(), false, new RemoteCertificateValidationCallback(ValidateServerCertificate), null);
             try
             {
                 sslStream.AuthenticateAsClient("chatappserver.ddns.net");
                 if (sslStream.IsEncrypted == false || sslStream.IsSigned == false || sslStream.IsAuthenticated == false)
                 {
                     sslStream.Close();
-                    client.tcpClient.Close();
                     throw new AuthenticationFailedException("Unable to establish a secure connection to the server.");
                 }
             }
             catch
             {
                 sslStream.Close();
-                client.tcpClient.Close();
                 throw new AuthenticationFailedException("Failed to authenticate the servers certificate.");
             }
 
@@ -451,7 +449,7 @@ namespace Chat
                 client.nextAssignableMessageId = 1;
                 connectedClients.Add(client);
 
-                SslStream sslStream = new SslStream(client.tcpClient.GetStream(), true);
+                SslStream sslStream = new SslStream(client.tcpClient.GetStream(), false);
                 try
                 {
                     sslStream.AuthenticateAsServer(x509Certificate, false, true);
@@ -459,7 +457,6 @@ namespace Chat
                 catch (Exception e)
                 {
                     sslStream.Close();
-                    client.tcpClient.Close();
                     throw new AuthenticationFailedException("Failed to authenticate the servers certificate.");
                 }
             }
@@ -514,7 +511,7 @@ namespace Chat
             {
                 if (client.tcpClient != null)
                 {
-                    SslStream sslStream = new SslStream(client.tcpClient.GetStream(), true);
+                    SslStream sslStream = new SslStream(client.tcpClient.GetStream(), false);
                     {
                         if (sslStream.CanWrite && sslStream.CanRead)
                         {
@@ -591,7 +588,7 @@ namespace Chat
             {
                 if (client.tcpClient != null)
                 {
-                    SslStream sslStream = new SslStream(client.tcpClient.GetStream(), true);
+                    SslStream sslStream = new SslStream(client.tcpClient.GetStream(), false);
                     {
                         if (sslStream.CanRead && sslStream.CanWrite && client.tcpClient.GetStream().DataAvailable)
                         {
