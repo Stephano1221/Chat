@@ -537,13 +537,22 @@ namespace Chat
                             ConvertLittleEndianToBigEndian(bytesBuffer);
                             ConvertLittleEndianToBigEndian(lengthBuffer);
 
-                            client.sslStream.Write(idBuffer, 0, 4); // Message ID
-                            client.sslStream.Write(typeBuffer, 0, 4); // Message type
-                            client.sslStream.Write(lengthBuffer, 0, 4); // Message length
+                            int messageSize = idBuffer.Length + typeBuffer.Length + lengthBuffer.Length;
                             if (bytesBuffer != null)
                             {
-                                client.sslStream.Write(bytesBuffer, 0, bytesBuffer.Length); // Message text
+                                messageSize += bytesBuffer.Length;
                             }
+                            byte[] writeBuffer = new byte[messageSize];
+                            idBuffer.CopyTo(writeBuffer, 0);
+                            typeBuffer.CopyTo(writeBuffer, idBuffer.Length);
+                            lengthBuffer.CopyTo(writeBuffer, idBuffer.Length + typeBuffer.Length);
+                            if (bytesBuffer != null)
+                            {
+                                bytesBuffer.CopyTo(writeBuffer, idBuffer.Length + typeBuffer.Length + lengthBuffer.Length);
+                            }
+
+                            client.sslStream.Write(writeBuffer, 0, writeBuffer.Length);
+
                             if (message.messageType != 1 && message.messageType != 3 && message.messageType != 11)
                             {
                                 AddMessageToMessageListBySendPriority(client.messagesToBeSent, message, true);
