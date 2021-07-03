@@ -453,6 +453,11 @@ namespace Chat
                 try
                 {
                     sslStream.AuthenticateAsServer(x509Certificate, false, true);
+                    if (sslStream.IsEncrypted == false || sslStream.IsSigned == false || sslStream.IsAuthenticated == false)
+                    {
+                        sslStream.Close();
+                        throw new AuthenticationFailedException("Unable to establish a secure connection to client.");
+                    }
                 }
                 catch (Exception e)
                 {
