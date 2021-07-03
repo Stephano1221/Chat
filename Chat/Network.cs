@@ -419,19 +419,19 @@ namespace Chat
             client.tcpClient = new TcpClient();
             client.tcpClient.Connect(publicIp, port);
 
-            SslStream sslStream = new SslStream(client.tcpClient.GetStream(), false, new RemoteCertificateValidationCallback(ValidateServerCertificate), null);
+            client.sslStream = new SslStream(client.tcpClient.GetStream(), false, new RemoteCertificateValidationCallback(ValidateServerCertificate), null);
             try
             {
-                sslStream.AuthenticateAsClient("chatappserver.ddns.net");
-                if (sslStream.IsEncrypted == false || sslStream.IsSigned == false || sslStream.IsAuthenticated == false)
+                client.sslStream.AuthenticateAsClient("chatappserver.ddns.net");
+                if (client.sslStream.IsEncrypted == false || client.sslStream.IsSigned == false || client.sslStream.IsAuthenticated == false)
                 {
-                    sslStream.Close();
+                    client.sslStream.Close();
                     throw new AuthenticationFailedException("Unable to establish a secure connection to the server.");
                 }
             }
             catch
             {
-                sslStream.Close();
+                client.sslStream.Close();
                 throw new AuthenticationFailedException("Failed to authenticate the servers certificate.");
             }
 
@@ -449,19 +449,19 @@ namespace Chat
                 client.nextAssignableMessageId = 1;
                 connectedClients.Add(client);
 
-                SslStream sslStream = new SslStream(client.tcpClient.GetStream(), false);
+                client.sslStream = new SslStream(client.tcpClient.GetStream(), false);
                 try
                 {
-                    sslStream.AuthenticateAsServer(x509Certificate, false, true);
-                    if (sslStream.IsEncrypted == false || sslStream.IsSigned == false || sslStream.IsAuthenticated == false)
+                    client.sslStream.AuthenticateAsServer(x509Certificate, false, true);
+                    if (client.sslStream.IsEncrypted == false || client.sslStream.IsSigned == false || client.sslStream.IsAuthenticated == false)
                     {
-                        sslStream.Close();
+                        client.sslStream.Close();
                         throw new AuthenticationFailedException("Unable to establish a secure connection to client.");
                     }
                 }
                 catch (Exception e)
                 {
-                    sslStream.Close();
+                    client.sslStream.Close();
                     throw new AuthenticationFailedException("Failed to authenticate the servers certificate.");
                 }
             }
@@ -516,9 +516,9 @@ namespace Chat
             {
                 if (client.tcpClient != null)
                 {
-                    SslStream sslStream = new SslStream(client.tcpClient.GetStream(), false);
+                    //client.sslStream = new SslStream(client.tcpClient.GetStream(), false);
                     {
-                        if (sslStream.CanWrite && sslStream.CanRead)
+                        if (client.sslStream.CanWrite && client.sslStream.CanRead)
                         {
                             // Message ID
                             byte[] idBuffer = new byte[4];
@@ -554,12 +554,12 @@ namespace Chat
                             ConvertLittleEndianToBigEndian(bytesBuffer);
                             ConvertLittleEndianToBigEndian(lengthBuffer);
 
-                            sslStream.Write(idBuffer, 0, 4); // Message ID
-                            sslStream.Write(typeBuffer, 0, 4); // Message type
-                            sslStream.Write(lengthBuffer, 0, 4); // Message length
+                            client.sslStream.Write(idBuffer, 0, 4); // Message ID
+                            client.sslStream.Write(typeBuffer, 0, 4); // Message type
+                            client.sslStream.Write(lengthBuffer, 0, 4); // Message length
                             if (bytesBuffer != null)
                             {
-                                sslStream.Write(bytesBuffer, 0, bytesBuffer.Length); // Message text
+                                client.sslStream.Write(bytesBuffer, 0, bytesBuffer.Length); // Message text
                             }
                             if (message.messageType != 1 && message.messageType != 3 && message.messageType != 11)
                             {
@@ -593,21 +593,21 @@ namespace Chat
             {
                 if (client.tcpClient != null)
                 {
-                    SslStream sslStream = new SslStream(client.tcpClient.GetStream(), false);
+                    //client.sslStream = new SslStream(client.tcpClient.GetStream(), false);
                     {
-                        if (sslStream.CanRead && sslStream.CanWrite && client.tcpClient.GetStream().DataAvailable)
+                        if (client.sslStream.CanRead && client.sslStream.CanWrite && client.tcpClient.GetStream().DataAvailable)
                         {
                             // Message ID
                             byte[] idBuffer = new byte[4];
-                            sslStream.Read(idBuffer, 0, 4);
+                            client.sslStream.Read(idBuffer, 0, 4);
 
                             // Message type
                             byte[] typeBuffer = new byte[4];
-                            sslStream.Read(typeBuffer, 0, 4);
+                            client.sslStream.Read(typeBuffer, 0, 4);
 
                             // Message length
                             byte[] lengthBuffer = new byte[4];
-                            sslStream.Read(lengthBuffer, 0, 4);
+                            client.sslStream.Read(lengthBuffer, 0, 4);
 
                             ConvertLittleEndianToBigEndian(idBuffer);
                             ConvertLittleEndianToBigEndian(typeBuffer);
@@ -628,7 +628,7 @@ namespace Chat
                                 while (totalReceivedLength < messageLength)
                                 {
                                     receivedLength = 0;
-                                    receivedLength += sslStream.Read(tempBytesBuffer, 0, messageLength - totalReceivedLength);
+                                    receivedLength += client.sslStream.Read(tempBytesBuffer, 0, messageLength - totalReceivedLength);
                                     Array.Resize(ref tempBytesBuffer, receivedLength);
                                     tempBytesBuffer.CopyTo(messageBytes, totalReceivedLength);
                                     tempBytesBuffer = new byte[messageLength];

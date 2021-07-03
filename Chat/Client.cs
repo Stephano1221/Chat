@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Security;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -21,6 +22,7 @@ namespace Chat
 
         #region Connection
         public TcpClient tcpClient;
+        public SslStream sslStream;
         public Encryption encryption;
         public int clientId = -1;
         public int nextAssignableMessageId = 0;
