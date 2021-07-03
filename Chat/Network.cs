@@ -410,14 +410,14 @@ namespace Chat
                 {
                     client.sslStream.Close();
                     connectedClients.Remove(client);
-                    throw new AuthenticationFailedException("Unable to establish a secure connection to the server.");
+                    throw new AuthenticationException("Unable to establish a secure connection to the server.");
                 }
             }
-            catch
+            catch()
             {
                 client.sslStream.Close();
                 connectedClients.Remove(client);
-                throw new AuthenticationFailedException("Failed to authenticate the servers certificate.");
+                throw new AuthenticationException("Failed to authenticate the servers certificate.");
             }
 
             string clientId = "";
@@ -446,14 +446,14 @@ namespace Chat
                     {
                         client.sslStream.Close();
                         connectedClients.Remove(client);
-                        throw new AuthenticationFailedException("Unable to establish a secure connection to client.");
+                        throw new AuthenticationException("Unable to establish a secure connection to client.");
                     }
                 }
                 catch (Exception e)
                 {
                     client.sslStream.Close();
                     connectedClients.Remove(client);
-                    throw new AuthenticationFailedException("Failed to authenticate the servers certificate.");
+                    throw new AuthenticationException("Failed to authenticate the servers certificate.");
                 }
             }
         }
