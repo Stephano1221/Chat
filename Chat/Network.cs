@@ -423,6 +423,12 @@ namespace Chat
             try
             {
                 sslStream.AuthenticateAsClient("chatappserver.ddns.net");
+                if (sslStream.IsEncrypted == false || sslStream.IsSigned == false || sslStream.IsAuthenticated == false)
+                {
+                    sslStream.Close();
+                    client.tcpClient.Close();
+                    throw new AuthenticationFailedException("Unable to establish a secure connection to the server.");
+                }
             }
             catch
             {
