@@ -443,12 +443,14 @@ namespace Chat
                     if (client.sslStream.IsEncrypted == false || client.sslStream.IsSigned == false || client.sslStream.IsAuthenticated == false)
                     {
                         client.sslStream.Close();
+                        connectedClients.Remove(client);
                         throw new AuthenticationFailedException("Unable to establish a secure connection to client.");
                     }
                 }
                 catch (Exception e)
                 {
                     client.sslStream.Close();
+                    connectedClients.Remove(client);
                     throw new AuthenticationFailedException("Failed to authenticate the servers certificate.");
                 }
             }
