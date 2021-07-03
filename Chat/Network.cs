@@ -250,7 +250,7 @@ namespace Chat
                 try
                 {
                     X509Certificate2 matchingCertificate = X509Certificate2.CreateFromPemFile(certificateFilePath, keyFilePath);
-                    return matchingCertificate;
+                    return new X509Certificate2(matchingCertificate.Export(X509ContentType.Pkcs12));
                 }
                 catch
                 {
