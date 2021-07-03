@@ -129,9 +129,6 @@ namespace Chat
                 case 17: messageSendPriority = 1; break;
                 case 18: messageSendPriority = 0; break;
                 case 19: messageSendPriority = 0; break;
-                case 20: messageSendPriority = 0; break;
-                case 21: messageSendPriority = 0; break;
-                case 22: messageSendPriority = 0; break;
                 default: messageSendPriority = 0; break;
             }
         }
@@ -160,9 +157,6 @@ namespace Chat
                 case 17: return true;
                 case 18: return true;
                 case 19: return true;
-                case 20: return true;
-                case 21: return false;
-                case 22: return false;
                 default: return false;
             }
         }
