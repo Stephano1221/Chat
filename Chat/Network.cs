@@ -191,10 +191,7 @@ namespace Chat
                     }
                     if (FrmHolder.hosting == false)
                     {
-                        if (client.tcpClient != null)
-                        {
-                            SendMessage(client, ComposeMessage(client, -1, 11, null, null)); // Send heartbeat
-                        }
+                        SendMessage(client, ComposeMessage(client, -1, 11, null, null)); // Send heartbeat
                     }
                     client.heartbeatReceieved = false;
                 }
@@ -206,9 +203,9 @@ namespace Chat
             if (client.disconnectHandled == false)
             {
                 client.disconnectHandled = true;
-                if (client.tcpClient != null)
+                if (client.sslStream != null)
                 {
-                    client.tcpClient.Close();
+                    client.sslStream.Close();
                 }
                 connectedClients.Remove(client);
                 if (FrmHolder.hosting)
@@ -393,9 +390,9 @@ namespace Chat
             client.sendingMessageQueue = false;
             client.receivingMessageQueue = false;
 
-            if (client.tcpClient != null)
+            if (client.sslStream != null)
             {
-                client.tcpClient.Close();
+                client.sslStream.Close();
             }
             if (connectedClients.Contains(client) == false)
             {
@@ -504,9 +501,8 @@ namespace Chat
             }
             try
             {
-                if (client.tcpClient != null)
+                if (client.sslStream != null)
                 {
-                    //client.sslStream = new SslStream(client.tcpClient.GetStream(), false);
                     {
                         if (client.sslStream.CanWrite && client.sslStream.CanRead)
                         {
@@ -583,9 +579,8 @@ namespace Chat
         {
             try
             {
-                if (client.tcpClient != null)
+                if (client.sslStream != null)
                 {
-                    //client.sslStream = new SslStream(client.tcpClient.GetStream(), false);
                     {
                         if (client.sslStream.CanRead && client.sslStream.CanWrite && client.tcpClient.GetStream().DataAvailable)
                         {
@@ -782,9 +777,9 @@ namespace Chat
                 SendToAll(ignoredClients, type, null, null);
                 for (int i = 0; i < connectedClients.Count; i++)
                 {
-                    if (connectedClients[i].tcpClient != null)
+                    if (connectedClients[i].sslStream != null)
                     {
-                        connectedClients[i].tcpClient.Close();
+                        connectedClients[i].sslStream.Close();
                     }
                 }
                 connectedClients.Clear();
@@ -792,9 +787,9 @@ namespace Chat
             else
             {
                 SendMessage(client, ComposeMessage(client, -1, type, null, null));
-                if (client.tcpClient != null)
+                if (client.sslStream != null)
                 {
-                    client.tcpClient.Close();
+                    client.sslStream.Close();
                 }
                 connectedClients.Remove(client);
             }
