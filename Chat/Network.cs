@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Sockets;
+using System.Windows.Forms;
 
 namespace Chat
 {
@@ -35,6 +36,7 @@ namespace Chat
         public event EventHandler<Client> HeartbeatTimeoutEvent;
         public event EventHandler ClearClientListEvent;
         public event EventHandler<string> AddClientToClientListEvent;
+        public event EventHandler<ShowMessageBoxEventArgs> ShowMessageBoxEvent;
         #endregion
 
         #region Threads
@@ -410,14 +412,16 @@ namespace Chat
                 {
                     client.sslStream.Close();
                     connectedClients.Remove(client);
-                    throw new AuthenticationException("Unable to establish a secure connection to the server.");
+                    ShowMessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs("Unable to establish a secure connection to the server.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error));
+                    return;
                 }
             }
-            catch()
+            catch(AuthenticationException ex)
             {
                 client.sslStream.Close();
                 connectedClients.Remove(client);
-                throw new AuthenticationException("Failed to authenticate the servers certificate.");
+                ShowMessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error));
+                return;
             }
 
             string clientId = "";
@@ -446,14 +450,14 @@ namespace Chat
                     {
                         client.sslStream.Close();
                         connectedClients.Remove(client);
-                        throw new AuthenticationException("Unable to establish a secure connection to client.");
+                        //MessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs("Unable to establish a secure connection to client.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning));
                     }
                 }
-                catch (Exception e)
+                catch (AuthenticationException ex)
                 {
                     client.sslStream.Close();
                     connectedClients.Remove(client);
-                    throw new AuthenticationException("Failed to authenticate the servers certificate.");
+                    //MessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs(ex.Message, "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning));
                 }
             }
         }

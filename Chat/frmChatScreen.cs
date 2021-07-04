@@ -24,6 +24,7 @@ namespace Chat
         private delegate void ClearClientClistDelegate();
         private delegate void AddClientToClientListDelegate(string username);
         private delegate void PrintChatMessageDelegate(string text);
+        private delegate DialogResult ShowMessageBoxDelegate(string message, string caption, MessageBoxButtons messageBoxButtons, MessageBoxIcon messageBoxIcon);
 
         private string kickFormat = "/kick [Username] [Reason (optional)]";
         private string adminFormat = "/admin [Username] [True/False (optional)]";
@@ -50,6 +51,7 @@ namespace Chat
             network.PrintChatMessageEvent += OnPrintChatMessage;
             network.ClearClientListEvent += OnClearClientList;
             network.AddClientToClientListEvent += OnAddClientToClientList;
+            network.ShowMessageBoxEvent += OnShowMessagBox;
         }
 
         private void ProcessMessage(object sender, MessageReceivedEventArgs e)
@@ -515,6 +517,14 @@ namespace Chat
             return true;
         }
 
+
+        private DialogResult ShowMessageBox(string message, string caption, MessageBoxButtons messageBoxButtons, MessageBoxIcon messageBoxIcon)
+        {
+            message = message == null ? "" : message;
+            caption = caption == null ? "" : caption;
+            return DialogResult = MessageBox.Show(this, message, caption, messageBoxButtons, messageBoxIcon);
+        }
+
         private void OpenMainMenu()
         {
             askToClose = false;
@@ -582,6 +592,18 @@ namespace Chat
             else
             {
                 xlbxChat.Items.Add(text);
+            }
+        }
+
+        private void OnShowMessagBox(object sender, ShowMessageBoxEventArgs showMessageBoxEventArgs)
+        {
+            if (this.InvokeRequired)
+            {
+                this.BeginInvoke(new ShowMessageBoxDelegate(ShowMessageBox), showMessageBoxEventArgs.message, showMessageBoxEventArgs.caption, showMessageBoxEventArgs.messageBoxButtons, showMessageBoxEventArgs.messageBoxIcon);
+            }
+            else
+            {
+                ShowMessageBox(showMessageBoxEventArgs.message, showMessageBoxEventArgs.caption, showMessageBoxEventArgs.messageBoxButtons, showMessageBoxEventArgs.messageBoxIcon);
             }
         }
 
