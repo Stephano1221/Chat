@@ -1,17 +1,27 @@
 ﻿//#define messageSentReceivedUpdates
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net.Security;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Sockets;
+using System.Windows.Forms;
 
 namespace Chat
 {
     class Network
     {
+        public X509Certificate2 x509Certificate;
+        public string certificateName = "chatappserver.ddns.net";
+        public string certificateFilePath = "C:\\Certbot\\live\\chatappserver.ddns.net\\fullchain.pem";
+        public string keyFilePath = "C:\\Certbot\\live\\chatappserver.ddns.net\\privkey.pem";
+
         #region Connection Info
         public int port = 12210;
         public string publicIp;
@@ -26,6 +36,7 @@ namespace Chat
         public event EventHandler<Client> HeartbeatTimeoutEvent;
         public event EventHandler ClearClientListEvent;
         public event EventHandler<string> AddClientToClientListEvent;
+        public event EventHandler<ShowMessageBoxEventArgs> ShowMessageBoxEvent;
         #endregion
 
         #region Threads
@@ -95,18 +106,20 @@ namespace Chat
             client.admin = true;
             connectedClients.Add(client);
 
-            tcpListener.Start();
-            StartHeartbeat();
-
-            while (cancellationToken.IsCancellationRequested == false)
+            using (x509Certificate = ImportCertificateFromStoreOrFile(certificateName, false, certificateFilePath, keyFilePath))
             {
-                ServerAcceptIncomingConnection(tcpListener);
-                LoopClientsForIncomingMessages();
+                tcpListener.Start();
+                StartHeartbeat();
+
+                while (cancellationToken.IsCancellationRequested == false)
+                {
+                    ServerAcceptIncomingConnection(tcpListener);
+                    LoopClientsForIncomingMessages();
+                }
             }
 
             tcpListener.Stop();
             FrmHolder.clientId = -1;
-            DeleteAllRSAKeys();
             if (connectedClients.Count > 0)
             {
                 SendDisconnect(null, false, true);
@@ -131,7 +144,6 @@ namespace Chat
                 LoopClientsForIncomingMessages();
             }
             FrmHolder.clientId = -1;
-            DeleteAllRSAKeys();
             if (connectedClients.Count > 0)
             {
                 SendDisconnect(client, false, false);
@@ -181,10 +193,7 @@ namespace Chat
                     }
                     if (FrmHolder.hosting == false)
                     {
-                        if (client.tcpClient != null)
-                        {
-                            SendMessage(client, ComposeMessage(client, -1, 11, null, null)); // Send heartbeat
-                        }
+                        SendMessage(client, ComposeMessage(client, -1, 11, null, null)); // Send heartbeat
                     }
                     client.heartbeatReceieved = false;
                 }
@@ -196,9 +205,9 @@ namespace Chat
             if (client.disconnectHandled == false)
             {
                 client.disconnectHandled = true;
-                if (client.tcpClient != null)
+                if (client.sslStream != null)
                 {
-                    client.tcpClient.Close();
+                    client.sslStream.Close();
                 }
                 connectedClients.Remove(client);
                 if (FrmHolder.hosting)
@@ -214,6 +223,46 @@ namespace Chat
                     PrintChatMessageEvent(this, $"Lost connection to server...");
                 }
             }
+        }
+
+        public X509Certificate2 ImportCertificateFromStoreOrFile(string certificateName, bool inStore, string certificateFilePath, string keyFilePath)
+        {
+            if (inStore)
+            {
+                using (X509Store x509Store = new X509Store(StoreLocation.LocalMachine))
+                {
+                    x509Store.Open(OpenFlags.ReadOnly);
+                    X509Certificate2Collection allCertificates = x509Store.Certificates;
+                    X509Certificate2Collection validCertificates = allCertificates.Find(X509FindType.FindByTimeValid, DateTime.Now, false);
+                    X509Certificate2Collection matchingCertificates = validCertificates.Find(X509FindType.FindBySubjectDistinguishedName, "CN=" + certificateName, false);
+                    if (matchingCertificates.Count == 0)
+                    {
+                        throw new CertificateNotFoundException($"No valid certificate matching the name '{certificateName}' found in the certificate store.");
+                    }
+                    return matchingCertificates[0];
+                }
+            }
+            else
+            {
+                try
+                {
+                    X509Certificate2 matchingCertificate = X509Certificate2.CreateFromPemFile(certificateFilePath, keyFilePath);
+                    return new X509Certificate2(matchingCertificate.Export(X509ContentType.Pkcs12));
+                }
+                catch
+                {
+                    throw new CertificateNotFoundException($"No valid certificate matching the name '{Path.GetFileName(certificateFilePath)}' found at {Path.GetDirectoryName(certificateFilePath)}.");
+                }
+            }
+        }
+
+        public bool ValidateServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        {
+            if (sslPolicyErrors == SslPolicyErrors.None)
+            {
+                return true;
+            }
+            return false;
         }
 
         public void SendFirstMessageInMessageQueue(Client client)
@@ -338,36 +387,49 @@ namespace Chat
 
         public void ConnectClient(Client client)
         {
-            client.encryptionEstablished = false;
             client.connectionSetupComplete = false;
             client.disconnectHandled = false;
             client.sendingMessageQueue = false;
             client.receivingMessageQueue = false;
 
-            if (client.tcpClient != null)
+            if (client.sslStream != null)
             {
-                client.tcpClient.Close();
+                client.sslStream.Close();
             }
             if (connectedClients.Contains(client) == false)
             {
                 connectedClients.Add(client);
             }
-            /*string clientIdPart = "";
-            if (FrmHolder.clientId != -1)
-            {
-                clientIdPart = $" {Convert.ToString(FrmHolder.clientId)}";
-            }*/
-
-            client.encryption = new Encryption();
-            client.encryption.keyContainerName = DateTime.Now.ToString();
-            client.encryption.RsaDeleteKey(client.encryption.keyContainerName);
-            client.encryption.RsaGenerateKey(client.encryption.keyContainerName);
-            string rsaKey = client.encryption.RsaExportXmlKey(client.encryption.keyContainerName, false);
 
             client.tcpClient = new TcpClient();
             client.tcpClient.Connect(publicIp, port);
-            //SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 0, $"{FrmHolder.username}{clientIdPart}"));
-            SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 20, rsaKey, null));
+
+            client.sslStream = new SslStream(client.tcpClient.GetStream(), false, new RemoteCertificateValidationCallback(ValidateServerCertificate), null);
+            try
+            {
+                client.sslStream.AuthenticateAsClient("chatappserver.ddns.net");
+                if (client.sslStream.IsEncrypted == false || client.sslStream.IsSigned == false || client.sslStream.IsAuthenticated == false)
+                {
+                    client.sslStream.Close();
+                    connectedClients.Remove(client);
+                    ShowMessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs("Unable to establish a secure connection to the server.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error));
+                    return;
+                }
+            }
+            catch(AuthenticationException ex)
+            {
+                client.sslStream.Close();
+                connectedClients.Remove(client);
+                ShowMessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error));
+                return;
+            }
+
+            string clientId = "";
+            if (FrmHolder.clientId != -1)
+            {
+                clientId = $" {Convert.ToString(FrmHolder.clientId)}";
+            }
+            SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 0, $"{FrmHolder.username}{clientId}", null));
         }
 
         public void ServerAcceptIncomingConnection(TcpListener tcpListener)
@@ -379,6 +441,24 @@ namespace Chat
                 client.tcpClient = tcpClient;
                 client.nextAssignableMessageId = 1;
                 connectedClients.Add(client);
+
+                client.sslStream = new SslStream(client.tcpClient.GetStream(), false);
+                try
+                {
+                    client.sslStream.AuthenticateAsServer(x509Certificate, false, true);
+                    if (client.sslStream.IsEncrypted == false || client.sslStream.IsSigned == false || client.sslStream.IsAuthenticated == false)
+                    {
+                        client.sslStream.Close();
+                        connectedClients.Remove(client);
+                        //MessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs("Unable to establish a secure connection to client.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning));
+                    }
+                }
+                catch (AuthenticationException ex)
+                {
+                    client.sslStream.Close();
+                    connectedClients.Remove(client);
+                    //MessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs(ex.Message, "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning));
+                }
             }
         }
 
@@ -429,11 +509,10 @@ namespace Chat
             }
             try
             {
-                if (client.tcpClient != null)
+                if (client.sslStream != null)
                 {
-                    NetworkStream networkStream = client.tcpClient.GetStream();
                     {
-                        if (networkStream.CanWrite && networkStream.CanRead)
+                        if (client.sslStream.CanWrite && client.sslStream.CanRead)
                         {
                             // Message ID
                             byte[] idBuffer = new byte[4];
@@ -447,14 +526,7 @@ namespace Chat
                             byte[] bytesBuffer = null;
                             if (message.messageBytes != null && message.messageBytes.Count() > 0)
                             {
-                                if (client.encryptionEstablished)
-                                {
-                                    bytesBuffer = client.encryption.AesEncryptDecrypt(message.messageBytes, client.encryption.AesExportKeyAndIv(client.encryption.aesEncryptedKey, client.encryption.aesEncryptedIv), true);
-                                }
-                                else
-                                {
-                                    bytesBuffer = message.messageBytes;
-                                }
+                                bytesBuffer = message.messageBytes;
                             }
 
                             // Message length
@@ -469,13 +541,22 @@ namespace Chat
                             ConvertLittleEndianToBigEndian(bytesBuffer);
                             ConvertLittleEndianToBigEndian(lengthBuffer);
 
-                            networkStream.Write(idBuffer, 0, 4); // Message ID
-                            networkStream.Write(typeBuffer, 0, 4); // Message type
-                            networkStream.Write(lengthBuffer, 0, 4); // Message length
+                            int messageSize = idBuffer.Length + typeBuffer.Length + lengthBuffer.Length;
                             if (bytesBuffer != null)
                             {
-                                networkStream.Write(bytesBuffer, 0, bytesBuffer.Length); // Message text
+                                messageSize += bytesBuffer.Length;
                             }
+                            byte[] writeBuffer = new byte[messageSize];
+                            idBuffer.CopyTo(writeBuffer, 0);
+                            typeBuffer.CopyTo(writeBuffer, idBuffer.Length);
+                            lengthBuffer.CopyTo(writeBuffer, idBuffer.Length + typeBuffer.Length);
+                            if (bytesBuffer != null)
+                            {
+                                bytesBuffer.CopyTo(writeBuffer, idBuffer.Length + typeBuffer.Length + lengthBuffer.Length);
+                            }
+
+                            client.sslStream.Write(writeBuffer, 0, writeBuffer.Length);
+
                             if (message.messageType != 1 && message.messageType != 3 && message.messageType != 11)
                             {
                                 AddMessageToMessageListBySendPriority(client.messagesToBeSent, message, true);
@@ -506,23 +587,22 @@ namespace Chat
         {
             try
             {
-                if (client.tcpClient != null)
+                if (client.sslStream != null)
                 {
-                    NetworkStream networkStream = client.tcpClient.GetStream();
                     {
-                        if (networkStream.CanRead && networkStream.CanWrite && networkStream.DataAvailable)
+                        if (client.sslStream.CanRead && client.sslStream.CanWrite && client.tcpClient.GetStream().DataAvailable)
                         {
                             // Message ID
                             byte[] idBuffer = new byte[4];
-                            networkStream.Read(idBuffer, 0, 4);
+                            client.sslStream.Read(idBuffer, 0, 4);
 
                             // Message type
                             byte[] typeBuffer = new byte[4];
-                            networkStream.Read(typeBuffer, 0, 4);
+                            client.sslStream.Read(typeBuffer, 0, 4);
 
                             // Message length
                             byte[] lengthBuffer = new byte[4];
-                            networkStream.Read(lengthBuffer, 0, 4);
+                            client.sslStream.Read(lengthBuffer, 0, 4);
 
                             ConvertLittleEndianToBigEndian(idBuffer);
                             ConvertLittleEndianToBigEndian(typeBuffer);
@@ -543,18 +623,13 @@ namespace Chat
                                 while (totalReceivedLength < messageLength)
                                 {
                                     receivedLength = 0;
-                                    receivedLength += networkStream.Read(tempBytesBuffer, 0, messageLength - totalReceivedLength);
+                                    receivedLength += client.sslStream.Read(tempBytesBuffer, 0, messageLength - totalReceivedLength);
                                     Array.Resize(ref tempBytesBuffer, receivedLength);
                                     tempBytesBuffer.CopyTo(messageBytes, totalReceivedLength);
                                     tempBytesBuffer = new byte[messageLength];
                                     totalReceivedLength += receivedLength;
                                 }
                                 ConvertLittleEndianToBigEndian(messageBytes);
-
-                                if (client.encryptionEstablished)
-                                {
-                                    messageBytes = client.encryption.AesEncryptDecrypt(messageBytes, client.encryption.AesExportKeyAndIv(client.encryption.aesEncryptedKey, client.encryption.aesEncryptedIv), false);
-                                }
                             }
 
                             Message receivedMessage = ComposeMessage(client, messageId, messageType, null, messageBytes);
@@ -604,7 +679,7 @@ namespace Chat
             clientMergeTo.nextAssignableMessageId = (clientMergeTo.nextAssignableMessageId + clientMergeFrom.nextAssignableMessageId);
             //clientMergeTo.username = clientMergeFrom.username;
             clientMergeTo.tcpClient = clientMergeFrom.tcpClient;
-            clientMergeTo.encryption = clientMergeFrom.encryption;
+            clientMergeTo.sslStream = clientMergeFrom.sslStream;
 
             //clientMergeTo.admin = clientMergeFrom.admin;
             //clientMergeTo.serverMuted = clientMergeFrom.serverMuted;
@@ -612,7 +687,6 @@ namespace Chat
 
             clientMergeTo.heartbeatReceieved = clientMergeFrom.heartbeatReceieved;
             clientMergeTo.heartbeatFailures = clientMergeFrom.heartbeatFailures;
-            clientMergeTo.encryptionEstablished = clientMergeFrom.encryptionEstablished;
             clientMergeTo.connectionSetupComplete = clientMergeFrom.connectionSetupComplete;
             clientMergeTo.disconnectHandled = clientMergeFrom.disconnectHandled;
             clientMergeTo.sendingMessageQueue = clientMergeFrom.sendingMessageQueue;
@@ -712,9 +786,9 @@ namespace Chat
                 SendToAll(ignoredClients, type, null, null);
                 for (int i = 0; i < connectedClients.Count; i++)
                 {
-                    if (connectedClients[i].tcpClient != null)
+                    if (connectedClients[i].sslStream != null)
                     {
-                        connectedClients[i].tcpClient.Close();
+                        connectedClients[i].sslStream.Close();
                     }
                 }
                 connectedClients.Clear();
@@ -722,19 +796,11 @@ namespace Chat
             else
             {
                 SendMessage(client, ComposeMessage(client, -1, type, null, null));
-                if (client.tcpClient != null)
+                if (client.sslStream != null)
                 {
-                    client.tcpClient.Close();
+                    client.sslStream.Close();
                 }
                 connectedClients.Remove(client);
-            }
-        }
-
-        public void DeleteAllRSAKeys()
-        {
-            for(int i = 0; i < connectedClients.Count(); i++)
-            {
-                connectedClients[i].encryption.RsaDeleteKey(connectedClients[i].encryption.keyContainerName);
             }
         }
     }
