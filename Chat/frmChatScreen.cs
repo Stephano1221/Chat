@@ -92,14 +92,19 @@ namespace Chat
 #endif
             }
 
-            if (e.message.messageType == 0) // Connection Request [username, clientId]
+            if (e.message.messageType == 0) // Connection Request [username, clientId, version number]
             {
-                string[] parts = e.message.messageText.Split(' ', 2);
+                string[] parts = e.message.messageText.Split(' ', 3);
                 string username = parts[0];
                 int clientId = -1;
                 if (parts[1] != "-1")
                 {
                     clientId = Convert.ToInt32(parts[1]);
+                }
+                string versionNumber = parts[2];
+                if (CheckVersionCompatibility(versionNumber) == false)
+                {
+
                 }
                 bool usernameAlreadyInUse = false;
                 for (int i = 0; i < network.connectedClients.Count; i++)
@@ -382,6 +387,16 @@ namespace Chat
                 return true;
             }
             return false; //true if commmand
+        }
+
+        private bool CheckVersionCompatibility(string versionNumber)
+        {
+            string[] versionText = versionNumber.Split(',', 4);
+            int[] version = null;
+            for (int i = 0; i < versionText.Count(); i++)
+            {
+                int.TryParse(versionText[i], out version[i]);
+            }
         }
 
         private void PrintChatMessage(string chatMessage)
