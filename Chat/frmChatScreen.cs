@@ -300,6 +300,26 @@ namespace Chat
             {
                 e.client.connectionSetupComplete = true;
             }
+            else if (e.message.messageType == 20) // Incompatible version
+            {
+                if (FrmHolder.hosting)
+                {
+                    network.connectedClients.Remove(e.client);
+                    if (e.client.sslStream != null)
+                    {
+                        e.client.sslStream.Close();
+                    }
+                }
+                else
+                {
+                    if (network.clientThread != null && network.clientThread.IsAlive)
+                    {
+                        network.clientCancellationTokenSource.Cancel();
+                    }
+                    MessageBox.Show("The server is on a version incompatible with the one installed.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    OpenMainMenu();
+                }
+            }
         }
 
         private void ClearClientList()
