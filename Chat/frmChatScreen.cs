@@ -92,12 +92,12 @@ namespace Chat
 #endif
             }
 
-            if (e.message.messageType == 0) // Connection Request [username, clientId (if reconnecting)]
+            if (e.message.messageType == 0) // Connection Request [username, clientId]
             {
                 string[] parts = e.message.messageText.Split(' ', 2);
                 string username = parts[0];
                 int clientId = -1;
-                if (parts.Length > 1)
+                if (parts[1] != "-1")
                 {
                     clientId = Convert.ToInt32(parts[1]);
                 }
