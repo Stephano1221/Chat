@@ -327,7 +327,8 @@ namespace Chat
                     {
                         network.clientCancellationTokenSource.Cancel();
                     }
-                    MessageBox.Show("The server is on a version incompatible with the one installed.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    string difference = CheckVersionCompatibility(e.message.messageText, FrmHolder.applicationVersion) == '<' ? "an older" : "a newer";
+                    MessageBox.Show($"You are running {difference} version ({FrmHolder.applicationVersion}) than that which is supported by the server ({e.message.messageText}).", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     OpenMainMenu();
                 }
             }
