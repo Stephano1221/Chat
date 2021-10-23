@@ -104,7 +104,13 @@ namespace Chat
                 string versionNumber = parts[2];
                 if (CheckVersionCompatibility(FrmHolder.minimumSupportedClientVersion, versionNumber) == false)
                 {
-
+                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 20, FrmHolder.minimumSupportedClientVersion, null));
+                    network.connectedClients.Remove(e.client);
+                    if (e.client.sslStream != null)
+                    {
+                        e.client.sslStream.Close();
+                    }
+                    return;
                 }
                 bool usernameAlreadyInUse = false;
                 for (int i = 0; i < network.connectedClients.Count; i++)
