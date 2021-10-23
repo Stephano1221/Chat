@@ -428,7 +428,7 @@ namespace Chat
             for (int i = 1; i < minimumVersionNumberSplit.Count(); i++)
             {
                 char versionDifference = CompareIndividualVersionNumber(minimumVersionNumberSplit[i], challengeVersionNumberSplit[i]);
-                if (versionDifference != '=') // Incompatible
+                if (versionDifference != '=') // Compatible or Incompatible
                 {
                     return versionDifference;
                 }
