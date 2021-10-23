@@ -389,9 +389,9 @@ namespace Chat
             return false; //true if commmand
         }
 
-        private bool CheckVersionCompatibility(string versionNumber)
+        private bool CheckVersionCompatibility(string challengedVersionNumber)
         {
-            string[] versionText = versionNumber.Split(',', 4);
+            string[] versionText = challengedVersionNumber.Split(',', 4);
             int[] version = null;
             for (int i = 0; i < versionText.Count(); i++)
             {
