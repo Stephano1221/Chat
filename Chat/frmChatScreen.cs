@@ -102,7 +102,7 @@ namespace Chat
                     clientId = Convert.ToInt32(parts[1]);
                 }
                 string versionNumber = parts[2];
-                if (CheckVersionCompatibilityOfClient(versionNumber) == false)
+                if (CheckVersionCompatibility(FrmHolder.minimumSupportedClientVersion, versionNumber) == false)
                 {
 
                 }
@@ -392,7 +392,7 @@ namespace Chat
         private int[] SplitVersionNumberPrefix(string versionNumberToSplit)
         {
             string versionNumberToSplitPrefix = versionNumberToSplit.Split('-', 2)[0];
-            string[] versionNumbersSplitAsString = versionNumberToSplitPrefix.Split('.', 3);
+            string[] versionNumbersSplitAsString = versionNumberToSplitPrefix.Split('.');
             int[] VersionNumbersSplitAsInt = new int[versionNumbersSplitAsString.Count()];
             for (int i = 0; i < versionNumberToSplitPrefix.Count(); i++)
             {
@@ -401,14 +401,9 @@ namespace Chat
            return VersionNumbersSplitAsInt;
         }
 
-        private bool CheckVersionCompatibilityOfClient(string challengedVersionNumber)
+        private bool CheckVersionCompatibility(string minimumVersionNumber, string challengeVersionNumber)
         {
-            int[] challengedVersionNumberSplit = SplitVersionNumberPrefix(challengedVersionNumber);
-        }
 
-        private bool CheckVersionCompatibilityOfServer(string challengedVersionNumber)
-        {
-            int[] challengedVersionNumberSplit = SplitVersionNumberPrefix(challengedVersionNumber);
         }
 
         private void PrintChatMessage(string chatMessage)
