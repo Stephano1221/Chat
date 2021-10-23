@@ -17,6 +17,7 @@ namespace Chat
         public static string joinIP;
         public static int clientId = -1;
         public static string applicationWindowText = "Chat";
+        public static string applicationVersion = "0.1.0-alpha"; //Format: [Major].[Minor].[Patch](optional:-[Pre-Release]). Don't include build metadata. Follows semantic versioning 2.0.0. To use versions from the assembly (i.e. AssemblyInfo.cs): Application.ProductVersion;
 
         private FrmLoginScreen loginScreen;
 
