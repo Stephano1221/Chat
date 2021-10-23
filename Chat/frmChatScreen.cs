@@ -389,24 +389,26 @@ namespace Chat
             return false; //true if commmand
         }
 
+        private int[] SplitVersionNumberPrefix(string versionNumberToSplit)
+        {
+            string versionNumberToSplitPrefix = versionNumberToSplit.Split('-', 2)[0];
+            string[] versionNumbersSplitAsString = versionNumberToSplitPrefix.Split('.', 3);
+            int[] VersionNumbersSplitAsInt = new int[versionNumbersSplitAsString.Count()];
+            for (int i = 0; i < versionNumberToSplitPrefix.Count(); i++)
+            {
+                int.TryParse(versionNumbersSplitAsString[i], out VersionNumbersSplitAsInt[i]);
+            }
+           return VersionNumbersSplitAsInt;
+        }
+
         private bool CheckVersionCompatibilityOfClient(string challengedVersionNumber)
         {
-            string[] versionText = challengedVersionNumber.Split(',', 4);
-            int[] version = null;
-            for (int i = 0; i < versionText.Count(); i++)
-            {
-                int.TryParse(versionText[i], out version[i]);
-            }
+            int[] challengedVersionNumberSplit = SplitVersionNumberPrefix(challengedVersionNumber);
         }
 
         private bool CheckVersionCompatibilityOfServer(string challengedVersionNumber)
         {
-            string[] versionText = challengedVersionNumber.Split(',', 4);
-            int[] version = null;
-            for (int i = 0; i < versionText.Count(); i++)
-            {
-                int.TryParse(versionText[i], out version[i]);
-            }
+            int[] challengedVersionNumberSplit = SplitVersionNumberPrefix(challengedVersionNumber);
         }
 
         private void PrintChatMessage(string chatMessage)
