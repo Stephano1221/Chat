@@ -102,7 +102,7 @@ namespace Chat
                     clientId = Convert.ToInt32(parts[1]);
                 }
                 string versionNumber = parts[2];
-                if (CheckVersionCompatibility(FrmHolder.minimumSupportedClientVersion, versionNumber) == false)
+                if (CheckVersionCompatibility(FrmHolder.minimumSupportedClientVersion, versionNumber) != '=')
                 {
                     network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 20, FrmHolder.minimumSupportedClientVersion, null));
                     network.connectedClients.Remove(e.client);
@@ -407,34 +407,47 @@ namespace Chat
            return VersionNumbersSplitAsInt;
         }
 
-        private bool CheckVersionCompatibility(string minimumVersionNumber, string challengeVersionNumber)
+        private char CheckVersionCompatibility(string minimumVersionNumber, string challengeVersionNumber)
         {
             int[] minimumVersionNumberSplit = SplitVersionNumberPrefix(minimumVersionNumber);
             int[] challengeVersionNumberSplit = SplitVersionNumberPrefix(challengeVersionNumber);
-            if (minimumVersionNumberSplit[0] != challengeVersionNumberSplit[0])
+            if (minimumVersionNumberSplit[0] != challengeVersionNumberSplit[0]) // Incompatible
             {
-                return false;
+                char versionDifference = CompareIndividualVersionNumber(minimumVersionNumberSplit[0], challengeVersionNumberSplit[0]);
+                return versionDifference;
             }
             if (minimumVersionNumberSplit[0] == 0 || challengeVersionNumberSplit[0] == 0)
             {
-                if (minimumVersionNumberSplit[1] != challengeVersionNumberSplit[1])
+                if (minimumVersionNumberSplit[1] != challengeVersionNumberSplit[1]) // Incompatible
                 {
-                    return false;
+                    char versionDifference = CompareIndividualVersionNumber(minimumVersionNumberSplit[1], challengeVersionNumberSplit[1]);
+                    return versionDifference;
                 }
             }
             for (int i = 1; i < minimumVersionNumberSplit.Count(); i++)
             {
-                if (challengeVersionNumberSplit[i] < minimumVersionNumberSplit[i])
+                char versionDifference = CompareIndividualVersionNumber(minimumVersionNumberSplit[i], challengeVersionNumberSplit[i]);
+                if (versionDifference != '=') // Incompatible
                 {
-                    return false;
-                }
-                else if (challengeVersionNumberSplit[i] > minimumVersionNumberSplit[i])
-                {
-                    return true;
+                    return versionDifference;
                 }
             }
-            return true;
+            // Compatible
+            return '=';
 
+        }
+
+        private char CompareIndividualVersionNumber(int minimumVersionNumber, int challengeVersionNumber)
+        {
+            if (minimumVersionNumber < challengeVersionNumber)
+            {
+                return '>';
+            }
+            else if (minimumVersionNumber > challengeVersionNumber)
+            {
+                return '<';
+            }
+            return '=';
         }
 
         private void PrintChatMessage(string chatMessage)
