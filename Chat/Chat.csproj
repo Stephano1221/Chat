@@ -11,8 +11,8 @@
 	  <VersionSuffix>alpha.1+001</VersionSuffix> <!--Version number suffix. May include version-specific release stage, (e.g. 'alpha', 'beta.1', 'rc.2') and may include build metadata, preceded by a '+' (e.g. '001', ) -->
 	  <Version></Version> <!--If unspecified, <VersionPrefix> and <VersionSuffix> are used-->
 	  <AssemblyVersion></AssemblyVersion> <!--Referenced by other APIs. Only change if introducing breaking-changes. If unspecified, <Version> is used-->
-	  <FileVersion></FileVersion> <!--Application version viewable by file exploreres. If unspecified, <Version> is used-->
-	  <InformationalVersion></InformationalVersion> <!--Application version viewable by file explorers. If unspecified, <Version> is used-->
+	  <FileVersion></FileVersion> <!--Application version viewable by file exploreres (File version). If unspecified, <Version> is used-->
+	  <InformationalVersion></InformationalVersion> <!--Application version viewable by file explorers (Product version). If unspecified, <Version> is used-->
 	  <PackageVersion></PackageVersion> <!--Used by NuGet when generating NuGet packages. If unspecified <Version> is used-->
 
     <RootNamespace>Chat</RootNamespace>
