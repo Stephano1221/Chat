@@ -102,7 +102,7 @@ namespace Chat
                     clientId = Convert.ToInt32(parts[1]);
                 }
                 string versionNumber = parts[2];
-                if (CheckVersionCompatibility(versionNumber) == false)
+                if (CheckVersionCompatibilityOfClient(versionNumber) == false)
                 {
 
                 }
@@ -389,7 +389,17 @@ namespace Chat
             return false; //true if commmand
         }
 
-        private bool CheckVersionCompatibility(string challengedVersionNumber)
+        private bool CheckVersionCompatibilityOfClient(string challengedVersionNumber)
+        {
+            string[] versionText = challengedVersionNumber.Split(',', 4);
+            int[] version = null;
+            for (int i = 0; i < versionText.Count(); i++)
+            {
+                int.TryParse(versionText[i], out version[i]);
+            }
+        }
+
+        private bool CheckVersionCompatibilityOfServer(string challengedVersionNumber)
         {
             string[] versionText = challengedVersionNumber.Split(',', 4);
             int[] version = null;
