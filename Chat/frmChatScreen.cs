@@ -394,7 +394,7 @@ namespace Chat
             string versionNumberToSplitPrefix = versionNumberToSplit.Split('-', 2)[0];
             string[] versionNumbersSplitAsString = versionNumberToSplitPrefix.Split('.');
             int[] VersionNumbersSplitAsInt = new int[versionNumbersSplitAsString.Count()];
-            for (int i = 0; i < versionNumberToSplitPrefix.Count(); i++)
+            for (int i = 0; i < versionNumbersSplitAsString.Count(); i++)
             {
                 int.TryParse(versionNumbersSplitAsString[i], out VersionNumbersSplitAsInt[i]);
             }
