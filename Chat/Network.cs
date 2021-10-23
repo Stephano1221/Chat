@@ -429,7 +429,7 @@ namespace Chat
             {
                 clientId = $"{Convert.ToString(FrmHolder.clientId)}";
             }
-            SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 0, $"{FrmHolder.username} {clientId}", null));
+            SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 0, $"{FrmHolder.username} {clientId} {FrmHolder.applicationVersion}", null));
         }
 
         public void ServerAcceptIncomingConnection(TcpListener tcpListener)
