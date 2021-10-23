@@ -403,6 +403,31 @@ namespace Chat
 
         private bool CheckVersionCompatibility(string minimumVersionNumber, string challengeVersionNumber)
         {
+            int[] minimumVersionNumberSplit = SplitVersionNumberPrefix(minimumVersionNumber);
+            int[] challengeVersionNumberSplit = SplitVersionNumberPrefix(challengeVersionNumber);
+            if (minimumVersionNumberSplit[0] != challengeVersionNumberSplit[0])
+            {
+                return false;
+            }
+            if (minimumVersionNumberSplit[0] == 0 || challengeVersionNumberSplit[0] == 0)
+            {
+                if (minimumVersionNumberSplit[1] != challengeVersionNumberSplit[1])
+                {
+                    return false;
+                }
+            }
+            for (int i = 1; i < minimumVersionNumberSplit.Count(); i++)
+            {
+                if (challengeVersionNumberSplit[i] < minimumVersionNumberSplit[i])
+                {
+                    return false;
+                }
+                else if (challengeVersionNumberSplit[i] > minimumVersionNumberSplit[i])
+                {
+                    return true;
+                }
+            }
+            return true;
 
         }
 
