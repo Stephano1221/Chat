@@ -408,10 +408,19 @@ namespace Chat
            return VersionNumbersSplitAsInt;
         }
 
+        private string removeBuildInfoFromVersionNumber(string versionNumberToSplit)
+        {
+            char seperator = '+';
+            string versionNumberWithoutBuildInfo = versionNumberToSplit.Split(seperator)[0];
+            return versionNumberWithoutBuildInfo;
+        }
+
         private char CheckVersionCompatibility(string minimumVersionNumber, string challengeVersionNumber)
         {
-            int[] minimumVersionNumberSplit = SplitVersionNumberPrefix(minimumVersionNumber);
-            int[] challengeVersionNumberSplit = SplitVersionNumberPrefix(challengeVersionNumber);
+            string minimumVersionNumberWithoutBuildInfo = removeBuildInfoFromVersionNumber(minimumVersionNumber);
+            string challengeVersionNumberWithoutBuildInfo = removeBuildInfoFromVersionNumber(challengeVersionNumber);
+            int[] minimumVersionNumberSplit = SplitVersionNumberPrefix(minimumVersionNumberWithoutBuildInfo);
+            int[] challengeVersionNumberSplit = SplitVersionNumberPrefix(challengeVersionNumberWithoutBuildInfo);
             if (minimumVersionNumberSplit[0] != challengeVersionNumberSplit[0]) // Incompatible
             {
                 char versionDifference = CompareIndividualVersionNumber(minimumVersionNumberSplit[0], challengeVersionNumberSplit[0]);
