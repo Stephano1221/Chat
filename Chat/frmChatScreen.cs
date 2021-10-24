@@ -414,7 +414,7 @@ namespace Chat
             char seperator = '-';
             if (versionNumberToSplit.Contains(seperator))
             {
-                preReleaseNumber = versionNumberToSplit.Split(seperator)[1];
+                preReleaseNumber = versionNumberToSplit.Split(seperator, 2)[1];
             }
             return preReleaseNumber;
         }
