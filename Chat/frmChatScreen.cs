@@ -408,6 +408,18 @@ namespace Chat
            return VersionNumbersSplitAsInt;
         }
 
+        private string GetPreReleaseNumberFromVersionNumber(string versionNumberToSplit)
+        {
+            string preReleaseNumber = null;
+            char seperator = '-';
+            if (versionNumberToSplit.Contains(seperator))
+            {
+                preReleaseNumber = versionNumberToSplit.Split(seperator)[1];
+            }
+            return preReleaseNumber;
+        }
+
+
         private string removeBuildInfoFromVersionNumber(string versionNumberToSplit)
         {
             char seperator = '+';
