@@ -424,6 +424,66 @@ namespace Chat
             return versionNumberWithoutBuildInfo;
         }
 
+        private char CheckPreReleaseVersionNumberCompatibility(string requiredPreReleaseVersionNumber, string challengePreReleaseVersionNumber)
+        {
+            char identifierSeperator = '.';
+            string[] requiredPreReleaseVersionNumberIdentifiers = requiredPreReleaseVersionNumber.Split(identifierSeperator);
+            string[] challengePreReleaseVersionNumberIdentifiers = challengePreReleaseVersionNumber.Split(identifierSeperator);
+            int[] preReleaseIdentifierCount = { requiredPreReleaseVersionNumberIdentifiers.Count(), challengePreReleaseVersionNumberIdentifiers.Count() };
+            int smallestPreReleaseIdentifierCount = preReleaseIdentifierCount.Min();
+            for(int i = 0; i < smallestPreReleaseIdentifierCount; i++)
+            {
+                int requiredPreReleaseVersionNumberIdentifier;
+                int challengePreReleaseVersionNumberIdentifier;
+                if (Int32.TryParse(requiredPreReleaseVersionNumberIdentifiers[i], out requiredPreReleaseVersionNumberIdentifier) && Int32.TryParse(challengePreReleaseVersionNumberIdentifiers[i], out challengePreReleaseVersionNumberIdentifier))
+                {
+                    if (requiredPreReleaseVersionNumberIdentifier > challengePreReleaseVersionNumberIdentifier)
+                    {
+                        return '<';
+                    }
+                    else if (requiredPreReleaseVersionNumberIdentifier < challengePreReleaseVersionNumberIdentifier)
+                    {
+                        return '>';
+                    }
+                }
+                else
+                {
+                    int[] preReleaseIdentifierCharacterCount = { requiredPreReleaseVersionNumberIdentifiers[i].Count(), challengePreReleaseVersionNumberIdentifiers[i].Count() };
+                    int smallestPreReleaseIdentifierCharacterCount = preReleaseIdentifierCharacterCount.Min();
+                    for (int j = 0; j < smallestPreReleaseIdentifierCharacterCount; j++)
+                    {
+                        int requiredPreReleaseCharacterCode = requiredPreReleaseVersionNumberIdentifiers[i][j];
+                        int challengePreReleaseCharacterCode = challengePreReleaseVersionNumberIdentifiers[i][j];
+                        if (requiredPreReleaseCharacterCode > challengePreReleaseCharacterCode)
+                        {
+                            return '<';
+                        }
+                        else if (requiredPreReleaseCharacterCode < challengePreReleaseCharacterCode)
+                        {
+                            return '>';
+                        }
+                    }
+                    if (preReleaseIdentifierCharacterCount[0] > preReleaseIdentifierCharacterCount[1])
+                    {
+                        return '<';
+                    }
+                    else if (preReleaseIdentifierCharacterCount[0] < preReleaseIdentifierCharacterCount[1])
+                    {
+                        return '>';
+                    }
+                }
+            }
+            if (preReleaseIdentifierCount[0] > preReleaseIdentifierCount[1])
+            {
+                return '<';
+            }
+            else if (preReleaseIdentifierCount[0] < preReleaseIdentifierCount[1])
+            {
+                return '>';
+            }
+            return '=';
+        }
+
         private char CheckVersionCompatibility(string minimumVersionNumber, string challengeVersionNumber)
         {
             string minimumVersionNumberWithoutBuildInfo = removeBuildInfoFromVersionNumber(minimumVersionNumber);
