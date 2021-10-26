@@ -424,41 +424,41 @@ namespace Chat
             return versionNumberWithoutBuildInfo;
         }
 
-        private char DeterminePreReleaseVersionNumberPrecedence(string requiredPreReleaseVersionNumber, string challengePreReleaseVersionNumber)
+        private char DeterminePreReleaseVersionNumberPrecedence(string comparisonPreReleaseVersionNumber, string challengePreReleaseVersionNumber)
         {
             char identifierSeperator = '.';
-            string[] requiredPreReleaseVersionNumberIdentifiers = requiredPreReleaseVersionNumber.Split(identifierSeperator);
+            string[] comparisonPreReleaseVersionNumberIdentifiers = comparisonPreReleaseVersionNumber.Split(identifierSeperator);
             string[] challengePreReleaseVersionNumberIdentifiers = challengePreReleaseVersionNumber.Split(identifierSeperator);
-            int[] preReleaseIdentifierCount = { requiredPreReleaseVersionNumberIdentifiers.Count(), challengePreReleaseVersionNumberIdentifiers.Count() };
+            int[] preReleaseIdentifierCount = { comparisonPreReleaseVersionNumberIdentifiers.Count(), challengePreReleaseVersionNumberIdentifiers.Count() };
             int smallestPreReleaseIdentifierCount = preReleaseIdentifierCount.Min();
             for(int i = 0; i < smallestPreReleaseIdentifierCount; i++)
             {
-                int requiredPreReleaseVersionNumberIdentifier;
+                int comparisonPreReleaseVersionNumberIdentifier;
                 int challengePreReleaseVersionNumberIdentifier;
-                if (Int32.TryParse(requiredPreReleaseVersionNumberIdentifiers[i], out requiredPreReleaseVersionNumberIdentifier) && Int32.TryParse(challengePreReleaseVersionNumberIdentifiers[i], out challengePreReleaseVersionNumberIdentifier))
+                if (Int32.TryParse(comparisonPreReleaseVersionNumberIdentifiers[i], out comparisonPreReleaseVersionNumberIdentifier) && Int32.TryParse(challengePreReleaseVersionNumberIdentifiers[i], out challengePreReleaseVersionNumberIdentifier))
                 {
-                    if (requiredPreReleaseVersionNumberIdentifier > challengePreReleaseVersionNumberIdentifier)
+                    if (comparisonPreReleaseVersionNumberIdentifier > challengePreReleaseVersionNumberIdentifier)
                     {
                         return '<';
                     }
-                    else if (requiredPreReleaseVersionNumberIdentifier < challengePreReleaseVersionNumberIdentifier)
+                    else if (comparisonPreReleaseVersionNumberIdentifier < challengePreReleaseVersionNumberIdentifier)
                     {
                         return '>';
                     }
                 }
                 else
                 {
-                    int[] preReleaseIdentifierCharacterCount = { requiredPreReleaseVersionNumberIdentifiers[i].Count(), challengePreReleaseVersionNumberIdentifiers[i].Count() };
+                    int[] preReleaseIdentifierCharacterCount = { comparisonPreReleaseVersionNumberIdentifiers[i].Count(), challengePreReleaseVersionNumberIdentifiers[i].Count() };
                     int smallestPreReleaseIdentifierCharacterCount = preReleaseIdentifierCharacterCount.Min();
                     for (int j = 0; j < smallestPreReleaseIdentifierCharacterCount; j++)
                     {
-                        int requiredPreReleaseCharacterCode = requiredPreReleaseVersionNumberIdentifiers[i][j];
+                        int comparisonPreReleaseCharacterCode = comparisonPreReleaseVersionNumberIdentifiers[i][j];
                         int challengePreReleaseCharacterCode = challengePreReleaseVersionNumberIdentifiers[i][j];
-                        if (requiredPreReleaseCharacterCode > challengePreReleaseCharacterCode)
+                        if (comparisonPreReleaseCharacterCode > challengePreReleaseCharacterCode)
                         {
                             return '<';
                         }
-                        else if (requiredPreReleaseCharacterCode < challengePreReleaseCharacterCode)
+                        else if (comparisonPreReleaseCharacterCode < challengePreReleaseCharacterCode)
                         {
                             return '>';
                         }
