@@ -19,7 +19,9 @@ namespace Chat
         public static string applicationWindowText = "Chat";
         public static string applicationVersion = "0.1.0-alpha"; //Format: [Major].[Minor].[Patch](optional:-[Pre-Release]). Follows semantic versioning 2.0.0. To use versions from the assembly (i.e. AssemblyInfo.cs): Application.ProductVersion;
         public static string minimumSupportedClientVersion = "0.1.0"; //Format: [Major].[Minor].[Patch](optional:-[Pre-Release]). Follows semantic versioning 2.0.0. As a server, clients connecting must be of version equal to or greater than this.
+        public static string maximumSupportedClientVersion = minimumSupportedClientVersion;
         public static string minumumSupportedServerVersion = "0.1.0"; //Format: [Major].[Minor].[Patch](optional:-[Pre-Release]). Follows semantic versioning 2.0.0. As a client, servers connecting must be of version equal to or greater than this.
+        public static string maximumSupportedServerVersion = minumumSupportedServerVersion;
 
         private FrmLoginScreen loginScreen;
 
