@@ -424,7 +424,7 @@ namespace Chat
             return versionNumberWithoutBuildInfo;
         }
 
-        private char CheckPreReleaseVersionNumberCompatibility(string requiredPreReleaseVersionNumber, string challengePreReleaseVersionNumber)
+        private char DeterminePreReleaseVersionNumberPrecedence(string requiredPreReleaseVersionNumber, string challengePreReleaseVersionNumber)
         {
             char identifierSeperator = '.';
             string[] requiredPreReleaseVersionNumberIdentifiers = requiredPreReleaseVersionNumber.Split(identifierSeperator);
