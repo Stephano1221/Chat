@@ -484,6 +484,29 @@ namespace Chat
             return '=';
         }
 
+        private char CheckPreReleaseNumberCompatibility(string minimumPreReleaseVersionNumber, string maximumPreReleaseVersionNumber, string challengePreReleaseVersionNumber)
+        {
+            char minimumPrecedenceResult = '=';
+            char maximumPrecedenceResult = '=';
+            if (String.IsNullOrWhiteSpace(minimumPreReleaseVersionNumber) == false)
+            {
+                minimumPrecedenceResult = DeterminePreReleaseVersionNumberPrecedence(minimumPreReleaseVersionNumber, challengePreReleaseVersionNumber);
+            }
+            if (String.IsNullOrWhiteSpace(maximumPreReleaseVersionNumber) == false)
+            {
+                maximumPrecedenceResult = DeterminePreReleaseVersionNumberPrecedence(maximumPreReleaseVersionNumber, challengePreReleaseVersionNumber);
+            }
+            if (minimumPrecedenceResult == '<')
+            {
+                return minimumPrecedenceResult;
+            }
+            else if (maximumPrecedenceResult == '>')
+            {
+                return maximumPrecedenceResult;
+            }
+            return '=';
+        }
+
         private char CheckVersionCompatibility(string minimumVersionNumber, string challengeVersionNumber)
         {
             string minimumVersionNumberWithoutBuildInfo = removeBuildInfoFromVersionNumber(minimumVersionNumber);
