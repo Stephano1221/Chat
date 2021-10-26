@@ -424,41 +424,41 @@ namespace Chat
             return versionNumberWithoutBuildInfo;
         }
 
-        private char DeterminePreReleaseVersionNumberPrecedence(string comparisonPreReleaseVersionNumber, string challengePreReleaseVersionNumber)
+        private char DeterminePreReleaseVersionNumberPrecedence(string basePreReleaseVersionNumber, string challengePreReleaseVersionNumber)
         {
             char identifierSeperator = '.';
-            string[] comparisonPreReleaseVersionNumberIdentifiers = comparisonPreReleaseVersionNumber.Split(identifierSeperator);
+            string[] basePreReleaseVersionNumberIdentifiers = basePreReleaseVersionNumber.Split(identifierSeperator);
             string[] challengePreReleaseVersionNumberIdentifiers = challengePreReleaseVersionNumber.Split(identifierSeperator);
-            int[] preReleaseIdentifierCount = { comparisonPreReleaseVersionNumberIdentifiers.Count(), challengePreReleaseVersionNumberIdentifiers.Count() };
+            int[] preReleaseIdentifierCount = { basePreReleaseVersionNumberIdentifiers.Count(), challengePreReleaseVersionNumberIdentifiers.Count() };
             int smallestPreReleaseIdentifierCount = preReleaseIdentifierCount.Min();
             for(int i = 0; i < smallestPreReleaseIdentifierCount; i++)
             {
-                int comparisonPreReleaseVersionNumberIdentifier;
+                int basePreReleaseVersionNumberIdentifier;
                 int challengePreReleaseVersionNumberIdentifier;
-                if (Int32.TryParse(comparisonPreReleaseVersionNumberIdentifiers[i], out comparisonPreReleaseVersionNumberIdentifier) && Int32.TryParse(challengePreReleaseVersionNumberIdentifiers[i], out challengePreReleaseVersionNumberIdentifier))
+                if (Int32.TryParse(basePreReleaseVersionNumberIdentifiers[i], out basePreReleaseVersionNumberIdentifier) && Int32.TryParse(challengePreReleaseVersionNumberIdentifiers[i], out challengePreReleaseVersionNumberIdentifier))
                 {
-                    if (comparisonPreReleaseVersionNumberIdentifier > challengePreReleaseVersionNumberIdentifier)
+                    if (basePreReleaseVersionNumberIdentifier > challengePreReleaseVersionNumberIdentifier)
                     {
                         return '<';
                     }
-                    else if (comparisonPreReleaseVersionNumberIdentifier < challengePreReleaseVersionNumberIdentifier)
+                    else if (basePreReleaseVersionNumberIdentifier < challengePreReleaseVersionNumberIdentifier)
                     {
                         return '>';
                     }
                 }
                 else
                 {
-                    int[] preReleaseIdentifierCharacterCount = { comparisonPreReleaseVersionNumberIdentifiers[i].Count(), challengePreReleaseVersionNumberIdentifiers[i].Count() };
+                    int[] preReleaseIdentifierCharacterCount = { basePreReleaseVersionNumberIdentifiers[i].Count(), challengePreReleaseVersionNumberIdentifiers[i].Count() };
                     int smallestPreReleaseIdentifierCharacterCount = preReleaseIdentifierCharacterCount.Min();
                     for (int j = 0; j < smallestPreReleaseIdentifierCharacterCount; j++)
                     {
-                        int comparisonPreReleaseCharacterCode = comparisonPreReleaseVersionNumberIdentifiers[i][j];
+                        int basePreReleaseCharacterCode = basePreReleaseVersionNumberIdentifiers[i][j];
                         int challengePreReleaseCharacterCode = challengePreReleaseVersionNumberIdentifiers[i][j];
-                        if (comparisonPreReleaseCharacterCode > challengePreReleaseCharacterCode)
+                        if (basePreReleaseCharacterCode > challengePreReleaseCharacterCode)
                         {
                             return '<';
                         }
-                        else if (comparisonPreReleaseCharacterCode < challengePreReleaseCharacterCode)
+                        else if (basePreReleaseCharacterCode < challengePreReleaseCharacterCode)
                         {
                             return '>';
                         }
