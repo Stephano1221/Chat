@@ -360,7 +360,7 @@ namespace Chat
             }
             else if (e.message.messageType == 25) // Request for client ID
             {
-
+                network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 24, FrmHolder.clientId.ToString(), null));
             }
         }
 
