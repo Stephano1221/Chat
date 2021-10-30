@@ -22,6 +22,7 @@ namespace Chat
         public string serverApplicationVersionNumber;
         public string serverMinimumSupportedClientApplicationVersion;
         public string serverMaximumSupportedClientApplicationVersion;
+        public bool serverSupportsClientPreReleaseAppplicationVersionNumber;
         public char clientToServerVersionNumberCompatibility;
         #endregion
 
