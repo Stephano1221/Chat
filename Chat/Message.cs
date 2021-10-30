@@ -130,6 +130,16 @@ namespace Chat
                 case 18: messageSendPriority = 0; break;
                 case 19: messageSendPriority = 0; break;
                 case 20: messageSendPriority = 0; break;
+                case 21: messageSendPriority = 0; break;
+                case 22: messageSendPriority = 0; break;
+                case 23: messageSendPriority = 0; break;
+                case 24: messageSendPriority = 0; break;
+                case 25: messageSendPriority = 0; break;
+                case 26: messageSendPriority = 0; break;
+                case 27: messageSendPriority = 0; break;
+                case 28: messageSendPriority = 0; break;
+                case 29: messageSendPriority = 0; break;
+                case 30: messageSendPriority = 0; break;
                 default: messageSendPriority = 0; break;
             }
         }
