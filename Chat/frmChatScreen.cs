@@ -517,69 +517,61 @@ namespace Chat
             return '=';
         }
 
-        private char CheckPreReleaseNumberCompatibility(string minimumPreReleaseVersionNumber, string maximumPreReleaseVersionNumber, string challengePreReleaseVersionNumber, bool allowPreRelease)
+        private char CheckVersionCompatibility(string minimumVersionNumber, string maximumVersionNumber, string challengeVersionNumber, bool allowPreRelease)
         {
-            char minimumPrecedenceResult = '=';
-            char maximumPrecedenceResult = '=';
-            if (String.IsNullOrWhiteSpace(minimumPreReleaseVersionNumber) == false)
+            char minimumVersionNumberDifference = CompareVersionNumber(minimumVersionNumber, challengeVersionNumber, allowPreRelease);
+            if (minimumVersionNumberDifference == '<')
             {
-                minimumPrecedenceResult = DeterminePreReleaseVersionNumberPrecedence(minimumPreReleaseVersionNumber, challengePreReleaseVersionNumber, allowPreRelease);
+                return minimumVersionNumberDifference;
             }
-            if (String.IsNullOrWhiteSpace(maximumPreReleaseVersionNumber) == false)
+            char maximumVersionNumberDifference = CompareVersionNumber(maximumVersionNumber, challengeVersionNumber, allowPreRelease);
+            if (maximumVersionNumberDifference == '>')
             {
-                maximumPrecedenceResult = DeterminePreReleaseVersionNumberPrecedence(maximumPreReleaseVersionNumber, challengePreReleaseVersionNumber, allowPreRelease);
-            }
-            if (minimumPrecedenceResult == '<')
-            {
-                return minimumPrecedenceResult;
-            }
-            else if (maximumPrecedenceResult == '>')
-            {
-                return maximumPrecedenceResult;
+                return maximumVersionNumberDifference;
             }
             return '=';
         }
 
-        private char CheckVersionCompatibility(string minimumVersionNumber, string maximumVersionNumber, string challengeVersionNumber, bool allowPreRelease)
+        private char CompareVersionNumber(string baseVersionNumber, string challengeVersionNumber, bool allowPreRelease)
         {
-            string minimumVersionNumberWithoutBuildInfo = removeBuildInfoFromVersionNumber(minimumVersionNumber);
-            string maximumVersionNumberWithoutBuildInfo = removeBuildInfoFromVersionNumber(maximumVersionNumber);
-            string challengeVersionNumberWithoutBuildInfo = removeBuildInfoFromVersionNumber(challengeVersionNumber);
-            int[] minimumVersionNumberSplit = SplitVersionNumberPrefix(minimumVersionNumberWithoutBuildInfo);
-            int[] maximumVersionNumberSplit = SplitVersionNumberPrefix(maximumVersionNumberWithoutBuildInfo);
-            int[] challengeVersionNumberSplit = SplitVersionNumberPrefix(challengeVersionNumberWithoutBuildInfo);
-            if (minimumVersionNumberSplit[0] != challengeVersionNumberSplit[0]) // Incompatible
+            if (string.IsNullOrWhiteSpace(baseVersionNumber) || string.IsNullOrWhiteSpace(challengeVersionNumber))
             {
-                char versionDifference = CompareIndividualVersionNumber(minimumVersionNumberSplit[0], challengeVersionNumberSplit[0]);
+                return '=';
+            }
+            string baseVersionNumberWithoutBuildInfo = removeBuildInfoFromVersionNumber(baseVersionNumber);
+            string challengeVersionNumberWithoutBuildInfo = removeBuildInfoFromVersionNumber(challengeVersionNumber);
+            int[] baseVersionNumberSplit = SplitVersionNumberPrefix(baseVersionNumberWithoutBuildInfo);
+            int[] challengeVersionNumberSplit = SplitVersionNumberPrefix(challengeVersionNumberWithoutBuildInfo);
+            if (baseVersionNumberSplit[0] != challengeVersionNumberSplit[0]) // Incompatible
+            {
+                char versionDifference = CompareIndividualVersionNumber(baseVersionNumberSplit[0], challengeVersionNumberSplit[0]);
                 return versionDifference;
             }
-            if (minimumVersionNumberSplit[0] == 0 || challengeVersionNumberSplit[0] == 0)
+            if (baseVersionNumberSplit[0] == 0 || challengeVersionNumberSplit[0] == 0)
             {
-                if (minimumVersionNumberSplit[1] != challengeVersionNumberSplit[1]) // Incompatible
+                if (baseVersionNumberSplit[1] != challengeVersionNumberSplit[1]) // Incompatible
                 {
-                    char versionDifference = CompareIndividualVersionNumber(minimumVersionNumberSplit[1], challengeVersionNumberSplit[1]);
+                    char versionDifference = CompareIndividualVersionNumber(baseVersionNumberSplit[1], challengeVersionNumberSplit[1]);
                     return versionDifference;
                 }
             }
-            int[] versionNumberPrefixIdentifierCount = { minimumVersionNumberSplit.Count(), maximumVersionNumberSplit.Count() };
+            int[] versionNumberPrefixIdentifierCount = { baseVersionNumberSplit.Count(), challengeVersionNumberSplit.Count() };
             int smallestVersionNumberPrefixIdentifierCount = versionNumberPrefixIdentifierCount.Min();
             for (int i = 1; i < smallestVersionNumberPrefixIdentifierCount; i++)
             {
-                char minimumVersionDifference = CompareIndividualVersionNumber(minimumVersionNumberSplit[i], challengeVersionNumberSplit[i]);
-                char maximumVersionDifference = CompareIndividualVersionNumber(maximumVersionNumberSplit[i], challengeVersionNumberSplit[i]);
-                if (minimumVersionDifference == '<') // Incompatible
+                char VersionDifference = CompareIndividualVersionNumber(baseVersionNumberSplit[i], challengeVersionNumberSplit[i]);
+                if (VersionDifference != '=') // Incompatible
                 {
-                    return minimumVersionDifference;
-                }
-                else if (maximumVersionDifference == '>') // Incompatible
-                {
-                    return maximumVersionDifference;
+                    return VersionDifference;
                 }
             }
-            string minimumPreReleaseVersionNumber = GetPreReleaseNumberFromVersionNumber(minimumVersionNumberWithoutBuildInfo);
-            string maximumPreReleaseVersionNumber = GetPreReleaseNumberFromVersionNumber(maximumVersionNumberWithoutBuildInfo);
+            string basePreReleaseVersionNumber = GetPreReleaseNumberFromVersionNumber(baseVersionNumberWithoutBuildInfo);
+            if (basePreReleaseVersionNumber != null)
+            {
+                allowPreRelease = true;
+            }
             string challengePreReleaseVersionNumber = GetPreReleaseNumberFromVersionNumber(challengeVersionNumberWithoutBuildInfo);
-            char preReleaseVersionDifference = CheckPreReleaseNumberCompatibility(minimumPreReleaseVersionNumber, maximumPreReleaseVersionNumber, challengePreReleaseVersionNumber, allowPreRelease);
+            char preReleaseVersionDifference = DeterminePreReleaseVersionNumberPrecedence(basePreReleaseVersionNumber, challengePreReleaseVersionNumber, allowPreRelease);
             return preReleaseVersionDifference;
         }
 
