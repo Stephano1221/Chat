@@ -398,6 +398,10 @@ namespace Chat
 
         private int[] SplitVersionNumberPrefix(string versionNumberToSplit)
         {
+            if (string.IsNullOrWhiteSpace(versionNumberToSplit))
+            {
+                return null;
+            }
             string versionNumberToSplitPrefix = versionNumberToSplit.Split('-', 2)[0];
             string[] versionNumbersSplitAsString = versionNumberToSplitPrefix.Split('.');
             int[] VersionNumbersSplitAsInt = new int[versionNumbersSplitAsString.Count()];
@@ -410,6 +414,10 @@ namespace Chat
 
         private string GetPreReleaseNumberFromVersionNumber(string versionNumberToSplit)
         {
+            if (string.IsNullOrWhiteSpace(versionNumberToSplit))
+            {
+                return versionNumberToSplit;
+            }
             string preReleaseNumber = null;
             char seperator = '-';
             string[] preReleaseNumberParts = versionNumberToSplit.Split(seperator, 2);
@@ -423,6 +431,10 @@ namespace Chat
 
         private string removeBuildInfoFromVersionNumber(string versionNumberToSplit)
         {
+            if (string.IsNullOrWhiteSpace(versionNumberToSplit))
+            {
+                return versionNumberToSplit;
+            }
             char seperator = '+';
             string versionNumberWithoutBuildInfo = versionNumberToSplit.Split(seperator)[0];
             return versionNumberWithoutBuildInfo;
