@@ -20,8 +20,8 @@ namespace Chat
         public bool serverDeafened = false;
         public string applicationVersionNumber;
         public string serverApplicationVersionNumber;
-        public string serverMinimumSupportedClientApplicationVersion;
-        public string serverMaximumSupportedClientApplicationVersion;
+        public string serverMinimumSupportedClientApplicationVersionNumber;
+        public string serverMaximumSupportedClientApplicationVersionNumber;
         public bool serverSupportsClientPreReleaseAppplicationVersionNumber;
         public char clientToServerVersionNumberCompatibility;
         #endregion
