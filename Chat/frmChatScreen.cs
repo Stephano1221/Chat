@@ -364,23 +364,52 @@ namespace Chat
             }
             else if (e.message.messageType == 26) // Receive servers minimum supported client application version number
             {
-
+                string serverMinimumSupportedClientApplicationVersionNumber = e.message.messageText;
+                e.client.serverMinimumSupportedClientApplicationVersionNumber = serverMinimumSupportedClientApplicationVersionNumber;
             }
             else if (e.message.messageType == 27) // Receive servers maximum supported client application version number
             {
-
+                string serverMaximumSupportedClientApplicationVersionNumber = e.message.messageText;
+                e.client.serverMaximumSupportedClientApplicationVersionNumber = serverMaximumSupportedClientApplicationVersionNumber;
             }
             else if (e.message.messageType == 28) // Receive whether the server supports client pre-release version numbers
             {
-
+                bool serverSupportsClientPreReleaseVersionNumbers = e.message.messageText == "0" ? true : false;
+                e.client.serverSupportsClientPreReleaseAppplicationVersionNumber = serverSupportsClientPreReleaseVersionNumbers;
             }
             else if (e.message.messageType == 29) // Receive whether the client application version number is less than, greater than, or compatible with the server
             {
-
+                char clientApplicationNumberServerCompatibility = '=';
+                bool converted = Char.TryParse(e.message.messageText, out clientApplicationNumberServerCompatibility);
+                if (converted)
+                {
+                    e.client.clientToServerVersionNumberCompatibility = clientApplicationNumberServerCompatibility;
+                    bool unsupportedVersion = false;
+                    if (e.client.clientToServerVersionNumberCompatibility == '<')
+                    {
+                        unsupportedVersion = true;
+                    }
+                    else if (e.client.clientToServerVersionNumberCompatibility == '>')
+                    {
+                        unsupportedVersion = true;
+                    }
+                    if (unsupportedVersion)
+                    {
+                        string difference = clientApplicationNumberServerCompatibility == '<' ? "an older" : "a newer";
+                        MessageBox.Show($"You are running {difference} version ({FrmHolder.applicationVersion}) than that which is supported by the server ({e.client.serverMaximumSupportedClientApplicationVersionNumber}).", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        OpenMainMenu();
+                    }
+                }
+                else
+                {
+                    MessageBox.Show($"Unable to determine whether the client is on a version supported by the server.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    OpenMainMenu();
+                }
             }
             else if (e.message.messageType == 30) // Receive the server application version number
             {
-
+                string serverApplicationVersionNumber = e.message.messageText;
+                e.client.serverApplicationVersionNumber = serverApplicationVersionNumber;
             }
         }
 
