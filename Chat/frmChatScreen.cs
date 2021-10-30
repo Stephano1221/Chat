@@ -522,8 +522,10 @@ namespace Chat
         private char CheckVersionCompatibility(string minimumVersionNumber, string maximumVersionNumber, string challengeVersionNumber)
         {
             string minimumVersionNumberWithoutBuildInfo = removeBuildInfoFromVersionNumber(minimumVersionNumber);
+            string maximumVersionNumberWithoutBuildInfo = removeBuildInfoFromVersionNumber(maximumVersionNumber);
             string challengeVersionNumberWithoutBuildInfo = removeBuildInfoFromVersionNumber(challengeVersionNumber);
             int[] minimumVersionNumberSplit = SplitVersionNumberPrefix(minimumVersionNumberWithoutBuildInfo);
+            int[] maximumVersionNumberSplit = SplitVersionNumberPrefix(maximumVersionNumberWithoutBuildInfo);
             int[] challengeVersionNumberSplit = SplitVersionNumberPrefix(challengeVersionNumberWithoutBuildInfo);
             if (minimumVersionNumberSplit[0] != challengeVersionNumberSplit[0]) // Incompatible
             {
@@ -538,17 +540,26 @@ namespace Chat
                     return versionDifference;
                 }
             }
-            for (int i = 1; i < minimumVersionNumberSplit.Count(); i++)
+            int[] versionNumberPrefixIdentifierCount = { minimumVersionNumberSplit.Count(), maximumVersionNumberSplit.Count() };
+            int smallestVersionNumberPrefixIdentifierCount = versionNumberPrefixIdentifierCount.Min();
+            for (int i = 1; i < smallestVersionNumberPrefixIdentifierCount; i++)
             {
-                char versionDifference = CompareIndividualVersionNumber(minimumVersionNumberSplit[i], challengeVersionNumberSplit[i]);
-                if (versionDifference != '=') // Compatible or Incompatible
+                char minimumVersionDifference = CompareIndividualVersionNumber(minimumVersionNumberSplit[i], challengeVersionNumberSplit[i]);
+                char maximumVersionDifference = CompareIndividualVersionNumber(maximumVersionNumberSplit[i], challengeVersionNumberSplit[i]);
+                if (minimumVersionDifference == '<') // Incompatible
                 {
-                    return versionDifference;
+                    return minimumVersionDifference;
+                }
+                else if (maximumVersionDifference == '>') // Incompatible
+                {
+                    return maximumVersionDifference;
                 }
             }
-            // Compatible
-            return '=';
-
+            string minimumPreReleaseVersionNumber = GetPreReleaseNumberFromVersionNumber(minimumVersionNumberWithoutBuildInfo);
+            string maximumPreReleaseVersionNumber = GetPreReleaseNumberFromVersionNumber(maximumVersionNumberWithoutBuildInfo);
+            string challengePreReleaseVersionNumber = GetPreReleaseNumberFromVersionNumber(challengeVersionNumberWithoutBuildInfo);
+            char preReleaseVersionDifference = CheckPreReleaseNumberCompatibility(minimumPreReleaseVersionNumber, maximumPreReleaseVersionNumber, challengePreReleaseVersionNumber);
+            return preReleaseVersionDifference;
         }
 
         private char CompareIndividualVersionNumber(int minimumVersionNumber, int challengeVersionNumber)
