@@ -445,9 +445,13 @@ namespace Chat
             return versionNumberWithoutBuildInfo;
         }
 
-        private char DeterminePreReleaseVersionNumberPrecedence(string basePreReleaseVersionNumber, string challengePreReleaseVersionNumber)
+        private char DeterminePreReleaseVersionNumberPrecedence(string basePreReleaseVersionNumber, string challengePreReleaseVersionNumber, bool allowPreRelease)
         {
-            if (basePreReleaseVersionNumber == null && challengePreReleaseVersionNumber != null)
+            if (basePreReleaseVersionNumber == null && challengePreReleaseVersionNumber == null)
+            {
+                return '=';
+            }
+            else if ((basePreReleaseVersionNumber == null || allowPreRelease == false) && challengePreReleaseVersionNumber != null)
             {
                 return '<';
             }
