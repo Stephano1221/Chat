@@ -517,17 +517,17 @@ namespace Chat
             return '=';
         }
 
-        private char CheckPreReleaseNumberCompatibility(string minimumPreReleaseVersionNumber, string maximumPreReleaseVersionNumber, string challengePreReleaseVersionNumber)
+        private char CheckPreReleaseNumberCompatibility(string minimumPreReleaseVersionNumber, string maximumPreReleaseVersionNumber, string challengePreReleaseVersionNumber, bool allowPreRelease)
         {
             char minimumPrecedenceResult = '=';
             char maximumPrecedenceResult = '=';
             if (String.IsNullOrWhiteSpace(minimumPreReleaseVersionNumber) == false)
             {
-                minimumPrecedenceResult = DeterminePreReleaseVersionNumberPrecedence(minimumPreReleaseVersionNumber, challengePreReleaseVersionNumber);
+                minimumPrecedenceResult = DeterminePreReleaseVersionNumberPrecedence(minimumPreReleaseVersionNumber, challengePreReleaseVersionNumber, allowPreRelease);
             }
             if (String.IsNullOrWhiteSpace(maximumPreReleaseVersionNumber) == false)
             {
-                maximumPrecedenceResult = DeterminePreReleaseVersionNumberPrecedence(maximumPreReleaseVersionNumber, challengePreReleaseVersionNumber);
+                maximumPrecedenceResult = DeterminePreReleaseVersionNumberPrecedence(maximumPreReleaseVersionNumber, challengePreReleaseVersionNumber, allowPreRelease);
             }
             if (minimumPrecedenceResult == '<')
             {
@@ -540,7 +540,7 @@ namespace Chat
             return '=';
         }
 
-        private char CheckVersionCompatibility(string minimumVersionNumber, string maximumVersionNumber, string challengeVersionNumber)
+        private char CheckVersionCompatibility(string minimumVersionNumber, string maximumVersionNumber, string challengeVersionNumber, bool allowPreRelease)
         {
             string minimumVersionNumberWithoutBuildInfo = removeBuildInfoFromVersionNumber(minimumVersionNumber);
             string maximumVersionNumberWithoutBuildInfo = removeBuildInfoFromVersionNumber(maximumVersionNumber);
@@ -579,7 +579,7 @@ namespace Chat
             string minimumPreReleaseVersionNumber = GetPreReleaseNumberFromVersionNumber(minimumVersionNumberWithoutBuildInfo);
             string maximumPreReleaseVersionNumber = GetPreReleaseNumberFromVersionNumber(maximumVersionNumberWithoutBuildInfo);
             string challengePreReleaseVersionNumber = GetPreReleaseNumberFromVersionNumber(challengeVersionNumberWithoutBuildInfo);
-            char preReleaseVersionDifference = CheckPreReleaseNumberCompatibility(minimumPreReleaseVersionNumber, maximumPreReleaseVersionNumber, challengePreReleaseVersionNumber);
+            char preReleaseVersionDifference = CheckPreReleaseNumberCompatibility(minimumPreReleaseVersionNumber, maximumPreReleaseVersionNumber, challengePreReleaseVersionNumber, allowPreRelease);
             return preReleaseVersionDifference;
         }
 
