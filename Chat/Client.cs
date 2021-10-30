@@ -19,6 +19,10 @@ namespace Chat
         public bool serverMuted = false;
         public bool serverDeafened = false;
         public string applicationVersionNumber;
+        public string serverApplicationVersionNumber;
+        public string serverMinimumSupportedClientApplicationVersion;
+        public string serverMaximumSupportedClientApplicationVersion;
+        public char clientToServerVersionNumberCompatibility;
         #endregion
 
         #region Connection
