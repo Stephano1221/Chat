@@ -338,7 +338,7 @@ namespace Chat
             }
             else if (e.message.messageType == 22) // Receive client version number
             {
-
+                e.client.applicationVersionNumber = (e.message.messageText);
             }
             else if (e.message.messageType == 23) // Request for username
             {
