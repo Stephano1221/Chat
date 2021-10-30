@@ -169,6 +169,16 @@ namespace Chat
                 case 18: return true;
                 case 19: return true;
                 case 20: return true;
+                case 21: return true;
+                case 22: return true;
+                case 23: return true;
+                case 24: return true;
+                case 25: return true;
+                case 26: return true;
+                case 27: return true;
+                case 28: return true;
+                case 29: return true;
+                case 30: return true;
                 default: return false;
             }
         }
