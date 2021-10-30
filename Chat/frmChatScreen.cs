@@ -362,6 +362,26 @@ namespace Chat
             {
                 network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 24, FrmHolder.clientId.ToString(), null));
             }
+            else if (e.message.messageType == 26) // Receive servers minimum supported client application version number
+            {
+
+            }
+            else if (e.message.messageType == 27) // Receive servers maximum supported client application version number
+            {
+
+            }
+            else if (e.message.messageType == 28) // Receive whether the server supports client pre-release version numbers
+            {
+
+            }
+            else if (e.message.messageType == 29) // Receive whether the client application version number is less than, greater than, or compatible with the server
+            {
+
+            }
+            else if (e.message.messageType == 30) // Receive the server application version number
+            {
+
+            }
         }
 
         private void ClearClientList()
