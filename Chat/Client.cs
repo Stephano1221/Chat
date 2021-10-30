@@ -18,6 +18,7 @@ namespace Chat
         public bool admin = false;
         public bool serverMuted = false;
         public bool serverDeafened = false;
+        public string applicationVersionNumber;
         #endregion
 
         #region Connection
