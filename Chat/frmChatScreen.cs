@@ -430,6 +430,14 @@ namespace Chat
 
         private char DeterminePreReleaseVersionNumberPrecedence(string basePreReleaseVersionNumber, string challengePreReleaseVersionNumber)
         {
+            if (basePreReleaseVersionNumber == null && challengePreReleaseVersionNumber != null)
+            {
+                return '<';
+            }
+            else if (basePreReleaseVersionNumber != null && challengePreReleaseVersionNumber == null)
+            {
+                return '>';
+            }
             char identifierSeperator = '.';
             string[] basePreReleaseVersionNumberIdentifiers = basePreReleaseVersionNumber.Split(identifierSeperator);
             string[] challengePreReleaseVersionNumberIdentifiers = challengePreReleaseVersionNumber.Split(identifierSeperator);
