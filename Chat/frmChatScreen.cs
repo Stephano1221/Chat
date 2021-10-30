@@ -435,7 +435,7 @@ namespace Chat
             string[] challengePreReleaseVersionNumberIdentifiers = challengePreReleaseVersionNumber.Split(identifierSeperator);
             int[] preReleaseIdentifierCount = { basePreReleaseVersionNumberIdentifiers.Count(), challengePreReleaseVersionNumberIdentifiers.Count() };
             int smallestPreReleaseIdentifierCount = preReleaseIdentifierCount.Min();
-            for(int i = 0; i < smallestPreReleaseIdentifierCount; i++)
+            for (int i = 0; i < smallestPreReleaseIdentifierCount; i++)
             {
                 int basePreReleaseVersionNumberIdentifier;
                 int challengePreReleaseVersionNumberIdentifier;
