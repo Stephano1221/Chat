@@ -102,7 +102,7 @@ namespace Chat
                     clientId = Convert.ToInt32(parts[1]);
                 }
                 string versionNumber = parts[2];
-                if (CheckVersionCompatibility(FrmHolder.minimumSupportedClientVersion, versionNumber) != '=')
+                if (CheckVersionCompatibility(FrmHolder.minimumSupportedClientVersion, FrmHolder.maximumSupportedClientVersion, versionNumber) != '=')
                 {
                     network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 20, FrmHolder.minimumSupportedClientVersion, null));
                     network.connectedClients.Remove(e.client);
@@ -405,7 +405,7 @@ namespace Chat
             {
                 int.TryParse(versionNumbersSplitAsString[i], out VersionNumbersSplitAsInt[i]);
             }
-           return VersionNumbersSplitAsInt;
+            return VersionNumbersSplitAsInt;
         }
 
         private string GetPreReleaseNumberFromVersionNumber(string versionNumberToSplit)
@@ -507,7 +507,7 @@ namespace Chat
             return '=';
         }
 
-        private char CheckVersionCompatibility(string minimumVersionNumber, string challengeVersionNumber)
+        private char CheckVersionCompatibility(string minimumVersionNumber, string maximumVersionNumber, string challengeVersionNumber)
         {
             string minimumVersionNumberWithoutBuildInfo = removeBuildInfoFromVersionNumber(minimumVersionNumber);
             string challengeVersionNumberWithoutBuildInfo = removeBuildInfoFromVersionNumber(challengeVersionNumber);
