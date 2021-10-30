@@ -342,7 +342,7 @@ namespace Chat
             }
             else if (e.message.messageType == 23) // Request for username
             {
-
+                network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 24, FrmHolder.username, null));
             }
             else if (e.message.messageType == 24) // Receive client username
             {
