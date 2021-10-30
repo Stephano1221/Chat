@@ -332,6 +332,26 @@ namespace Chat
                     OpenMainMenu();
                 }
             }
+            else if (e.message.messageType == 21) // Request for client version number
+            {
+                network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 22, FrmHolder.applicationVersion, null));
+            }
+            else if (e.message.messageType == 22) // Receive client version number
+            {
+
+            }
+            else if (e.message.messageType == 23) // Request for username
+            {
+
+            }
+            else if (e.message.messageType == 24) // Receive client username
+            {
+
+            }
+            else if (e.message.messageType == 25) // Request for client ID
+            {
+
+            }
         }
 
         private void ClearClientList()
