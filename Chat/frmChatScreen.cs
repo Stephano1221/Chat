@@ -412,7 +412,11 @@ namespace Chat
         {
             string preReleaseNumber = null;
             char seperator = '-';
-            preReleaseNumber = versionNumberToSplit.Split(seperator, 2)[1];
+            string[] preReleaseNumberParts = versionNumberToSplit.Split(seperator, 2);
+            if (preReleaseNumberParts.Count() > 1)
+            {
+                preReleaseNumber = preReleaseNumberParts[1];
+            }
             return preReleaseNumber;
         }
 
