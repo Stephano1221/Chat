@@ -311,26 +311,9 @@ namespace Chat
             {
                 e.client.connectionSetupComplete = true;
             }
-            else if (e.message.messageType == 20) // Incompatible version
+            else if (e.message.messageType == 20) // NOT USED YET
             {
-                if (FrmHolder.hosting)
-                {
-                    network.connectedClients.Remove(e.client);
-                    if (e.client.sslStream != null)
-                    {
-                        e.client.sslStream.Close();
-                    }
-                }
-                else
-                {
-                    if (network.clientThread != null && network.clientThread.IsAlive)
-                    {
-                        network.clientCancellationTokenSource.Cancel();
-                    }
-                    string difference = CheckVersionCompatibility(e.message.messageText, FrmHolder.applicationVersion) == '<' ? "an older" : "a newer";
-                    MessageBox.Show($"You are running {difference} version ({FrmHolder.applicationVersion}) than that which is supported by the server ({e.message.messageText}).", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    OpenMainMenu();
-                }
+
             }
             else if (e.message.messageType == 21) // Request for client version number
             {
