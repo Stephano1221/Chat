@@ -346,7 +346,17 @@ namespace Chat
             }
             else if (e.message.messageType == 24) // Receive client username
             {
-
+                string requestedUsername = e.message.messageText;
+                for (int i = 0; i < network.connectedClients.Count(); i++)
+                {
+                    if (string.Equals(network.connectedClients[i].username, requestedUsername, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (e.client.clientId != network.connectedClients[i].clientId)
+                        {
+                            network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 4, null, null));
+                        }
+                    }
+                }
             }
             else if (e.message.messageType == 25) // Request for client ID
             {
