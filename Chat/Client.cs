@@ -37,6 +37,10 @@ namespace Chat
         public bool disconnectHandled = false;
         public bool sendingMessageQueue = false;
         public bool receivingMessageQueue = false;
+
+        public bool receivedApplicationVersionNumber = false;
+        public bool receivedClientId = false;
+        public bool receivedUsername = false;
         #endregion
 
         #region Message Queues
