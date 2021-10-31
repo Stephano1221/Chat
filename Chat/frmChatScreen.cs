@@ -312,9 +312,21 @@ namespace Chat
             {
                 e.client.connectionSetupComplete = true;
             }
-            else if (e.message.messageType == 20) // NOT USED YET
+            else if (e.message.messageType == 20) // Receive client clients ID
             {
-
+                if (string.IsNullOrWhiteSpace(e.message.messageText))
+                {
+                    e.client.clientId = network.nextAssignableClientId;
+                    network.nextAssignableClientId++;
+                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 12, e.client.clientId.ToString(), null));
+                    return;
+                }
+                int clientId;
+                bool converted = int.TryParse(e.message.messageText, out clientId);
+                if (converted)
+                {
+                    e.client.clientId = clientId;
+                }
             }
             else if (e.message.messageType == 21) // Request for client version number
             {
