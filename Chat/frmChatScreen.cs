@@ -297,7 +297,6 @@ namespace Chat
                     {
                         e.client.sslStream.Close();
                     }
-                    return;
                 }
             }
             else if (e.message.messageType == 23) // Request for username
