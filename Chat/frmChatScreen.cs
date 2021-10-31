@@ -94,65 +94,7 @@ namespace Chat
 
             if (e.message.messageType == 0) // Connection Request [username, clientId, version number]
             {
-                string[] parts = e.message.messageText.Split(' ', 3);
-                string username = parts[0];
-                int clientId = -1;
-                if (parts[1] != "-1")
-                {
-                    clientId = Convert.ToInt32(parts[1]);
-                }
-                string versionNumber = parts[2];
-                char versionDifference = CheckVersionCompatibility(FrmHolder.minimumSupportedClientVersion, FrmHolder.maximumSupportedClientVersion, versionNumber, FrmHolder.allowClientPreRelease);
-                if (versionDifference == '<' || versionDifference == '>')
-                {
-                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 20, FrmHolder.minimumSupportedClientVersion, null));
-                    network.connectedClients.Remove(e.client);
-                    if (e.client.sslStream != null)
-                    {
-                        e.client.sslStream.Close();
-                    }
-                    return;
-                }
-                bool usernameAlreadyInUse = false;
-                for (int i = 0; i < network.connectedClients.Count; i++)
-                {
-                    if (clientId != -1)
-                    {
-                        if (clientId == network.connectedClients[i].clientId)
-                        {
-                            e.client = network.MergeClient(e.client, network.connectedClients[i]);
-                        }
-                    }
-                    if (string.Equals(network.connectedClients[i].username, username, StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (clientId != network.connectedClients[i].clientId)
-                        {
-                            usernameAlreadyInUse = true;
-                            network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 4, null, null));
-                            break;
-                        }
-                    }
-                }
-                if (usernameAlreadyInUse == false)
-                {
-                    e.client.username = username;
-                    if (e.client.clientId == -1)
-                    {
-                        e.client.clientId = network.nextAssignableClientId;
-                        network.nextAssignableClientId++;
-                        network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 12, e.client.clientId.ToString(), null));
 
-                        List<Client> ignoredClients = new List<Client>();
-                        ignoredClients.Add(e.client);
-                        PrintChatMessage($"{e.client.username} connected");
-                        network.SendToAll(ignoredClients, 5, e.client.username, null);
-                        network.UpdateClientLists();
-                    }
-                    e.client.connectionSetupComplete = true;
-                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 19, null, null));
-                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 18, null, null));
-                    e.client.receivingMessageQueue = true;
-                }
             }
             else if (e.message.messageType == 1) // Message Acknowledgement
             {
@@ -327,6 +269,14 @@ namespace Chat
                 {
                     e.client.clientId = clientId;
                 }
+                for (int i = 0; i < network.connectedClients.Count(); i++)
+                {
+                    if (clientId == network.connectedClients[i].clientId)
+                    {
+                        e.client = network.MergeClient(e.client, network.connectedClients[i]);
+                        break;
+                    }
+                }
             }
             else if (e.message.messageType == 21) // Request for client version number
             {
@@ -335,6 +285,20 @@ namespace Chat
             else if (e.message.messageType == 22) // Receive client version number
             {
                 e.client.applicationVersionNumber = (e.message.messageText);
+                char versionDifference = CheckVersionCompatibility(FrmHolder.minimumSupportedClientVersion, FrmHolder.maximumSupportedClientVersion, e.client.applicationVersionNumber, FrmHolder.allowClientPreRelease);
+                network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 26, FrmHolder.minimumSupportedClientVersion, null));
+                network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 27, FrmHolder.maximumSupportedClientVersion, null));
+                network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 28, FrmHolder.allowClientPreRelease.ToString(), null));
+                network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 29, versionDifference.ToString(), null));
+                if (versionDifference == '<' || versionDifference == '>')
+                {
+                    network.connectedClients.Remove(e.client);
+                    if (e.client.sslStream != null)
+                    {
+                        e.client.sslStream.Close();
+                    }
+                    return;
+                }
             }
             else if (e.message.messageType == 23) // Request for username
             {
@@ -343,15 +307,36 @@ namespace Chat
             else if (e.message.messageType == 24) // Receive client username
             {
                 string requestedUsername = e.message.messageText;
+                bool usernameAlreadyInUse = false;
                 for (int i = 0; i < network.connectedClients.Count(); i++)
                 {
                     if (string.Equals(network.connectedClients[i].username, requestedUsername, StringComparison.OrdinalIgnoreCase))
                     {
                         if (e.client.clientId != network.connectedClients[i].clientId)
                         {
+                            usernameAlreadyInUse = true;
                             network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 4, null, null));
+                            break;
                         }
                     }
+                }
+
+                if (usernameAlreadyInUse == false)
+                {
+                    e.client.username = requestedUsername;
+                    if (e.client.clientId == -1)
+                    {
+
+                        List<Client> ignoredClients = new List<Client>();
+                        ignoredClients.Add(e.client);
+                        PrintChatMessage($"{e.client.username} connected");
+                        network.SendToAll(ignoredClients, 5, e.client.username, null);
+                        network.UpdateClientLists();
+                    }
+                    e.client.connectionSetupComplete = true;
+                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 19, null, null));
+                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 18, null, null));
+                    e.client.receivingMessageQueue = true;
                 }
             }
             else if (e.message.messageType == 25) // Request for client ID
