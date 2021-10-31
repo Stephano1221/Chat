@@ -102,7 +102,8 @@ namespace Chat
                     clientId = Convert.ToInt32(parts[1]);
                 }
                 string versionNumber = parts[2];
-                if (CheckVersionCompatibility(FrmHolder.minimumSupportedClientVersion, FrmHolder.maximumSupportedClientVersion, versionNumber, FrmHolder.allowClientPreRelease) != '=')
+                char versionDifference = CheckVersionCompatibility(FrmHolder.minimumSupportedClientVersion, FrmHolder.maximumSupportedClientVersion, versionNumber, FrmHolder.allowClientPreRelease);
+                if (versionDifference == '<' || versionDifference == '>')
                 {
                     network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 20, FrmHolder.minimumSupportedClientVersion, null));
                     network.connectedClients.Remove(e.client);
