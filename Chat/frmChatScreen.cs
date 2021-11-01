@@ -272,14 +272,14 @@ namespace Chat
                     e.client.clientId = clientId;
                 }
                 for (int i = 0; i < network.connectedClients.Count(); i++)
+                {
+                    if (clientId == network.connectedClients[i].clientId)
                     {
-                        if (clientId == network.connectedClients[i].clientId)
-                        {
-                            e.client = network.MergeClient(e.client, network.connectedClients[i]);
-                            break;
-                        }
+                        e.client = network.MergeClient(e.client, network.connectedClients[i]);
+                        break;
                     }
                 }
+            }
             else if (e.message.messageType == 21) // Request for client version number
             {
                 network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 22, FrmHolder.applicationVersion, null));
@@ -379,13 +379,13 @@ namespace Chat
                     {
                         string difference = clientApplicationNumberServerCompatibility == '<' ? "an older" : "a newer";
                         MessageBox.Show($"You are running {difference} version ({FrmHolder.applicationVersion}) than that which is supported by the server ({e.client.serverMaximumSupportedClientApplicationVersionNumber}).", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        OpenMainMenu();
+                        BeginDisconnect();
                     }
                 }
                 else
                 {
                     MessageBox.Show($"Unable to determine whether the client is on a version supported by the server.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    OpenMainMenu();
+                    BeginDisconnect();
                 }
             }
             else if (e.message.messageType == 30) // Receive the server application version number
