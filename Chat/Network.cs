@@ -26,7 +26,7 @@ namespace Chat
         public int port = 12210;
         public string publicIp;
         public string localIp;
-        public int nextAssignableClientId = 0;
+        public uint nextAssignableClientId = 1;
         public List<Client> connectedClients = new List<Client>();
         #endregion
 
@@ -476,7 +476,7 @@ namespace Chat
             }
         }
 
-        public Message ComposeMessage(Client client, int messageId, int messageType, string messageText, byte[] messageBytes)
+        public Message ComposeMessage(Client client, uint messageId, uint messageType, string messageText, byte[] messageBytes)
         {
             if (messageId == -1)
             {

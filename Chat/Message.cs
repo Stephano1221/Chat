@@ -8,14 +8,14 @@ namespace Chat
 {
     public class Message
     {
-        public int messageId;
-        public int messageType;
+        public uint messageId;
+        public uint messageType;
         public string messageText;
         public byte[] messageBytes;
 
         public int messageSendPriority;
 
-        public Message(int messageId, int messageType, string messageText)
+        public Message(uint messageId, uint messageType, string messageText)
         {
             this.messageId = messageId;
             this.messageType = messageType;
@@ -25,7 +25,7 @@ namespace Chat
             SetPriorityLevelFromMessageType();
         }
 
-        public Message(int messageType, string messageText)
+        public Message(uint messageType, string messageText)
         {
             this.messageType = messageType;
             this.messageText = messageText;
@@ -35,7 +35,7 @@ namespace Chat
 
         }
 
-        public Message(int messageId, int messageType, string messageText, int messageSendPriority)
+        public Message(uint messageId, uint messageType, string messageText, int messageSendPriority)
         {
             this.messageId = messageId;
             this.messageType = messageType;
@@ -45,7 +45,7 @@ namespace Chat
             this.messageSendPriority = messageSendPriority;
         }
 
-        public Message(int messageType, string messageText, int messageSendPriority)
+        public Message(uint messageType, string messageText, int messageSendPriority)
         {
             this.messageType = messageType;
             this.messageText = messageText;
@@ -54,7 +54,7 @@ namespace Chat
             this.messageSendPriority = messageSendPriority;
         }
 
-        public Message(int messageId, int messageType, byte[] messageBytes)
+        public Message(uint messageId, uint messageType, byte[] messageBytes)
         {
             this.messageId = messageId;
             this.messageType = messageType;
@@ -64,7 +64,7 @@ namespace Chat
             SetPriorityLevelFromMessageType();
         }
 
-        public Message(int messageType, byte[] messageBytes)
+        public Message(uint messageType, byte[] messageBytes)
         {
             this.messageType = messageType;
             this.messageBytes = messageBytes;
@@ -74,7 +74,7 @@ namespace Chat
 
         }
 
-        public Message(int messageId, int messageType, byte[] messageBytes, int messageSendPriority)
+        public Message(uint messageId, uint messageType, byte[] messageBytes, int messageSendPriority)
         {
             this.messageId = messageId;
             this.messageType = messageType;
@@ -84,7 +84,7 @@ namespace Chat
             this.messageSendPriority = messageSendPriority;
         }
 
-        public Message(int messageType, byte[] messageBytes, int messageSendPriority)
+        public Message(uint messageType, byte[] messageBytes, int messageSendPriority)
         {
             this.messageType = messageType;
             this.messageBytes = messageBytes;

@@ -29,8 +29,8 @@ namespace Chat
         #region Connection
         public TcpClient tcpClient;
         public SslStream sslStream;
-        public int clientId = -1;
-        public int nextAssignableMessageId = 0;
+        public uint clientId = 0;
+        public uint nextAssignableMessageId = 1;
         public bool heartbeatReceieved = false;
         public int heartbeatFailures = 0;
         public bool connectionSetupComplete = false;
