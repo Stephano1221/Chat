@@ -273,6 +273,7 @@ namespace Chat
                     {
                         if (clientId == network.connectedClients[i].clientId)
                         {
+                            e.client.sessionFirstConnection = false;
                             e.client = network.MergeClient(e.client, network.connectedClients[i]);
                             break;
                         }
