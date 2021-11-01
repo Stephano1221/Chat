@@ -39,8 +39,11 @@ namespace Chat
         public bool receivingMessageQueue = false;
 
         public bool receivedApplicationVersionNumber = false;
+        public bool requestedApplicationVersionNumber = false;
         public bool receivedClientId = false;
+        public bool requestedClientId = false;
         public bool receivedUsername = false;
+        public bool requestedUsername = false;
         public bool sessionFirstConnection = true;
         #endregion
 
