@@ -328,19 +328,6 @@ namespace Chat
                 {
                     e.client.username = requestedUsername;
                     e.client.receivedUsername = true;
-                    if (e.client.clientId == -1)
-                    {
-
-                        List<Client> ignoredClients = new List<Client>();
-                        ignoredClients.Add(e.client);
-                        PrintChatMessage($"{e.client.username} connected");
-                        network.SendToAll(ignoredClients, 5, e.client.username, null);
-                        network.UpdateClientLists();
-                    }
-                    e.client.connectionSetupComplete = true;
-                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 19, null, null));
-                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 18, null, null));
-                    e.client.receivingMessageQueue = true;
                 }
             }
             else if (e.message.messageType == 25) // Request for client ID
