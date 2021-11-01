@@ -647,6 +647,44 @@ namespace Chat
             return '=';
         }
 
+        private void NextStepInConnectionSetupAsServer(Client client)
+        {
+            if (FrmHolder.hosting == false || client.connectionSetupComplete)
+            {
+                return;
+            }
+            if (client.receivedApplicationVersionNumber == false && client.requestedApplicationVersionNumber == false)
+            {
+                network.SendMessage(client, network.ComposeMessage(client, -1, 21, null, null));
+                client.requestedApplicationVersionNumber = true;
+            }
+            else if (client.receivedClientId == false && client.requestedClientId == false)
+            {
+                network.SendMessage(client, network.ComposeMessage(client, -1, 25, null, null));
+                client.requestedClientId = true;
+            }
+            else if (client.receivedUsername == false && client.requestedUsername == false)
+            {
+                network.SendMessage(client, network.ComposeMessage(client, -1, 23, null, null));
+                client.requestedUsername = true;
+            }
+            else
+            {
+                if (client.sessionFirstConnection)
+                {
+                    List<Client> ignoredClients = new List<Client>();
+                    ignoredClients.Add(client);
+                    PrintChatMessage($"{client.username} connected");
+                    network.SendToAll(ignoredClients, 5, client.username, null);
+                    network.UpdateClientLists();
+                }
+                client.connectionSetupComplete = true;
+                network.SendMessage(client, network.ComposeMessage(client, -1, 19, null, null));
+                network.SendMessage(client, network.ComposeMessage(client, -1, 18, null, null));
+                client.receivingMessageQueue = true;
+            }
+        }
+
         private void PrintChatMessage(string chatMessage)
         {
             xlbxChat.Items.Add(chatMessage);
