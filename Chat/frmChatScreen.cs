@@ -332,7 +332,7 @@ namespace Chat
             }
             else if (e.message.messageType == 25) // Request for client ID
             {
-                network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 24, FrmHolder.clientId.ToString(), null));
+                network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 20, FrmHolder.clientId.ToString(), null));
             }
             else if (e.message.messageType == 26) // Receive servers minimum supported client application version number
             {
