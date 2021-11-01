@@ -26,7 +26,7 @@ namespace Chat
         public int port = 12210;
         public string publicIp;
         public string localIp;
-        public int nextAssignableClientId = 0;
+        public uint nextAssignableClientId = 1;
         public List<Client> connectedClients = new List<Client>();
         #endregion
 
@@ -120,7 +120,7 @@ namespace Chat
             }
 
             tcpListener.Stop();
-            FrmHolder.clientId = -1;
+            FrmHolder.clientId = 0;
             if (connectedClients.Count > 0)
             {
                 SendDisconnect(null, false, true);
@@ -144,7 +144,7 @@ namespace Chat
             {
                 LoopClientsForIncomingMessages();
             }
-            FrmHolder.clientId = -1;
+            FrmHolder.clientId = 0;
             if (connectedClients.Count > 0)
             {
                 SendDisconnect(client, false, false);
@@ -194,7 +194,7 @@ namespace Chat
                     }
                     if (FrmHolder.hosting == false)
                     {
-                        SendMessage(client, ComposeMessage(client, -1, 11, null, null)); // Send heartbeat
+                        SendMessage(client, ComposeMessage(client, 0, 11, null, null)); // Send heartbeat
                     }
                     client.heartbeatReceieved = false;
                 }
@@ -278,7 +278,7 @@ namespace Chat
                 client.sendingMessageQueue = false;
                 if (FrmHolder.hosting == false)
                 {
-                    SendMessage(client, ComposeMessage(client, -1, 18, null, null));
+                    SendMessage(client, ComposeMessage(client, 0, 18, null, null));
                     client.receivingMessageQueue = true;
                 }
             }
@@ -476,9 +476,9 @@ namespace Chat
             }
         }
 
-        public Message ComposeMessage(Client client, int messageId, int messageType, string messageText, byte[] messageBytes)
+        public Message ComposeMessage(Client client, uint messageId, uint messageType, string messageText, byte[] messageBytes)
         {
-            if (messageId == -1)
+            if (messageId == 0)
             {
                 messageId = client.nextAssignableMessageId;
                 client.nextAssignableMessageId += 2;
@@ -603,8 +603,8 @@ namespace Chat
                             ConvertLittleEndianToBigEndian(typeBuffer);
                             ConvertLittleEndianToBigEndian(lengthBuffer);
 
-                            int messageId = BitConverter.ToInt32(idBuffer, 0);
-                            int messageType = BitConverter.ToInt32(typeBuffer, 0);
+                            uint messageId = BitConverter.ToUInt32(idBuffer, 0);
+                            uint messageType = BitConverter.ToUInt32(typeBuffer, 0);
                             int messageLength = BitConverter.ToInt32(lengthBuffer, 0);
 
                             // Message bytes
@@ -639,7 +639,7 @@ namespace Chat
             }
         }
 
-        public void SendToAll(List<Client> ignoredClients, int messageType, string messageText, byte[] messageBytes) //TODO: Replace messagType and messagText with Message class
+        public void SendToAll(List<Client> ignoredClients, uint messageType, string messageText, byte[] messageBytes) //TODO: Replace messagType and messagText with Message class
         {
             for (int i = 0; i < connectedClients.Count; i++)
             {
@@ -656,13 +656,13 @@ namespace Chat
                     }
                     if (ignoreClient == false)
                     {
-                        SendMessage(connectedClients[i], ComposeMessage(connectedClients[i], -1, messageType, messageText, messageBytes));
+                        SendMessage(connectedClients[i], ComposeMessage(connectedClients[i], 0, messageType, messageText, messageBytes));
                         continue;
                     }
                 }
                 else
                 {
-                    SendMessage(connectedClients[i], ComposeMessage(connectedClients[i], -1, messageType, messageText, messageBytes));
+                    SendMessage(connectedClients[i], ComposeMessage(connectedClients[i], 0, messageType, messageText, messageBytes));
                     continue;
                 }
             }
@@ -759,13 +759,13 @@ namespace Chat
             ignoredClients.Add(client);
             if (setAsAdmin)
             {
-                SendMessage(client, ComposeMessage(client, -1, 14, setter, null));
+                SendMessage(client, ComposeMessage(client, 0, 14, setter, null));
                 SendToAll(ignoredClients, 15, $"{client.username} {setter}", null);
                 PrintChatMessageEvent.Invoke(this, $"You made {client.username} an Admin");
             }
             else
             {
-                SendMessage(client, ComposeMessage(client, -1, 16, setter, null));
+                SendMessage(client, ComposeMessage(client, 0, 16, setter, null));
                 SendToAll(ignoredClients, 17, $"{client.username} {setter}", null);
                 PrintChatMessageEvent.Invoke(this, $"You removed {client.username} from Admin");
             }
@@ -773,7 +773,7 @@ namespace Chat
 
         public void SendDisconnect(Client client, bool kick, bool sendToAll)
         {
-            int type = kick == false ? 3 : 9;
+            uint type = Convert.ToUInt32(kick == false ? 3 : 9);
             if (sendToAll)
             {
                 List<Client> ignoredClients = new List<Client>();
@@ -790,7 +790,7 @@ namespace Chat
             }
             else
             {
-                SendMessage(client, ComposeMessage(client, -1, type, null, null));
+                SendMessage(client, ComposeMessage(client, 0, type, null, null));
                 if (client.sslStream != null)
                 {
                     client.sslStream.Close();
