@@ -278,6 +278,7 @@ namespace Chat
                         }
                     }
                     e.client.clientId = clientId;
+                    e.client.receivedClientId = true;
                 }
             }
             else if (e.message.messageType == 21) // Request for client version number
@@ -287,6 +288,7 @@ namespace Chat
             else if (e.message.messageType == 22) // Receive client version number
             {
                 e.client.applicationVersionNumber = (e.message.messageText);
+                e.client.receivedApplicationVersionNumber = true;
                 char versionDifference = CheckVersionCompatibility(FrmHolder.minimumSupportedClientVersion, FrmHolder.maximumSupportedClientVersion, e.client.applicationVersionNumber, FrmHolder.allowClientPreRelease);
                 network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 26, FrmHolder.minimumSupportedClientVersion, null));
                 network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 27, FrmHolder.maximumSupportedClientVersion, null));
@@ -324,6 +326,7 @@ namespace Chat
                 if (usernameAlreadyInUse == false)
                 {
                     e.client.username = requestedUsername;
+                    e.client.receivedUsername = true;
                     if (e.client.clientId == -1)
                     {
 
