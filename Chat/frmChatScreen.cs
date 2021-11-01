@@ -269,15 +269,15 @@ namespace Chat
                 bool converted = int.TryParse(e.message.messageText, out clientId);
                 if (converted)
                 {
-                    e.client.clientId = clientId;
-                }
-                for (int i = 0; i < network.connectedClients.Count(); i++)
-                {
-                    if (clientId == network.connectedClients[i].clientId)
+                    for (int i = 0; i < network.connectedClients.Count(); i++)
                     {
-                        e.client = network.MergeClient(e.client, network.connectedClients[i]);
-                        break;
+                        if (clientId == network.connectedClients[i].clientId)
+                        {
+                            e.client = network.MergeClient(e.client, network.connectedClients[i]);
+                            break;
+                        }
                     }
+                    e.client.clientId = clientId;
                 }
             }
             else if (e.message.messageType == 21) // Request for client version number
@@ -321,7 +321,6 @@ namespace Chat
                         }
                     }
                 }
-
                 if (usernameAlreadyInUse == false)
                 {
                     e.client.username = requestedUsername;
