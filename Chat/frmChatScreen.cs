@@ -24,6 +24,7 @@ namespace Chat
         private delegate void ClearClientClistDelegate();
         private delegate void AddClientToClientListDelegate(string username);
         private delegate void PrintChatMessageDelegate(string text);
+        private delegate void NextConnectionSetupStepDelegate(Client client);
         private delegate DialogResult ShowMessageBoxDelegate(string message, string caption, MessageBoxButtons messageBoxButtons, MessageBoxIcon messageBoxIcon);
 
         private string kickFormat = "/kick [Username] [Reason (optional)]";
@@ -51,6 +52,7 @@ namespace Chat
             network.PrintChatMessageEvent += OnPrintChatMessage;
             network.ClearClientListEvent += OnClearClientList;
             network.AddClientToClientListEvent += OnAddClientToClientList;
+            network.NextConnectionSetupStep += OnNextConnectionSetupStep;
             network.ShowMessageBoxEvent += OnShowMessagBox;
         }
 
@@ -270,14 +272,14 @@ namespace Chat
                     e.client.clientId = clientId;
                 }
                 for (int i = 0; i < network.connectedClients.Count(); i++)
-                {
-                    if (clientId == network.connectedClients[i].clientId)
                     {
-                        e.client = network.MergeClient(e.client, network.connectedClients[i]);
-                        break;
+                        if (clientId == network.connectedClients[i].clientId)
+                        {
+                            e.client = network.MergeClient(e.client, network.connectedClients[i]);
+                            break;
+                        }
                     }
                 }
-            }
             else if (e.message.messageType == 21) // Request for client version number
             {
                 network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 22, FrmHolder.applicationVersion, null));
@@ -873,10 +875,18 @@ namespace Chat
             if (xlbxChat.InvokeRequired)
             {
                 xlbxChat.BeginInvoke(new MessageDelegate(ProcessMessage), this, e);
+                if (e.client.connectionSetupComplete == false && e.message.messageType != 1 && e.message.messageType != 3 && e.message.messageType != 11)
+                {
+                    xlbxChat.BeginInvoke(new NextConnectionSetupStepDelegate(NextStepInConnectionSetupAsServer), e.client);
+                }
             }
             else
             {
                 ProcessMessage(this, e);
+                if (e.message.messageType != 1 && e.message.messageType != 3 && e.message.messageType != 11)
+                {
+                    NextStepInConnectionSetupAsServer(e.client);
+                }
             }
         }
 
@@ -913,6 +923,18 @@ namespace Chat
             else
             {
                 xlbxChat.Items.Add(text);
+            }
+        }
+
+        private void OnNextConnectionSetupStep(object sender, Client client)
+        {
+            if (xlbxChat.InvokeRequired)
+            {
+                xlbxChat.BeginInvoke(new NextConnectionSetupStepDelegate(NextStepInConnectionSetupAsServer), client);
+            }
+            else
+            {
+                NextStepInConnectionSetupAsServer(client);
             }
         }
 
