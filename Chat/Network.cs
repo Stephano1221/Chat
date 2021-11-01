@@ -1,4 +1,4 @@
-﻿//#define messageSentReceivedUpdates
+﻿#define messageSentReceivedUpdates
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -36,6 +36,7 @@ namespace Chat
         public event EventHandler<Client> HeartbeatTimeoutEvent;
         public event EventHandler ClearClientListEvent;
         public event EventHandler<string> AddClientToClientListEvent;
+        public event EventHandler<Client> NextConnectionSetupStep;
         public event EventHandler<ShowMessageBoxEventArgs> ShowMessageBoxEvent;
         #endregion
 
@@ -423,13 +424,6 @@ namespace Chat
                 ShowMessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error));
                 return;
             }
-
-            string clientId = "-1";
-            if (FrmHolder.clientId != -1)
-            {
-                clientId = $"{Convert.ToString(FrmHolder.clientId)}";
-            }
-            SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 0, $"{FrmHolder.username} {clientId} {FrmHolder.applicationVersion}", null));
         }
 
         public void ServerAcceptIncomingConnection(TcpListener tcpListener)
@@ -459,6 +453,7 @@ namespace Chat
                     connectedClients.Remove(client);
                     //MessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs(ex.Message, "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning));
                 }
+                NextConnectionSetupStep.Invoke(this, client);
             }
         }
 
