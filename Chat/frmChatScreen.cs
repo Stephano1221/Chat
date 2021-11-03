@@ -646,36 +646,45 @@ namespace Chat
             {
                 return;
             }
-            if (client.receivedApplicationVersionNumber == false && client.requestedApplicationVersionNumber == false)
+            if (client.receivedApplicationVersionNumber == false)
             {
-                network.SendMessage(client, network.ComposeMessage(client, 0, 21, null, null));
-                client.requestedApplicationVersionNumber = true;
-            }
-            else if (client.receivedClientId == false && client.requestedClientId == false)
-            {
-                network.SendMessage(client, network.ComposeMessage(client, 0, 25, null, null));
-                client.requestedClientId = true;
-            }
-            else if (client.receivedUsername == false && client.requestedUsername == false)
-            {
-                network.SendMessage(client, network.ComposeMessage(client, 0, 23, null, null));
-                client.requestedUsername = true;
-            }
-            else
-            {
-                if (client.sessionFirstConnection)
+                if (client.requestedApplicationVersionNumber == false)
                 {
-                    List<Client> ignoredClients = new List<Client>();
-                    ignoredClients.Add(client);
-                    PrintChatMessage($"{client.username} connected");
-                    network.SendToAll(ignoredClients, 5, client.username, null);
-                    network.UpdateClientLists();
+                    network.SendMessage(client, network.ComposeMessage(client, 0, 21, null, null));
+                    client.requestedApplicationVersionNumber = true;
                 }
-                client.connectionSetupComplete = true;
-                network.SendMessage(client, network.ComposeMessage(client, 0, 19, null, null));
-                network.SendMessage(client, network.ComposeMessage(client, 0, 18, null, null));
-                client.receivingMessageQueue = true;
+                return;
             }
+            if (client.receivedClientId == false)
+            {
+                if (client.requestedClientId == false)
+                {
+                    network.SendMessage(client, network.ComposeMessage(client, 0, 25, null, null));
+                    client.requestedClientId = true;
+                }
+                return;
+            }
+            if (client.receivedUsername == false)
+            {
+                if (client.requestedUsername == false)
+                {
+                    network.SendMessage(client, network.ComposeMessage(client, 0, 23, null, null));
+                    client.requestedUsername = true;
+                }
+                return;
+            }
+            if (client.sessionFirstConnection)
+            {
+                List<Client> ignoredClients = new List<Client>();
+                ignoredClients.Add(client);
+                PrintChatMessage($"{client.username} connected");
+                network.SendToAll(ignoredClients, 5, client.username, null);
+                network.UpdateClientLists();
+            }
+            client.connectionSetupComplete = true;
+            network.SendMessage(client, network.ComposeMessage(client, 0, 19, null, null));
+            network.SendMessage(client, network.ComposeMessage(client, 0, 18, null, null));
+            client.receivingMessageQueue = true;
         }
 
         private void PrintChatMessage(string chatMessage)
