@@ -258,7 +258,7 @@ namespace Chat
             }
             else if (e.message.messageType == 20) // Receive client clients ID
             {
-                if (string.IsNullOrWhiteSpace(e.message.messageText))
+                if (string.IsNullOrWhiteSpace(e.message.messageText) || e.message.messageText == "0")
                 {
                     e.client.clientId = network.nextAssignableClientId;
                     network.nextAssignableClientId++;
@@ -332,7 +332,8 @@ namespace Chat
             }
             else if (e.message.messageType == 25) // Request for client ID
             {
-                network.SendMessage(e.client, network.ComposeMessage(e.client, 0, 20, FrmHolder.clientId.ToString(), null));
+                string clientId = FrmHolder.clientId == 0 ? null : FrmHolder.clientId.ToString();
+                network.SendMessage(e.client, network.ComposeMessage(e.client, 0, 20, clientId, null));
             }
             else if (e.message.messageType == 26) // Receive servers minimum supported client application version number
             {
