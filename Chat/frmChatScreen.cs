@@ -1,4 +1,4 @@
-﻿//#define messageSentReceivedUpdates
+﻿//#define messageReceivedUpdates
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -65,7 +65,7 @@ namespace Chat
                     e.message.MessageTextToOrFromBytes();
                 }
             }
-#if DEBUG && messageSentReceivedUpdates
+#if DEBUG && messageReceivedUpdates
             if (e.message.messageType != 11)
             {
                 if (e.message.messageText != null)
