@@ -65,7 +65,19 @@ namespace Chat
                     e.message.MessageTextToOrFromBytes();
                 }
             }
-
+#if DEBUG && messageSentReceivedUpdates
+            if (e.message.messageType != 11)
+            {
+                if (e.message.messageText != null)
+                {
+                    PrintChatMessage($"[RECEIVED] Type: {e.message.messageType}. ID: {e.message.messageId}. Text: {e.message.messageText}");
+                }
+                else
+                {
+                    PrintChatMessage($"[RECEIVED] Type: {e.message.messageType}. ID: {e.message.messageId}");
+                }
+            }
+#endif
             if (e.message.messageType != 1 && e.message.messageType != 3 && e.message.messageType != 11)
             {
                 network.SendMessage(e.client, network.ComposeMessage(e.client, e.message.messageId, 1, null, null)); // Acknowledge received message
@@ -80,16 +92,6 @@ namespace Chat
                     }
                 }
                 e.client.messagesReceived.Add(e.message);
-#if DEBUG && messageSentReceivedUpdates
-                if (e.message.messageText != null)
-                {
-                    PrintChatMessage($"[RECEIVED] Type: {e.message.messageType}. ID: {e.message.messageId}. Text: {e.message.messageText}");
-                }
-                else
-                {
-                    PrintChatMessage($"[RECEIVED] Type: {e.message.messageType}. ID: {e.message.messageId}");
-                }
-#endif
             }
 
             if (e.message.messageType == 0) // Connection Request [username, clientId]
