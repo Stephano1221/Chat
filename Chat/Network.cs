@@ -1,4 +1,4 @@
-﻿//#define messageSentReceivedUpdates
+﻿//#define messageSentUpdates
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -561,7 +561,7 @@ namespace Chat
                             {
                                 AddMessageToMessageListBySendPriority(client.messagesToBeSent, message, true);
                             }
-#if DEBUG && messageSentReceivedUpdates
+#if DEBUG && messageSentUpdates
                             if (message.messageType != 11)
                             {
                                 string text;
