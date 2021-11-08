@@ -877,7 +877,7 @@ namespace Chat
             if (xlbxChat.InvokeRequired)
             {
                 xlbxChat.BeginInvoke(new MessageDelegate(ProcessMessage), this, e);
-                if (e.client.connectionSetupComplete == false && e.message.messageType != 1 && e.message.messageType != 3 && e.message.messageType != 11)
+                if (e.client.connectionSetupComplete == false)
                 {
                     xlbxChat.BeginInvoke(new NextConnectionSetupStepDelegate(NextStepInConnectionSetupAsServer), e.client);
                 }
@@ -885,7 +885,7 @@ namespace Chat
             else
             {
                 ProcessMessage(this, e);
-                if (e.message.messageType != 1 && e.message.messageType != 3 && e.message.messageType != 11)
+                if (e.client.connectionSetupComplete == false)
                 {
                     NextStepInConnectionSetupAsServer(e.client);
                 }
