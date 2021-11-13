@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Security;
 using System.Runtime.InteropServices;
@@ -23,6 +24,7 @@ namespace Chat
         #region Connection
         public TcpClient tcpClient;
         public SslStream sslStream;
+        public MemoryStream streamUnprocessedBytes = new MemoryStream();
         public int clientId = -1;
         public int nextAssignableMessageId = 0;
         public bool heartbeatReceieved = false;
