@@ -647,6 +647,34 @@ namespace Chat
             }
         }
 
+        private int ReadAllAvailable(Client client)
+        {
+            try
+            {
+                if (client.sslStream != null)
+                {
+                    {
+                        if (client.sslStream.CanRead && client.sslStream.CanWrite)
+                        {
+                            int streamBytesRead = 0;
+                            while (client.tcpClient.GetStream().DataAvailable)
+                            {
+                                byte[] byteBuffer = new byte[1024];
+                                streamBytesRead += client.sslStream.Read(byteBuffer, 0, byteBuffer.Count());
+                                client.streamUnprocessedBytes.Write(byteBuffer, 0, streamBytesRead);
+                            }
+                            return streamBytesRead;
+                        }
+                    }
+                }
+                return 0;
+            }
+            catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException) // TODO: Avoid catching exceptions every time a read is done on a non-connected socket
+            {
+                return 0;
+            }
+        }
+
         public void SendToAll(List<Client> ignoredClients, int messageType, string messageText, byte[] messageBytes) //TODO: Replace messagType and messagText with Message class
         {
             for (int i = 0; i < connectedClients.Count; i++)
