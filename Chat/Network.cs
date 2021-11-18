@@ -595,7 +595,7 @@ namespace Chat
                 byte[] lengthBuffer = new byte[4];
                 int headerLength = idBuffer.Count() + typeBuffer.Count() + lengthBuffer.Count();
 
-                ReadAllAvailable(client);
+                ReadAllAvailable(client, 0, headerLength);
                 if ((client.streamUnprocessedBytes == null || client.streamUnprocessedBytes.Length == 0))
                 {
                     return;
@@ -626,7 +626,7 @@ namespace Chat
                     messageBytes = new byte[messageLength];
                     while (client.streamUnprocessedBytes.Length - headerLength < messageLength)
                     {
-                        receivedLength += ReadAllAvailable(client);
+                        receivedLength += ReadAllAvailable(client, messageLength, messageLength);
                     }
                     client.streamUnprocessedBytes.Position = headerLength;
                     client.streamUnprocessedBytes.Read(messageBytes, 0, messageLength);
@@ -639,7 +639,6 @@ namespace Chat
                 client.streamUnprocessedBytes.Position = 0;
                 client.streamUnprocessedBytes.Write(unprocessedBytes);
                 client.streamUnprocessedBytes.SetLength(unprocessedBytes.Count());
-
                 Message receivedMessage = ComposeMessage(client, messageId, messageType, null, messageBytes);
                 MessageReceivedEvent.Invoke(this, new MessageReceivedEventArgs(client, receivedMessage));
             }
@@ -649,7 +648,7 @@ namespace Chat
             }
         }
 
-        private int ReadAllAvailable(Client client)
+        private int ReadAllAvailable(Client client, int? minimumBytesToRead, int? maximumBytesToRead)
         {
             try
             {
@@ -658,13 +657,16 @@ namespace Chat
                     {
                         if (client.sslStream.CanRead && client.sslStream.CanWrite)
                         {
+                            int byteBufferSize = maximumBytesToRead != null ? maximumBytesToRead.GetValueOrDefault() : client.tcpClient.ReceiveBufferSize;
                             int streamBytesRead = 0;
-                            while (client.tcpClient.GetStream().DataAvailable)
+                            do
                             {
-                                byte[] byteBuffer = new byte[1024];
-                                streamBytesRead += client.sslStream.Read(byteBuffer, 0, byteBuffer.Count());
-                                client.streamUnprocessedBytes.Write(byteBuffer, 0, streamBytesRead);
+                                byte[] byteBuffer = new byte[byteBufferSize];
+                                int read = client.sslStream.Read(byteBuffer, 0, byteBuffer.Count());
+                                streamBytesRead += read;
+                                client.streamUnprocessedBytes.Write(byteBuffer, 0, read);
                             }
+                            while (client.tcpClient.GetStream().DataAvailable || (streamBytesRead < minimumBytesToRead.GetValueOrDefault()) && streamBytesRead != 0);
                             return streamBytesRead;
                         }
                     }
