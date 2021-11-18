@@ -302,6 +302,10 @@ namespace Chat
             {
                 e.client.connectionSetupComplete = true;
             }
+            else if (e.message.messageType == 31) // Finished sending message queue
+            {
+                e.client.receivingMessageQueue = false;
+            }
         }
 
         private void ClearClientList()

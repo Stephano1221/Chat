@@ -275,6 +275,7 @@ namespace Chat
             else
             {
                 client.sendingMessageQueue = false;
+                SendMessage(client, ComposeMessage(client, -1, 31, null, null));
                 if (FrmHolder.hosting == false)
                 {
                     SendMessage(client, ComposeMessage(client, -1, 18, null, null));
