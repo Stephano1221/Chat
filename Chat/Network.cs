@@ -633,12 +633,8 @@ namespace Chat
                     ConvertLittleEndianToBigEndian(messageBytes);
                 }
 
-                streamUnprocessedBytesPosition = client.streamUnprocessedBytes.Position;
-                byte[] unprocessedBytes = new byte[client.streamUnprocessedBytes.Length - streamUnprocessedBytesPosition];
-                client.streamUnprocessedBytes.Read(unprocessedBytes, 0, unprocessedBytes.Length);
-                client.streamUnprocessedBytes.Position = 0;
-                client.streamUnprocessedBytes.Write(unprocessedBytes);
-                client.streamUnprocessedBytes.SetLength(unprocessedBytes.Count());
+                TruncateBytesPrecedingPositionInMemoryStream(client);
+
                 Message receivedMessage = ComposeMessage(client, messageId, messageType, null, messageBytes);
                 MessageReceivedEvent.Invoke(this, new MessageReceivedEventArgs(client, receivedMessage));
             }
@@ -677,6 +673,16 @@ namespace Chat
             {
                 return 0;
             }
+        }
+
+        private void TruncateBytesPrecedingPositionInMemoryStream(Client client)
+        {
+            long streamUnprocessedBytesPosition = client.streamUnprocessedBytes.Position;
+            byte[] unprocessedBytes = new byte[client.streamUnprocessedBytes.Length - streamUnprocessedBytesPosition];
+            client.streamUnprocessedBytes.Read(unprocessedBytes, 0, unprocessedBytes.Length);
+            client.streamUnprocessedBytes.Position = 0;
+            client.streamUnprocessedBytes.Write(unprocessedBytes);
+            client.streamUnprocessedBytes.SetLength(unprocessedBytes.Count());
         }
 
         public void SendToAll(List<Client> ignoredClients, int messageType, string messageText, byte[] messageBytes) //TODO: Replace messagType and messagText with Message class
