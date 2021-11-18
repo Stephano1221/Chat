@@ -590,56 +590,58 @@ namespace Chat
         {
             try
             {
-                if (client.sslStream != null)
+                byte[] idBuffer = new byte[4];
+                byte[] typeBuffer = new byte[4];
+                byte[] lengthBuffer = new byte[4];
+                int headerLength = idBuffer.Count() + typeBuffer.Count() + lengthBuffer.Count();
+
+                ReadAllAvailable(client);
+                if ((client.streamUnprocessedBytes == null || client.streamUnprocessedBytes.Length == 0))
                 {
-                    {
-                        if (client.sslStream.CanRead && client.sslStream.CanWrite && client.tcpClient.GetStream().DataAvailable)
-                        {
-                            // Message ID
-                            byte[] idBuffer = new byte[4];
-                            client.sslStream.Read(idBuffer, 0, 4);
-
-                            // Message type
-                            byte[] typeBuffer = new byte[4];
-                            client.sslStream.Read(typeBuffer, 0, 4);
-
-                            // Message length
-                            byte[] lengthBuffer = new byte[4];
-                            client.sslStream.Read(lengthBuffer, 0, 4);
-
-                            ConvertLittleEndianToBigEndian(idBuffer);
-                            ConvertLittleEndianToBigEndian(typeBuffer);
-                            ConvertLittleEndianToBigEndian(lengthBuffer);
-
-                            int messageId = BitConverter.ToInt32(idBuffer, 0);
-                            int messageType = BitConverter.ToInt32(typeBuffer, 0);
-                            int messageLength = BitConverter.ToInt32(lengthBuffer, 0);
-
-                            // Message bytes
-                            byte[] messageBytes = null;
-                            int receivedLength = 0;
-                            int totalReceivedLength = 0;
-                            if (messageLength > 0)
-                            {
-                                messageBytes = new byte[messageLength];
-                                byte[] tempBytesBuffer = new byte[messageLength];
-                                while (totalReceivedLength < messageLength)
-                                {
-                                    receivedLength = 0;
-                                    receivedLength += client.sslStream.Read(tempBytesBuffer, 0, messageLength - totalReceivedLength);
-                                    Array.Resize(ref tempBytesBuffer, receivedLength);
-                                    tempBytesBuffer.CopyTo(messageBytes, totalReceivedLength);
-                                    tempBytesBuffer = new byte[messageLength];
-                                    totalReceivedLength += receivedLength;
-                                }
-                                ConvertLittleEndianToBigEndian(messageBytes);
-                            }
-
-                            Message receivedMessage = ComposeMessage(client, messageId, messageType, null, messageBytes);
-                            MessageReceivedEvent.Invoke(this, new MessageReceivedEventArgs(client, receivedMessage));
-                        }
-                    }
+                    return;
                 }
+
+                long streamUnprocessedBytesPosition = client.streamUnprocessedBytes.Position;
+                if (client.streamUnprocessedBytes.Length >= headerLength)
+                {
+                    client.streamUnprocessedBytes.Position = 0;
+                    client.streamUnprocessedBytes.Read(idBuffer, 0, idBuffer.Count());
+                    client.streamUnprocessedBytes.Read(typeBuffer, 0, typeBuffer.Count());
+                    client.streamUnprocessedBytes.Read(lengthBuffer, 0, lengthBuffer.Count());
+                    client.streamUnprocessedBytes.Position = streamUnprocessedBytesPosition;
+                }
+
+                ConvertLittleEndianToBigEndian(idBuffer);
+                ConvertLittleEndianToBigEndian(typeBuffer);
+                ConvertLittleEndianToBigEndian(lengthBuffer);
+
+                int messageId = BitConverter.ToInt32(idBuffer, 0);
+                int messageType = BitConverter.ToInt32(typeBuffer, 0);
+                int messageLength = BitConverter.ToInt32(lengthBuffer, 0);
+
+                byte[] messageBytes = null;
+                int receivedLength = 0;
+                if (messageLength > 0)
+                {
+                    messageBytes = new byte[messageLength];
+                    while (client.streamUnprocessedBytes.Length - headerLength < messageLength)
+                    {
+                        receivedLength += ReadAllAvailable(client);
+                    }
+                    client.streamUnprocessedBytes.Position = headerLength;
+                    client.streamUnprocessedBytes.Read(messageBytes, 0, messageLength);
+                    ConvertLittleEndianToBigEndian(messageBytes);
+                }
+
+                streamUnprocessedBytesPosition = client.streamUnprocessedBytes.Position;
+                byte[] unprocessedBytes = new byte[client.streamUnprocessedBytes.Length - streamUnprocessedBytesPosition];
+                client.streamUnprocessedBytes.Read(unprocessedBytes, 0, unprocessedBytes.Length);
+                client.streamUnprocessedBytes.Position = 0;
+                client.streamUnprocessedBytes.Write(unprocessedBytes);
+                client.streamUnprocessedBytes.SetLength(unprocessedBytes.Count());
+
+                Message receivedMessage = ComposeMessage(client, messageId, messageType, null, messageBytes);
+                MessageReceivedEvent.Invoke(this, new MessageReceivedEventArgs(client, receivedMessage));
             }
             catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException) // TODO: Avoid catching exceptions every time a read is done on a non-connected socket
             {
