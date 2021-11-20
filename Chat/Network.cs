@@ -114,7 +114,6 @@ namespace Chat
                 while (cancellationToken.IsCancellationRequested == false)
                 {
                     ServerAcceptIncomingConnection(tcpListener);
-                    LoopClientsForIncomingMessages();
                 }
             }
 
@@ -141,7 +140,7 @@ namespace Chat
 
             while (cancellationToken.IsCancellationRequested == false)
             {
-                LoopClientsForIncomingMessages();
+
             }
             FrmHolder.clientId = -1;
             if (connectedClients.Count > 0)
@@ -425,6 +424,7 @@ namespace Chat
                 return;
             }
 
+            BeginRead(client);
             string clientId = "-1";
             if (FrmHolder.clientId != -1)
             {
@@ -460,14 +460,7 @@ namespace Chat
                     connectedClients.Remove(client);
                     //MessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs(ex.Message, "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning));
                 }
-            }
-        }
-
-        public void LoopClientsForIncomingMessages()
-        {
-            for (int i = 0; i < connectedClients.Count(); i++)
-            {
-                ReceiveMessage(connectedClients[i]);
+                BeginRead(client);
             }
         }
 
@@ -587,65 +580,13 @@ namespace Chat
             }
         }
 
-        public void ReceiveMessage(Client client)
+        public void ReceiveMessage(Client client, int messageId, int messageType, byte[] messageBytes)
         {
-            try
-            {
-                byte[] idBuffer = new byte[4];
-                byte[] typeBuffer = new byte[4];
-                byte[] lengthBuffer = new byte[4];
-                int headerLength = idBuffer.Count() + typeBuffer.Count() + lengthBuffer.Count();
-
-                ReadAllAvailable(client, 0, headerLength);
-                if ((client.streamUnprocessedBytes == null || client.streamUnprocessedBytes.Length == 0))
-                {
-                    return;
-                }
-
-                long streamUnprocessedBytesPosition = client.streamUnprocessedBytes.Position;
-                if (client.streamUnprocessedBytes.Length >= headerLength)
-                {
-                    client.streamUnprocessedBytes.Position = 0;
-                    client.streamUnprocessedBytes.Read(idBuffer, 0, idBuffer.Count());
-                    client.streamUnprocessedBytes.Read(typeBuffer, 0, typeBuffer.Count());
-                    client.streamUnprocessedBytes.Read(lengthBuffer, 0, lengthBuffer.Count());
-                    client.streamUnprocessedBytes.Position = streamUnprocessedBytesPosition;
-                }
-
-                ConvertLittleEndianToBigEndian(idBuffer);
-                ConvertLittleEndianToBigEndian(typeBuffer);
-                ConvertLittleEndianToBigEndian(lengthBuffer);
-
-                int messageId = BitConverter.ToInt32(idBuffer, 0);
-                int messageType = BitConverter.ToInt32(typeBuffer, 0);
-                int messageLength = BitConverter.ToInt32(lengthBuffer, 0);
-
-                byte[] messageBytes = null;
-                int receivedLength = 0;
-                if (messageLength > 0)
-                {
-                    messageBytes = new byte[messageLength];
-                    while (client.streamUnprocessedBytes.Length - headerLength < messageLength)
-                    {
-                        receivedLength += ReadAllAvailable(client, messageLength, messageLength);
-                    }
-                    client.streamUnprocessedBytes.Position = headerLength;
-                    client.streamUnprocessedBytes.Read(messageBytes, 0, messageLength);
-                    ConvertLittleEndianToBigEndian(messageBytes);
-                }
-
-                TruncateBytesPrecedingPositionInMemoryStream(client);
-
                 Message receivedMessage = ComposeMessage(client, messageId, messageType, null, messageBytes);
                 MessageReceivedEvent.Invoke(this, new MessageReceivedEventArgs(client, receivedMessage));
-            }
-            catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException) // TODO: Avoid catching exceptions every time a read is done on a non-connected socket
-            {
-                return;
-            }
         }
 
-        private int ReadAllAvailable(Client client, int? minimumBytesToRead, int? maximumBytesToRead)
+        private void BeginRead(Client client)
         {
             try
             {
@@ -654,25 +595,66 @@ namespace Chat
                     {
                         if (client.sslStream.CanRead && client.sslStream.CanWrite)
                         {
-                            int byteBufferSize = maximumBytesToRead != null ? maximumBytesToRead.GetValueOrDefault() : client.tcpClient.ReceiveBufferSize;
-                            int streamBytesRead = 0;
-                            do
-                            {
-                                byte[] byteBuffer = new byte[byteBufferSize];
-                                int read = client.sslStream.Read(byteBuffer, 0, byteBuffer.Count());
-                                streamBytesRead += read;
-                                client.streamUnprocessedBytes.Write(byteBuffer, 0, read);
-                            }
-                            while (client.tcpClient.GetStream().DataAvailable || (streamBytesRead < minimumBytesToRead.GetValueOrDefault()) && streamBytesRead != 0);
-                            return streamBytesRead;
+                            ClientStateObject clientStateObject = new ClientStateObject(client);
+                            client.sslStream.BeginRead(clientStateObject.byteBuffer, 0, clientStateObject.byteBuffer.Count(), new AsyncCallback(ReadCallback), clientStateObject);
                         }
                     }
                 }
-                return 0;
             }
-            catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException) // TODO: Avoid catching exceptions every time a read is done on a non-connected socket
+            catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException)
             {
-                return 0;
+                return;
+            }
+        }
+
+        private void ReadCallback(IAsyncResult asyncResult)
+        {
+            ClientStateObject clientStateObject = asyncResult.AsyncState as ClientStateObject;
+            int bytesRead = 0;
+            try
+            {
+                bytesRead = clientStateObject.client.sslStream.EndRead(asyncResult);
+            }
+            catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException)
+            {
+                return;
+            }
+            clientStateObject.bytesRead += bytesRead;
+            if (bytesRead > 0)
+            {
+                clientStateObject.client.streamUnprocessedBytes.Write(clientStateObject.byteBuffer, 0, bytesRead);
+                if (clientStateObject.client.streamUnprocessedBytes.Length >= clientStateObject.headerLength)
+                {
+                    long writePosition = clientStateObject.client.streamUnprocessedBytes.Position;
+                    if (clientStateObject.readHeader == false)
+                    {
+                        clientStateObject.client.streamUnprocessedBytes.Position = 0;
+                        clientStateObject.client.streamUnprocessedBytes.Read(clientStateObject.idBuffer, 0, clientStateObject.idBuffer.Count());
+                        clientStateObject.client.streamUnprocessedBytes.Read(clientStateObject.typeBuffer, 0, clientStateObject.typeBuffer.Count());
+                        clientStateObject.client.streamUnprocessedBytes.Read(clientStateObject.lengthBuffer, 0, clientStateObject.lengthBuffer.Count());
+
+                        ConvertLittleEndianToBigEndian(clientStateObject.idBuffer);
+                        ConvertLittleEndianToBigEndian(clientStateObject.typeBuffer);
+                        ConvertLittleEndianToBigEndian(clientStateObject.lengthBuffer);
+
+                        clientStateObject.messageId = BitConverter.ToInt32(clientStateObject.idBuffer, 0);
+                        clientStateObject.messageType = BitConverter.ToInt32(clientStateObject.typeBuffer, 0);
+                        clientStateObject.messageLength = BitConverter.ToInt32(clientStateObject.lengthBuffer, 0);
+
+                        clientStateObject.messageBytes = new byte[clientStateObject.messageLength.GetValueOrDefault()];
+                        clientStateObject.readHeader = true;
+                    }
+                    if (clientStateObject.client.streamUnprocessedBytes.Length >= clientStateObject.messageLength - clientStateObject.headerLength)
+                    {
+                        clientStateObject.client.streamUnprocessedBytes.Position = clientStateObject.headerLength;
+                        clientStateObject.client.streamUnprocessedBytes.Read(clientStateObject.messageBytes, 0, clientStateObject.messageBytes.Count());
+                        ConvertLittleEndianToBigEndian(clientStateObject.messageBytes);
+                    }
+                    clientStateObject.client.streamUnprocessedBytes.Position = writePosition;
+                    TruncateBytesPrecedingPositionInMemoryStream(clientStateObject.client);
+                }
+                ReceiveMessage(clientStateObject.client, clientStateObject.messageId.GetValueOrDefault(), clientStateObject.messageType.GetValueOrDefault(), clientStateObject.messageBytes);
+                BeginRead(clientStateObject.client);
             }
         }
 
