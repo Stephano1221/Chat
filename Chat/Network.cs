@@ -44,6 +44,7 @@ namespace Chat
         public Thread clientThread;
         public CancellationTokenSource serverCancellationTokenSource = new CancellationTokenSource();
         public CancellationTokenSource clientCancellationTokenSource = new CancellationTokenSource();
+        private AutoResetEvent writeAutoResetEvent = new AutoResetEvent(true);
         #endregion
 
         #region Timers
@@ -549,12 +550,36 @@ namespace Chat
                                 bytesBuffer.CopyTo(writeBuffer, idBuffer.Length + typeBuffer.Length + lengthBuffer.Length);
                             }
 
-                            client.sslStream.Write(writeBuffer, 0, writeBuffer.Length);
+                            ClientStateObject clientStateObject = new ClientStateObject(client);
+                            clientStateObject.message = message;
+                            writeAutoResetEvent.WaitOne();
+                            client.sslStream.BeginWrite(writeBuffer, 0, writeBuffer.Length, new AsyncCallback(WriteCallback), clientStateObject);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException)
+            {
+                CheckAddMessageToQueue(client, message, true);
+            }
+        }
 
-                            if (message.messageType != 1 && message.messageType != 3 && message.messageType != 11)
-                            {
-                                AddMessageToMessageListBySendPriority(client.messagesToBeSent, message, true);
-                            }
+        private void WriteCallback(IAsyncResult asyncResult)
+        {
+            ClientStateObject clientStateObject = asyncResult.AsyncState as ClientStateObject;
+            try
+            {
+                clientStateObject.client.sslStream.EndWrite(asyncResult);
+            }
+            catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException)
+            {
+                return;
+            }
+            writeAutoResetEvent.Set();
+            if (clientStateObject.message.messageType != 1 && clientStateObject.message.messageType != 3 && clientStateObject.message.messageType != 11)
+            {
+                AddMessageToMessageListBySendPriority(clientStateObject.client.messagesToBeSent, clientStateObject.message, true);
+            }
 #if DEBUG && messageSentUpdates
                             if (message.messageType != 11)
                             {
@@ -570,14 +595,6 @@ namespace Chat
                                 PrintChatMessageEvent.Invoke(this, text);
                             }
 #endif
-                        }
-                    }
-                }
-            }
-            catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException)
-            {
-                CheckAddMessageToQueue(client, message, true);
-            }
         }
 
         public void ReceiveMessage(Client client, int messageId, int messageType, byte[] messageBytes)
