@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Security;
 using System.Security.Authentication;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
@@ -25,6 +26,7 @@ namespace Chat
         #region Connection Info
         public int port = 12210;
         public string publicIp;
+        public int serverType = 1; // 0: Officially-Hosted, 1: User-Hosted
         public string localIp;
         public uint nextAssignableClientId = 1;
         public List<Client> connectedClients = new List<Client>();
@@ -110,7 +112,7 @@ namespace Chat
             client.admin = true;
             connectedClients.Add(client);
 
-            using (x509Certificate = ImportCertificateFromStoreOrFile(certificateName, false, certificateFilePath, keyFilePath))
+            using (x509Certificate = ImportCertificateFromStoreOrFile(certificateName, false, certificateFilePath, keyFilePath, serverType == 0 ? false : true))
             {
                 tcpListener.Start();
                 StartHeartbeat();
@@ -228,9 +230,13 @@ namespace Chat
             }
         }
 
-        public X509Certificate2 ImportCertificateFromStoreOrFile(string certificateName, bool inStore, string certificateFilePath, string keyFilePath)
+        public X509Certificate2 ImportCertificateFromStoreOrFile(string certificateName, bool inStore, string certificateFilePath, string keyFilePath, bool useSelfSigned)
         {
-            if (inStore)
+            if (useSelfSigned)
+            {
+                return GenerateSelfSignedCertificate();
+            }
+            else if (inStore)
             {
                 using (X509Store x509Store = new X509Store(StoreLocation.LocalMachine))
                 {
@@ -259,9 +265,19 @@ namespace Chat
             }
         }
 
+        private X509Certificate2 GenerateSelfSignedCertificate()
+        {
+            ECDsa eCDsa = ECDsa.Create();
+            CertificateRequest certificateRequest = new CertificateRequest("CN=chat", eCDsa, HashAlgorithmName.SHA256);
+            X509Certificate2 x509Certificate2= certificateRequest.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.Now.AddYears(1));
+            byte[] x509Certificate2Bytes = x509Certificate2.Export(X509ContentType.Pkcs12);
+            X509Certificate2 x509Certificate2Imported = new X509Certificate2(x509Certificate2Bytes);
+            return x509Certificate2Imported;
+        }
+
         public bool ValidateServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
-            if (sslPolicyErrors == SslPolicyErrors.None)
+            if (sslPolicyErrors == SslPolicyErrors.None || serverType == 1)
             {
                 return true;
             }
