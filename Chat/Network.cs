@@ -615,12 +615,6 @@ namespace Chat
 #endif
         }
 
-        public void ReceiveMessage(Client client, int messageId, int messageType, byte[] messageBytes)
-        {
-                Message receivedMessage = ComposeMessage(client, messageId, messageType, null, messageBytes);
-                MessageReceivedEvent.Invoke(this, new MessageReceivedEventArgs(client, receivedMessage));
-        }
-
         private void BeginRead(Client client)
         {
             try
@@ -688,7 +682,8 @@ namespace Chat
                     clientStateObject.client.streamUnprocessedBytes.Position = writePosition;
                     TruncateBytesPrecedingPositionInMemoryStream(clientStateObject.client);
                 }
-                ReceiveMessage(clientStateObject.client, clientStateObject.messageId.GetValueOrDefault(), clientStateObject.messageType.GetValueOrDefault(), clientStateObject.messageBytes);
+                Message receivedMessage = ComposeMessage(clientStateObject.client, clientStateObject.messageId.GetValueOrDefault(), clientStateObject.messageType.GetValueOrDefault(), null, clientStateObject.messageBytes);
+                MessageReceivedEvent.Invoke(this, new MessageReceivedEventArgs(clientStateObject.client, receivedMessage));
                 BeginRead(clientStateObject.client);
             }
         }
