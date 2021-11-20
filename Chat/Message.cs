@@ -8,14 +8,14 @@ namespace Chat
 {
     public class Message
     {
-        public int messageId;
-        public int messageType;
+        public uint messageId;
+        public uint messageType;
         public string messageText;
         public byte[] messageBytes;
 
         public int messageSendPriority;
 
-        public Message(int messageId, int messageType, string messageText)
+        public Message(uint messageId, uint messageType, string messageText)
         {
             this.messageId = messageId;
             this.messageType = messageType;
@@ -25,7 +25,7 @@ namespace Chat
             SetPriorityLevelFromMessageType();
         }
 
-        public Message(int messageType, string messageText)
+        public Message(uint messageType, string messageText)
         {
             this.messageType = messageType;
             this.messageText = messageText;
@@ -35,7 +35,7 @@ namespace Chat
 
         }
 
-        public Message(int messageId, int messageType, string messageText, int messageSendPriority)
+        public Message(uint messageId, uint messageType, string messageText, int messageSendPriority)
         {
             this.messageId = messageId;
             this.messageType = messageType;
@@ -45,7 +45,7 @@ namespace Chat
             this.messageSendPriority = messageSendPriority;
         }
 
-        public Message(int messageType, string messageText, int messageSendPriority)
+        public Message(uint messageType, string messageText, int messageSendPriority)
         {
             this.messageType = messageType;
             this.messageText = messageText;
@@ -54,7 +54,7 @@ namespace Chat
             this.messageSendPriority = messageSendPriority;
         }
 
-        public Message(int messageId, int messageType, byte[] messageBytes)
+        public Message(uint messageId, uint messageType, byte[] messageBytes)
         {
             this.messageId = messageId;
             this.messageType = messageType;
@@ -64,7 +64,7 @@ namespace Chat
             SetPriorityLevelFromMessageType();
         }
 
-        public Message(int messageType, byte[] messageBytes)
+        public Message(uint messageType, byte[] messageBytes)
         {
             this.messageType = messageType;
             this.messageBytes = messageBytes;
@@ -74,7 +74,7 @@ namespace Chat
 
         }
 
-        public Message(int messageId, int messageType, byte[] messageBytes, int messageSendPriority)
+        public Message(uint messageId, uint messageType, byte[] messageBytes, int messageSendPriority)
         {
             this.messageId = messageId;
             this.messageType = messageType;
@@ -84,7 +84,7 @@ namespace Chat
             this.messageSendPriority = messageSendPriority;
         }
 
-        public Message(int messageType, byte[] messageBytes, int messageSendPriority)
+        public Message(uint messageType, byte[] messageBytes, int messageSendPriority)
         {
             this.messageType = messageType;
             this.messageBytes = messageBytes;
@@ -129,6 +129,18 @@ namespace Chat
                 case 17: messageSendPriority = 1; break;
                 case 18: messageSendPriority = 0; break;
                 case 19: messageSendPriority = 0; break;
+                case 20: messageSendPriority = 0; break;
+                case 21: messageSendPriority = 0; break;
+                case 22: messageSendPriority = 0; break;
+                case 23: messageSendPriority = 0; break;
+                case 24: messageSendPriority = 0; break;
+                case 25: messageSendPriority = 0; break;
+                case 26: messageSendPriority = 0; break;
+                case 27: messageSendPriority = 0; break;
+                case 28: messageSendPriority = 0; break;
+                case 29: messageSendPriority = 0; break;
+                case 30: messageSendPriority = 0; break;
+                case 31: messageSendPriority = 0; break;
                 default: messageSendPriority = 0; break;
             }
         }
@@ -157,6 +169,18 @@ namespace Chat
                 case 17: return true;
                 case 18: return true;
                 case 19: return true;
+                case 20: return true;
+                case 21: return true;
+                case 22: return true;
+                case 23: return true;
+                case 24: return true;
+                case 25: return true;
+                case 26: return true;
+                case 27: return true;
+                case 28: return true;
+                case 29: return true;
+                case 30: return true;
+                case 31: return true;
                 default: return false;
             }
         }
