@@ -45,6 +45,7 @@ namespace Chat
         public CancellationTokenSource serverCancellationTokenSource = new CancellationTokenSource();
         public CancellationTokenSource clientCancellationTokenSource = new CancellationTokenSource();
         private AutoResetEvent writeAutoResetEvent = new AutoResetEvent(true);
+        private AutoResetEvent acceptTcpClientResetEvent = new AutoResetEvent(true);
         #endregion
 
         #region Timers
@@ -114,7 +115,7 @@ namespace Chat
 
                 while (cancellationToken.IsCancellationRequested == false)
                 {
-                    ServerAcceptIncomingConnection(tcpListener);
+                    BeginAcceptTcpClient(tcpListener);
                 }
             }
 
@@ -434,35 +435,44 @@ namespace Chat
             SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 0, $"{FrmHolder.username} {clientId}", null));
         }
 
-        public void ServerAcceptIncomingConnection(TcpListener tcpListener)
+        public void BeginAcceptTcpClient(TcpListener tcpListener)
         {
             if (tcpListener.Pending())
             {
-                TcpClient tcpClient = tcpListener.AcceptTcpClient();
-                Client client = new Client();
-                client.tcpClient = tcpClient;
-                client.nextAssignableMessageId = 1;
-                connectedClients.Add(client);
+                acceptTcpClientResetEvent.WaitOne();
+                tcpListener.BeginAcceptTcpClient(AcceptTcpClientCallback, tcpListener);
+            }
+        }
 
-                client.sslStream = new SslStream(client.tcpClient.GetStream(), false);
-                try
-                {
-                    client.sslStream.AuthenticateAsServer(x509Certificate, false, true);
-                    if (client.sslStream.IsEncrypted == false || client.sslStream.IsSigned == false || client.sslStream.IsAuthenticated == false)
-                    {
-                        client.sslStream.Close();
-                        connectedClients.Remove(client);
-                        //MessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs("Unable to establish a secure connection to client.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning));
-                    }
-                }
-                catch (AuthenticationException ex)
+        private void AcceptTcpClientCallback(IAsyncResult asyncResult)
+        {
+            TcpListener tcpListener = asyncResult.AsyncState as TcpListener;
+            TcpClient tcpClient = tcpListener.EndAcceptTcpClient(asyncResult);
+
+            Client client = new Client();
+            client.tcpClient = tcpClient;
+            client.nextAssignableMessageId = 1;
+            connectedClients.Add(client);
+            acceptTcpClientResetEvent.Set();
+
+            client.sslStream = new SslStream(client.tcpClient.GetStream(), false);
+            try
+            {
+                client.sslStream.AuthenticateAsServer(x509Certificate, false, true);
+                if (client.sslStream.IsEncrypted == false || client.sslStream.IsSigned == false || client.sslStream.IsAuthenticated == false)
                 {
                     client.sslStream.Close();
                     connectedClients.Remove(client);
-                    //MessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs(ex.Message, "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning));
+                    //MessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs("Unable to establish a secure connection to client.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning));
                 }
-                BeginRead(client);
             }
+            catch (AuthenticationException ex)
+            {
+                client.sslStream.Close();
+                connectedClients.Remove(client);
+                //MessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs(ex.Message, "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning));
+            }
+            BeginRead(client);
         }
 
         public void ConvertLittleEndianToBigEndian(byte[] byteArray) // Converts byte array from Little-Endian/Host Byte Order to Big-Endian/Network Byte Order for network tranfer if host machine stores bytes in Little Endian (and back if needed)
