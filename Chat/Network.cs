@@ -46,6 +46,7 @@ namespace Chat
         public CancellationTokenSource clientCancellationTokenSource = new CancellationTokenSource();
         private AutoResetEvent writeAutoResetEvent = new AutoResetEvent(true);
         private AutoResetEvent acceptTcpClientResetEvent = new AutoResetEvent(true);
+        private AutoResetEvent connectAutoResetEvent = new AutoResetEvent(true);
         #endregion
 
         #region Timers
@@ -137,7 +138,7 @@ namespace Chat
             CancellationToken cancellationToken = (CancellationToken)obj;
             Client client = new Client();
 
-            ConnectClient(client);
+            BeginConnect(client);
             StartHeartbeat();
 
             while (cancellationToken.IsCancellationRequested == false)
@@ -183,7 +184,7 @@ namespace Chat
                     }
                     if (client.heartbeatFailures == 5 && FrmHolder.hosting == false)
                     {
-                        ConnectClient(client);
+                        BeginConnect(client);
                     }
                     else if ((client.heartbeatFailures >= 12 && FrmHolder.hosting) || (client.heartbeatFailures >= 10 && FrmHolder.hosting == false))
                     {
@@ -387,7 +388,7 @@ namespace Chat
             }
         }
 
-        public void ConnectClient(Client client)
+        public void BeginConnect(Client client)
         {
             client.connectionSetupComplete = false;
             client.disconnectHandled = false;
@@ -404,8 +405,15 @@ namespace Chat
             }
 
             client.tcpClient = new TcpClient();
-            client.tcpClient.Connect(publicIp, port);
+            connectAutoResetEvent.WaitOne();
+            client.tcpClient.BeginConnect(publicIp, port, ConnectCallback, client);
+        }
 
+        private void ConnectCallback(IAsyncResult asyncResult)
+        {
+            Client client = asyncResult.AsyncState as Client;
+            client.tcpClient.EndConnect(asyncResult);
+            connectAutoResetEvent.Set();
             client.sslStream = new SslStream(client.tcpClient.GetStream(), false, new RemoteCertificateValidationCallback(ValidateServerCertificate), null);
             try
             {
@@ -418,7 +426,7 @@ namespace Chat
                     return;
                 }
             }
-            catch(AuthenticationException ex)
+            catch (AuthenticationException ex)
             {
                 client.sslStream.Close();
                 connectedClients.Remove(client);
