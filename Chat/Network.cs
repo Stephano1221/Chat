@@ -668,7 +668,7 @@ namespace Chat
                         clientStateObject.messageBytes = new byte[clientStateObject.messageLength.GetValueOrDefault()];
                         clientStateObject.readHeader = true;
                     }
-                    if (clientStateObject.client.streamUnprocessedBytes.Length >= clientStateObject.messageLength - clientStateObject.headerLength)
+                    if (clientStateObject.client.streamUnprocessedBytes.Length >= clientStateObject.messageLength + clientStateObject.headerLength)
                     {
                         clientStateObject.client.streamUnprocessedBytes.Position = clientStateObject.headerLength;
                         clientStateObject.client.streamUnprocessedBytes.Read(clientStateObject.messageBytes, 0, clientStateObject.messageBytes.Count());
