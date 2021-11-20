@@ -95,7 +95,7 @@ namespace Chat
 
         public void MessageTextToOrFromBytes()
         {
-                if (messageText != null)
+                if (messageText != null && messageBytes == null)
                 {
                     messageBytes = Encoding.Unicode.GetBytes(messageText);
                 }

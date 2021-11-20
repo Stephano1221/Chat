@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Security;
 using System.Runtime.InteropServices;
@@ -29,6 +30,7 @@ namespace Chat
         #region Connection
         public TcpClient tcpClient;
         public SslStream sslStream;
+        public MemoryStream streamUnprocessedBytes = new MemoryStream();
         public uint clientId = 0;
         public uint nextAssignableMessageId = 1;
         public bool heartbeatReceieved = false;
@@ -56,6 +58,33 @@ namespace Chat
         public Client()
         {
 
+        }
+    }
+
+    public class ClientStateObject
+    {
+        public Client client;
+        public Message message;
+
+        public uint headerLength = 0;
+        public byte[] byteBuffer = null;
+        public byte[] idBuffer = new byte[4];
+        public byte[] typeBuffer = new byte[4];
+        public byte[] lengthBuffer = new byte[4];
+        public uint? messageId = null;
+        public uint? messageType = null;
+        public uint? messageLength = null;
+        public bool readHeader = false;
+
+        public byte[] messageBytes = null;
+        public uint bytesRead = 0;
+
+        public ClientStateObject(Client client)
+        {
+            this.client = client;
+            headerLength = (uint)idBuffer.Count() + (uint)typeBuffer.Count() + (uint)lengthBuffer.Count();
+            int byteBufferSize = client.tcpClient.ReceiveBufferSize;
+            byteBuffer = new byte[byteBufferSize];
         }
     }
 }

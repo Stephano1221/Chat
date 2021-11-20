@@ -45,6 +45,9 @@ namespace Chat
         public Thread clientThread;
         public CancellationTokenSource serverCancellationTokenSource = new CancellationTokenSource();
         public CancellationTokenSource clientCancellationTokenSource = new CancellationTokenSource();
+        private AutoResetEvent writeAutoResetEvent = new AutoResetEvent(true);
+        private AutoResetEvent acceptTcpClientResetEvent = new AutoResetEvent(true);
+        private AutoResetEvent connectAutoResetEvent = new AutoResetEvent(true);
         #endregion
 
         #region Timers
@@ -114,8 +117,7 @@ namespace Chat
 
                 while (cancellationToken.IsCancellationRequested == false)
                 {
-                    ServerAcceptIncomingConnection(tcpListener);
-                    LoopClientsForIncomingMessages();
+                    BeginAcceptTcpClient(tcpListener);
                 }
             }
 
@@ -137,12 +139,12 @@ namespace Chat
             CancellationToken cancellationToken = (CancellationToken)obj;
             Client client = new Client();
 
-            ConnectClient(client);
+            BeginConnect(client);
             StartHeartbeat();
 
             while (cancellationToken.IsCancellationRequested == false)
             {
-                LoopClientsForIncomingMessages();
+
             }
             FrmHolder.clientId = 0;
             if (connectedClients.Count > 0)
@@ -159,7 +161,7 @@ namespace Chat
         {
             heartbeat.Interval = 1000;
             heartbeat.Elapsed += Heartbeat_Tick;
-            heartbeat.Start();
+            //heartbeat.Start();
         }
 
         private void StopHeartbeat()
@@ -183,7 +185,7 @@ namespace Chat
                     }
                     if (client.heartbeatFailures == 5 && FrmHolder.hosting == false)
                     {
-                        ConnectClient(client);
+                        BeginConnect(client);
                     }
                     else if ((client.heartbeatFailures >= 12 && FrmHolder.hosting) || (client.heartbeatFailures >= 10 && FrmHolder.hosting == false))
                     {
@@ -194,7 +196,7 @@ namespace Chat
                     }
                     if (FrmHolder.hosting == false)
                     {
-                        SendMessage(client, ComposeMessage(client, 0, 11, null, null)); // Send heartbeat
+                        BeginWrite(client, ComposeMessage(client, 0, 11, null, null)); // Send heartbeat
                     }
                     client.heartbeatReceieved = false;
                 }
@@ -271,14 +273,15 @@ namespace Chat
             if (client.messagesToBeSent.Count > 0 && client.sendingMessageQueue)
             {
                 Message message = client.messagesToBeSent[0];
-                SendMessage(client, message);
+                BeginWrite(client, message);
             }
             else
             {
                 client.sendingMessageQueue = false;
+                BeginWrite(client, ComposeMessage(client, 0, 31, null, null));
                 if (FrmHolder.hosting == false)
                 {
-                    SendMessage(client, ComposeMessage(client, 0, 18, null, null));
+                    BeginWrite(client, ComposeMessage(client, 0, 18, null, null));
                     client.receivingMessageQueue = true;
                 }
             }
@@ -386,7 +389,7 @@ namespace Chat
             }
         }
 
-        public void ConnectClient(Client client)
+        public void BeginConnect(Client client)
         {
             client.connectionSetupComplete = false;
             client.disconnectHandled = false;
@@ -403,8 +406,15 @@ namespace Chat
             }
 
             client.tcpClient = new TcpClient();
-            client.tcpClient.Connect(publicIp, port);
+            connectAutoResetEvent.WaitOne();
+            client.tcpClient.BeginConnect(publicIp, port, ConnectCallback, client);
+        }
 
+        private void ConnectCallback(IAsyncResult asyncResult)
+        {
+            Client client = asyncResult.AsyncState as Client;
+            client.tcpClient.EndConnect(asyncResult);
+            connectAutoResetEvent.Set();
             client.sslStream = new SslStream(client.tcpClient.GetStream(), false, new RemoteCertificateValidationCallback(ValidateServerCertificate), null);
             try
             {
@@ -417,52 +427,55 @@ namespace Chat
                     return;
                 }
             }
-            catch(AuthenticationException ex)
+            catch (AuthenticationException ex)
             {
                 client.sslStream.Close();
                 connectedClients.Remove(client);
                 ShowMessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error));
                 return;
             }
+            BeginRead(client);
         }
 
-        public void ServerAcceptIncomingConnection(TcpListener tcpListener)
+        public void BeginAcceptTcpClient(TcpListener tcpListener)
         {
             if (tcpListener.Pending())
             {
-                TcpClient tcpClient = tcpListener.AcceptTcpClient();
-                Client client = new Client();
-                client.tcpClient = tcpClient;
-                client.nextAssignableMessageId = 1;
-                connectedClients.Add(client);
-
-                client.sslStream = new SslStream(client.tcpClient.GetStream(), false);
-                try
-                {
-                    client.sslStream.AuthenticateAsServer(x509Certificate, false, true);
-                    if (client.sslStream.IsEncrypted == false || client.sslStream.IsSigned == false || client.sslStream.IsAuthenticated == false)
-                    {
-                        client.sslStream.Close();
-                        connectedClients.Remove(client);
-                        //MessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs("Unable to establish a secure connection to client.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning));
-                    }
-                }
-                catch (AuthenticationException ex)
-                {
-                    client.sslStream.Close();
-                    connectedClients.Remove(client);
-                    //MessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs(ex.Message, "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning));
-                }
-                NextConnectionSetupStep.Invoke(this, client);
+                acceptTcpClientResetEvent.WaitOne();
+                tcpListener.BeginAcceptTcpClient(AcceptTcpClientCallback, tcpListener);
             }
         }
 
-        public void LoopClientsForIncomingMessages()
+        private void AcceptTcpClientCallback(IAsyncResult asyncResult)
         {
-            for (int i = 0; i < connectedClients.Count(); i++)
+            TcpListener tcpListener = asyncResult.AsyncState as TcpListener;
+            TcpClient tcpClient = tcpListener.EndAcceptTcpClient(asyncResult);
+
+            Client client = new Client();
+            client.tcpClient = tcpClient;
+            client.nextAssignableMessageId = 1;
+            connectedClients.Add(client);
+            acceptTcpClientResetEvent.Set();
+
+            client.sslStream = new SslStream(client.tcpClient.GetStream(), false);
+            try
             {
-                ReceiveMessage(connectedClients[i]);
+                client.sslStream.AuthenticateAsServer(x509Certificate, false, true);
+                if (client.sslStream.IsEncrypted == false || client.sslStream.IsSigned == false || client.sslStream.IsAuthenticated == false)
+                {
+                    client.sslStream.Close();
+                    connectedClients.Remove(client);
+                    //MessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs("Unable to establish a secure connection to client.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning));
+                }
             }
+            catch (AuthenticationException ex)
+            {
+                client.sslStream.Close();
+                connectedClients.Remove(client);
+                //MessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs(ex.Message, "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning));
+            }
+            BeginRead(client);
+            NextConnectionSetupStep.Invoke(this, client);
         }
 
         public void ConvertLittleEndianToBigEndian(byte[] byteArray) // Converts byte array from Little-Endian/Host Byte Order to Big-Endian/Network Byte Order for network tranfer if host machine stores bytes in Little Endian (and back if needed)
@@ -496,7 +509,7 @@ namespace Chat
             return message;
         }
 
-        public void SendMessage(Client client, Message message)
+        public void BeginWrite(Client client, Message message)
         {
             if (CheckAddMessageToQueue(client, message, false))
             {
@@ -536,12 +549,12 @@ namespace Chat
                             ConvertLittleEndianToBigEndian(bytesBuffer);
                             ConvertLittleEndianToBigEndian(lengthBuffer);
 
-                            int messageSize = idBuffer.Length + typeBuffer.Length + lengthBuffer.Length;
+                            int messageLength = idBuffer.Length + typeBuffer.Length + lengthBuffer.Length;
                             if (bytesBuffer != null)
                             {
-                                messageSize += bytesBuffer.Length;
+                                messageLength += bytesBuffer.Length;
                             }
-                            byte[] writeBuffer = new byte[messageSize];
+                            byte[] writeBuffer = new byte[messageLength];
                             idBuffer.CopyTo(writeBuffer, 0);
                             typeBuffer.CopyTo(writeBuffer, idBuffer.Length);
                             lengthBuffer.CopyTo(writeBuffer, idBuffer.Length + typeBuffer.Length);
@@ -550,12 +563,36 @@ namespace Chat
                                 bytesBuffer.CopyTo(writeBuffer, idBuffer.Length + typeBuffer.Length + lengthBuffer.Length);
                             }
 
-                            client.sslStream.Write(writeBuffer, 0, writeBuffer.Length);
+                            ClientStateObject clientStateObject = new ClientStateObject(client);
+                            clientStateObject.message = message;
+                            writeAutoResetEvent.WaitOne();
+                            client.sslStream.BeginWrite(writeBuffer, 0, writeBuffer.Length, new AsyncCallback(WriteCallback), clientStateObject);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException)
+            {
+                CheckAddMessageToQueue(client, message, true);
+            }
+        }
 
-                            if (message.messageType != 1 && message.messageType != 3 && message.messageType != 11)
-                            {
-                                AddMessageToMessageListBySendPriority(client.messagesToBeSent, message, true);
-                            }
+        private void WriteCallback(IAsyncResult asyncResult)
+            {
+            ClientStateObject clientStateObject = asyncResult.AsyncState as ClientStateObject;
+            try
+            {
+                clientStateObject.client.sslStream.EndWrite(asyncResult);
+            }
+            catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException)
+            {
+                return;
+            }
+            writeAutoResetEvent.Set();
+            if (clientStateObject.message.messageType != 1 && clientStateObject.message.messageType != 3 && clientStateObject.message.messageType != 11)
+            {
+                AddMessageToMessageListBySendPriority(clientStateObject.client.messagesToBeSent, clientStateObject.message, true);
+            }
 #if DEBUG && messageSentUpdates
                             if (message.messageType != 11)
                             {
@@ -571,75 +608,89 @@ namespace Chat
                                 PrintChatMessageEvent.Invoke(this, text);
                             }
 #endif
-                        }
-                    }
-                }
-            }
-            catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException)
-            {
-                CheckAddMessageToQueue(client, message, true);
-            }
         }
 
-        public void ReceiveMessage(Client client)
+        private void BeginRead(Client client)
         {
             try
             {
                 if (client.sslStream != null)
                 {
                     {
-                        if (client.sslStream.CanRead && client.sslStream.CanWrite && client.tcpClient.GetStream().DataAvailable)
+                        if (client.sslStream.CanRead && client.sslStream.CanWrite)
                         {
-                            // Message ID
-                            byte[] idBuffer = new byte[4];
-                            client.sslStream.Read(idBuffer, 0, 4);
-
-                            // Message type
-                            byte[] typeBuffer = new byte[4];
-                            client.sslStream.Read(typeBuffer, 0, 4);
-
-                            // Message length
-                            byte[] lengthBuffer = new byte[4];
-                            client.sslStream.Read(lengthBuffer, 0, 4);
-
-                            ConvertLittleEndianToBigEndian(idBuffer);
-                            ConvertLittleEndianToBigEndian(typeBuffer);
-                            ConvertLittleEndianToBigEndian(lengthBuffer);
-
-                            uint messageId = BitConverter.ToUInt32(idBuffer, 0);
-                            uint messageType = BitConverter.ToUInt32(typeBuffer, 0);
-                            int messageLength = BitConverter.ToInt32(lengthBuffer, 0);
-
-                            // Message bytes
-                            byte[] messageBytes = null;
-                            int receivedLength = 0;
-                            int totalReceivedLength = 0;
-                            if (messageLength > 0)
-                            {
-                                messageBytes = new byte[messageLength];
-                                byte[] tempBytesBuffer = new byte[messageLength];
-                                while (totalReceivedLength < messageLength)
-                                {
-                                    receivedLength = 0;
-                                    receivedLength += client.sslStream.Read(tempBytesBuffer, 0, messageLength - totalReceivedLength);
-                                    Array.Resize(ref tempBytesBuffer, receivedLength);
-                                    tempBytesBuffer.CopyTo(messageBytes, totalReceivedLength);
-                                    tempBytesBuffer = new byte[messageLength];
-                                    totalReceivedLength += receivedLength;
-                                }
-                                ConvertLittleEndianToBigEndian(messageBytes);
-                            }
-
-                            Message receivedMessage = ComposeMessage(client, messageId, messageType, null, messageBytes);
-                            MessageReceivedEvent.Invoke(this, new MessageReceivedEventArgs(client, receivedMessage));
+                            ClientStateObject clientStateObject = new ClientStateObject(client);
+                            client.sslStream.BeginRead(clientStateObject.byteBuffer, 0, clientStateObject.byteBuffer.Count(), new AsyncCallback(ReadCallback), clientStateObject);
                         }
                     }
                 }
             }
-            catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException) // TODO: Avoid catching exceptions every time a read is done on a non-connected socket
+            catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException)
             {
                 return;
             }
+        }
+
+        private void ReadCallback(IAsyncResult asyncResult)
+        {
+            ClientStateObject clientStateObject = asyncResult.AsyncState as ClientStateObject;
+            uint bytesRead = 0;
+            try
+            {
+                bytesRead = (uint)clientStateObject.client.sslStream.EndRead(asyncResult);
+            }
+            catch (Exception ex) when (ex is System.IO.IOException || ex is System.InvalidOperationException)
+            {
+                return;
+            }
+            clientStateObject.bytesRead += bytesRead;
+            if (bytesRead > 0)
+            {
+                clientStateObject.client.streamUnprocessedBytes.Write(clientStateObject.byteBuffer, 0, (int)bytesRead);
+                if (clientStateObject.client.streamUnprocessedBytes.Length >= clientStateObject.headerLength)
+                {
+                    long writePosition = clientStateObject.client.streamUnprocessedBytes.Position;
+                    if (clientStateObject.readHeader == false)
+                    {
+                        clientStateObject.client.streamUnprocessedBytes.Position = 0;
+                        clientStateObject.client.streamUnprocessedBytes.Read(clientStateObject.idBuffer, 0, clientStateObject.idBuffer.Count());
+                        clientStateObject.client.streamUnprocessedBytes.Read(clientStateObject.typeBuffer, 0, clientStateObject.typeBuffer.Count());
+                        clientStateObject.client.streamUnprocessedBytes.Read(clientStateObject.lengthBuffer, 0, clientStateObject.lengthBuffer.Count());
+
+                        ConvertLittleEndianToBigEndian(clientStateObject.idBuffer);
+                        ConvertLittleEndianToBigEndian(clientStateObject.typeBuffer);
+                        ConvertLittleEndianToBigEndian(clientStateObject.lengthBuffer);
+
+                        clientStateObject.messageId = BitConverter.ToUInt32(clientStateObject.idBuffer, 0);
+                        clientStateObject.messageType = BitConverter.ToUInt32(clientStateObject.typeBuffer, 0);
+                        clientStateObject.messageLength = BitConverter.ToUInt32(clientStateObject.lengthBuffer, 0);
+
+                        clientStateObject.messageBytes = new byte[clientStateObject.messageLength.GetValueOrDefault()];
+                        clientStateObject.readHeader = true;
+                    }
+                    if (clientStateObject.client.streamUnprocessedBytes.Length >= clientStateObject.messageLength - clientStateObject.headerLength)
+                    {
+                        clientStateObject.client.streamUnprocessedBytes.Position = clientStateObject.headerLength;
+                        clientStateObject.client.streamUnprocessedBytes.Read(clientStateObject.messageBytes, 0, clientStateObject.messageBytes.Count());
+                        ConvertLittleEndianToBigEndian(clientStateObject.messageBytes);
+                    }
+                    clientStateObject.client.streamUnprocessedBytes.Position = writePosition;
+                    TruncateBytesPrecedingPositionInMemoryStream(clientStateObject.client);
+                }
+                Message receivedMessage = ComposeMessage(clientStateObject.client, clientStateObject.messageId.GetValueOrDefault(), clientStateObject.messageType.GetValueOrDefault(), null, clientStateObject.messageBytes);
+                MessageReceivedEvent.Invoke(this, new MessageReceivedEventArgs(clientStateObject.client, receivedMessage));
+                BeginRead(clientStateObject.client);
+            }
+        }
+
+        private void TruncateBytesPrecedingPositionInMemoryStream(Client client)
+        {
+            long streamUnprocessedBytesPosition = client.streamUnprocessedBytes.Position;
+            byte[] unprocessedBytes = new byte[client.streamUnprocessedBytes.Length - streamUnprocessedBytesPosition];
+            client.streamUnprocessedBytes.Read(unprocessedBytes, 0, unprocessedBytes.Length);
+            client.streamUnprocessedBytes.Position = 0;
+            client.streamUnprocessedBytes.Write(unprocessedBytes);
+            client.streamUnprocessedBytes.SetLength(unprocessedBytes.Count());
         }
 
         public void SendToAll(List<Client> ignoredClients, uint messageType, string messageText, byte[] messageBytes) //TODO: Replace messagType and messagText with Message class
@@ -659,13 +710,13 @@ namespace Chat
                     }
                     if (ignoreClient == false)
                     {
-                        SendMessage(connectedClients[i], ComposeMessage(connectedClients[i], 0, messageType, messageText, messageBytes));
+                        BeginWrite(connectedClients[i], ComposeMessage(connectedClients[i], 0, messageType, messageText, messageBytes));
                         continue;
                     }
                 }
                 else
                 {
-                    SendMessage(connectedClients[i], ComposeMessage(connectedClients[i], 0, messageType, messageText, messageBytes));
+                    BeginWrite(connectedClients[i], ComposeMessage(connectedClients[i], 0, messageType, messageText, messageBytes));
                     continue;
                 }
             }
@@ -762,13 +813,13 @@ namespace Chat
             ignoredClients.Add(client);
             if (setAsAdmin)
             {
-                SendMessage(client, ComposeMessage(client, 0, 14, setter, null));
+                BeginWrite(client, ComposeMessage(client, 0, 14, setter, null));
                 SendToAll(ignoredClients, 15, $"{client.username} {setter}", null);
                 PrintChatMessageEvent.Invoke(this, $"You made {client.username} an Admin");
             }
             else
             {
-                SendMessage(client, ComposeMessage(client, 0, 16, setter, null));
+                BeginWrite(client, ComposeMessage(client, 0, 16, setter, null));
                 SendToAll(ignoredClients, 17, $"{client.username} {setter}", null);
                 PrintChatMessageEvent.Invoke(this, $"You removed {client.username} from Admin");
             }
@@ -793,7 +844,7 @@ namespace Chat
             }
             else
             {
-                SendMessage(client, ComposeMessage(client, 0, type, null, null));
+                BeginWrite(client, ComposeMessage(client, 0, type, null, null));
                 if (client.sslStream != null)
                 {
                     client.sslStream.Close();
