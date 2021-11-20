@@ -265,6 +265,7 @@ namespace Chat
                     e.client.clientId = network.nextAssignableClientId;
                     network.nextAssignableClientId++;
                     network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, 12, e.client.clientId.ToString(), null));
+                    e.client.receivedClientId = true;
                     return;
                 }
                 uint clientId;
