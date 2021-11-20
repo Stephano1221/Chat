@@ -195,7 +195,7 @@ namespace Chat
                     }
                     if (FrmHolder.hosting == false)
                     {
-                        SendMessage(client, ComposeMessage(client, -1, 11, null, null)); // Send heartbeat
+                        BeginWrite(client, ComposeMessage(client, -1, 11, null, null)); // Send heartbeat
                     }
                     client.heartbeatReceieved = false;
                 }
@@ -272,15 +272,15 @@ namespace Chat
             if (client.messagesToBeSent.Count > 0 && client.sendingMessageQueue)
             {
                 Message message = client.messagesToBeSent[0];
-                SendMessage(client, message);
+                BeginWrite(client, message);
             }
             else
             {
                 client.sendingMessageQueue = false;
-                SendMessage(client, ComposeMessage(client, -1, 31, null, null));
+                BeginWrite(client, ComposeMessage(client, -1, 31, null, null));
                 if (FrmHolder.hosting == false)
                 {
-                    SendMessage(client, ComposeMessage(client, -1, 18, null, null));
+                    BeginWrite(client, ComposeMessage(client, -1, 18, null, null));
                     client.receivingMessageQueue = true;
                 }
             }
@@ -440,7 +440,7 @@ namespace Chat
             {
                 clientId = $"{Convert.ToString(FrmHolder.clientId)}";
             }
-            SendMessage(connectedClients[0], ComposeMessage(connectedClients[0], -1, 0, $"{FrmHolder.username} {clientId}", null));
+            BeginWrite(connectedClients[0], ComposeMessage(connectedClients[0], -1, 0, $"{FrmHolder.username} {clientId}", null));
         }
 
         public void BeginAcceptTcpClient(TcpListener tcpListener)
@@ -514,7 +514,7 @@ namespace Chat
             return message;
         }
 
-        public void SendMessage(Client client, Message message)
+        public void BeginWrite(Client client, Message message)
         {
             if (CheckAddMessageToQueue(client, message, false))
             {
@@ -720,13 +720,13 @@ namespace Chat
                     }
                     if (ignoreClient == false)
                     {
-                        SendMessage(connectedClients[i], ComposeMessage(connectedClients[i], -1, messageType, messageText, messageBytes));
+                        BeginWrite(connectedClients[i], ComposeMessage(connectedClients[i], -1, messageType, messageText, messageBytes));
                         continue;
                     }
                 }
                 else
                 {
-                    SendMessage(connectedClients[i], ComposeMessage(connectedClients[i], -1, messageType, messageText, messageBytes));
+                    BeginWrite(connectedClients[i], ComposeMessage(connectedClients[i], -1, messageType, messageText, messageBytes));
                     continue;
                 }
             }
@@ -823,13 +823,13 @@ namespace Chat
             ignoredClients.Add(client);
             if (setAsAdmin)
             {
-                SendMessage(client, ComposeMessage(client, -1, 14, setter, null));
+                BeginWrite(client, ComposeMessage(client, -1, 14, setter, null));
                 SendToAll(ignoredClients, 15, $"{client.username} {setter}", null);
                 PrintChatMessageEvent.Invoke(this, $"You made {client.username} an Admin");
             }
             else
             {
-                SendMessage(client, ComposeMessage(client, -1, 16, setter, null));
+                BeginWrite(client, ComposeMessage(client, -1, 16, setter, null));
                 SendToAll(ignoredClients, 17, $"{client.username} {setter}", null);
                 PrintChatMessageEvent.Invoke(this, $"You removed {client.username} from Admin");
             }
@@ -854,7 +854,7 @@ namespace Chat
             }
             else
             {
-                SendMessage(client, ComposeMessage(client, -1, type, null, null));
+                BeginWrite(client, ComposeMessage(client, -1, type, null, null));
                 if (client.sslStream != null)
                 {
                     client.sslStream.Close();

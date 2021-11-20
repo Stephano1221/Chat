@@ -80,7 +80,7 @@ namespace Chat
 #endif
             if (e.message.messageType != 1 && e.message.messageType != 3 && e.message.messageType != 11)
             {
-                network.SendMessage(e.client, network.ComposeMessage(e.client, e.message.messageId, 1, null, null)); // Acknowledge received message
+                network.BeginWrite(e.client, network.ComposeMessage(e.client, e.message.messageId, 1, null, null)); // Acknowledge received message
                 if (e.client.connectionSetupComplete)
                 {
                     foreach (Message alreadyReceivedMessage in e.client.messagesReceived)
@@ -118,7 +118,7 @@ namespace Chat
                         if (clientId != network.connectedClients[i].clientId)
                         {
                             usernameAlreadyInUse = true;
-                            network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 4, null, null));
+                            network.BeginWrite(e.client, network.ComposeMessage(e.client, -1, 4, null, null));
                             break;
                         }
                     }
@@ -130,7 +130,7 @@ namespace Chat
                     {
                         e.client.clientId = network.nextAssignableClientId;
                         network.nextAssignableClientId++;
-                        network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 12, e.client.clientId.ToString(), null));
+                        network.BeginWrite(e.client, network.ComposeMessage(e.client, -1, 12, e.client.clientId.ToString(), null));
 
                         List<Client> ignoredClients = new List<Client>();
                         ignoredClients.Add(e.client);
@@ -139,8 +139,8 @@ namespace Chat
                         network.UpdateClientLists();
                     }
                     e.client.connectionSetupComplete = true;
-                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 19, null, null));
-                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 18, null, null));
+                    network.BeginWrite(e.client, network.ComposeMessage(e.client, -1, 19, null, null));
+                    network.BeginWrite(e.client, network.ComposeMessage(e.client, -1, 18, null, null));
                     e.client.receivingMessageQueue = true;
                 }
             }
@@ -259,7 +259,7 @@ namespace Chat
             {
                 if (FrmHolder.hosting)
                 {
-                    network.SendMessage(e.client, network.ComposeMessage(e.client, -1, 11, null, null));
+                    network.BeginWrite(e.client, network.ComposeMessage(e.client, -1, 11, null, null));
                 }
             }
             else if (e.message.messageType == 12) // Set clientId
@@ -425,7 +425,7 @@ namespace Chat
             }
             List<Client> ignoredClients = new List<Client>();
             ignoredClients.Add(clients[0]);
-            network.SendMessage(clients[0], network.ComposeMessage(clients[0], -1, 9, $"{FrmHolder.username} {reason}", null)); // Kick client
+            network.BeginWrite(clients[0], network.ComposeMessage(clients[0], -1, 9, $"{FrmHolder.username} {reason}", null)); // Kick client
             network.SendToAll(ignoredClients, 10, $"{username[0]} {FrmHolder.username} {reason}", null);
             return false;
         }
@@ -645,7 +645,7 @@ namespace Chat
                             message = message.Trim();
                             for (int i = 0; i < network.connectedClients.Count; i++)
                             {
-                                network.SendMessage(network.connectedClients[i], network.ComposeMessage(network.connectedClients[i], -1, 2, $"{FrmHolder.username} {message}", null));
+                                network.BeginWrite(network.connectedClients[i], network.ComposeMessage(network.connectedClients[i], -1, 2, $"{FrmHolder.username} {message}", null));
                             }
                         }
                     }
