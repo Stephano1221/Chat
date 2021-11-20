@@ -46,4 +46,31 @@ namespace Chat
 
         }
     }
+
+    public class ClientStateObject
+    {
+        public Client client;
+        public Message message;
+
+        public int headerLength = 0;
+        public byte[] byteBuffer = null;
+        public byte[] idBuffer = new byte[4];
+        public byte[] typeBuffer = new byte[4];
+        public byte[] lengthBuffer = new byte[4];
+        public int? messageId = null;
+        public int? messageType = null;
+        public int? messageLength = null;
+        public bool readHeader = false;
+
+        public byte[] messageBytes = null;
+        public int bytesRead = 0;
+
+        public ClientStateObject(Client client)
+        {
+            this.client = client;
+            headerLength = idBuffer.Count() + typeBuffer.Count() + lengthBuffer.Count();
+            int byteBufferSize = client.tcpClient.ReceiveBufferSize;
+            byteBuffer = new byte[byteBufferSize];
+        }
+    }
 }
