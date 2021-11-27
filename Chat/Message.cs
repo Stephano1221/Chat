@@ -8,6 +8,42 @@ namespace Chat
 {
     public class Message
     {
+        public enum MessageTypes : uint
+        {
+            ConnectionRequest = 0,
+            Acknowledgement = 1,
+            ChatMessage = 2,
+            ClientDisconnect = 3,
+            UsernameInUse = 4,
+            UserConnected = 5,
+            UserDisconnected = 6,
+            ClearUserList = 7,
+            AddToUserList = 8,
+            Kicked = 9,
+            OtherUserKicked = 10,
+            Heartbeat = 11,
+            OwnClientId = 12,
+            OtherUserLostConnection = 13,
+            MadeAdmin = 14,
+            OtherUserMadeAdmin = 15,
+            RemovedAdmin = 16,
+            OtherUserRemovedAdmin = 17,
+            SendMessageQueue = 18,
+            ConnectionSetupComplete = 19,
+            ClientId = 20,
+            RequestVersionNumber = 21,
+            ClientVersionNumber = 22,
+            RequestUsername = 23,
+            ClientUsername = 24,
+            RequestClientId = 25,
+            ServersMinimumSupportedClientVersionNumber = 26,
+            ServersMaximumSupportedClientVersionNumber = 27,
+            ServersPreReleaseSupport = 28,
+            ServerVersionNumberCompatibility = 29,
+            ServerVersionNumber = 30,
+            FinishedSendingMessageQueue = 31
+        }
+
         public uint messageId;
         public uint messageType;
         public string messageText;
@@ -95,19 +131,19 @@ namespace Chat
 
         public void MessageTextToOrFromBytes()
         {
-                if (messageText != null && messageBytes == null)
-                {
-                    messageBytes = Encoding.Unicode.GetBytes(messageText);
-                }
-                else if (messageBytes != null && CheckIfCanConvertToText())
-                {
-                    messageText = Encoding.Unicode.GetString(messageBytes);
-                }
+            if (messageText != null && messageBytes == null)
+            {
+                messageBytes = Encoding.Unicode.GetBytes(messageText);
+            }
+            else if (messageBytes != null && CheckIfCanConvertToText())
+            {
+                messageText = Encoding.Unicode.GetString(messageBytes);
+            }
         }
 
         public void SetPriorityLevelFromMessageType()
         {
-            switch(messageType)
+            switch (messageType)
             {
                 case 0: messageSendPriority = 0; break;
                 case 1: messageSendPriority = 0; break;
