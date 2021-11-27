@@ -82,7 +82,7 @@ namespace Chat
 #endif
             if (e.message.messageType != Message.MessageTypes.Acknowledgement && e.message.messageType != Message.MessageTypes.ClientDisconnect && e.message.messageType != Message.MessageTypes.Heartbeat)
             {
-                network.BeginWrite(e.client, network.ComposeMessage(e.client, e.message.messageId, 1, null, null)); // Acknowledge received message
+                network.BeginWrite(e.client, network.ComposeMessage(e.client, e.message.messageId, Message.MessageTypes.Acknowledgement, null, null)); // Acknowledge received message
                 if (e.client.connectionSetupComplete)
                 {
                     foreach (Message alreadyReceivedMessage in e.client.messagesReceived)
@@ -96,9 +96,9 @@ namespace Chat
                 e.client.messagesReceived.Add(e.message);
             }
 
-            if (e.message.messageType == Message.MessageTypes.ConnectionRequest)
+            if (e.message.messageType == Message.MessageTypes.None)
             {
-
+                return;
             }
             else if (e.message.messageType == Message.MessageTypes.Acknowledgement)
             {
@@ -124,7 +124,7 @@ namespace Chat
                 PrintChatMessage($"{username}: {messageText}");
                 if (FrmHolder.hosting)
                 {
-                    network.SendToAll(null, 2, e.message.messageText, null);
+                    network.SendToAll(null, Message.MessageTypes.ChatMessage, e.message.messageText, null);
                 }
             }
             else if (e.message.messageType == Message.MessageTypes.ClientDisconnect)
@@ -139,7 +139,7 @@ namespace Chat
                     if (e.client.username != null)
                     {
                         PrintChatMessage($"{e.client.username} disconnected");
-                        network.SendToAll(null, 6, e.client.username, null);
+                        network.SendToAll(null, Message.MessageTypes.UserDisconnected, e.client.username, null);
                     }
                     network.UpdateClientLists();
                 }
@@ -215,7 +215,7 @@ namespace Chat
             {
                 if (FrmHolder.hosting)
                 {
-                    network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, 11, null, null));
+                    network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, Message.MessageTypes.Heartbeat, null, null));
                 }
             }
             else if (e.message.messageType == Message.MessageTypes.OwnClientId)
@@ -264,7 +264,7 @@ namespace Chat
                 {
                     e.client.clientId = network.nextAssignableClientId;
                     network.nextAssignableClientId++;
-                    network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, 12, e.client.clientId.ToString(), null));
+                    network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, Message.MessageTypes.OwnClientId, e.client.clientId.ToString(), null));
                     e.client.receivedClientId = true;
                     return;
                 }
@@ -287,17 +287,17 @@ namespace Chat
             }
             else if (e.message.messageType == Message.MessageTypes.RequestVersionNumber)
             {
-                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, 22, FrmHolder.applicationVersion, null));
+                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, Message.MessageTypes.ClientVersionNumber, FrmHolder.applicationVersion, null));
             }
             else if (e.message.messageType == Message.MessageTypes.ClientVersionNumber)
             {
                 e.client.applicationVersionNumber = (e.message.messageText);
                 e.client.receivedApplicationVersionNumber = true;
                 char versionDifference = CheckVersionCompatibility(FrmHolder.minimumSupportedClientVersion, FrmHolder.maximumSupportedClientVersion, e.client.applicationVersionNumber, FrmHolder.allowClientPreRelease);
-                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, 26, FrmHolder.minimumSupportedClientVersion, null));
-                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, 27, FrmHolder.maximumSupportedClientVersion, null));
-                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, 28, FrmHolder.allowClientPreRelease.ToString(), null));
-                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, 29, versionDifference.ToString(), null));
+                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, Message.MessageTypes.ServersMinimumSupportedClientVersionNumber, FrmHolder.minimumSupportedClientVersion, null));
+                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, Message.MessageTypes.ServersMaximumSupportedClientVersionNumber, FrmHolder.maximumSupportedClientVersion, null));
+                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, Message.MessageTypes.ServersPreReleaseSupport, FrmHolder.allowClientPreRelease.ToString(), null));
+                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, Message.MessageTypes.ServerVersionNumberCompatibility, versionDifference.ToString(), null));
                 if (versionDifference == '<' || versionDifference == '>')
                 {
                     network.connectedClients.Remove(e.client);
@@ -309,7 +309,7 @@ namespace Chat
             }
             else if (e.message.messageType == Message.MessageTypes.RequestUsername)
             {
-                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, 24, FrmHolder.username, null));
+                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, Message.MessageTypes.ClientUsername, FrmHolder.username, null));
             }
             else if (e.message.messageType == Message.MessageTypes.ClientUsername)
             {
@@ -322,7 +322,7 @@ namespace Chat
                         if (e.client.clientId != network.connectedClients[i].clientId)
                         {
                             usernameAlreadyInUse = true;
-                            network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, 4, null, null));
+                            network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, Message.MessageTypes.UsernameInUse, null, null));
                             break;
                         }
                     }
@@ -336,7 +336,7 @@ namespace Chat
             else if (e.message.messageType == Message.MessageTypes.RequestClientId)
             {
                 string clientId = FrmHolder.clientId == 0 ? null : FrmHolder.clientId.ToString();
-                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, 20, clientId, null));
+                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, Message.MessageTypes.ClientId, clientId, null));
             }
             else if (e.message.messageType == Message.MessageTypes.ServersMinimumSupportedClientVersionNumber)
             {
@@ -657,7 +657,7 @@ namespace Chat
             {
                 if (client.requestedApplicationVersionNumber == false)
                 {
-                    network.BeginWrite(client, network.ComposeMessage(client, 0, 21, null, null));
+                    network.BeginWrite(client, network.ComposeMessage(client, 0, Message.MessageTypes.RequestVersionNumber, null, null));
                     client.requestedApplicationVersionNumber = true;
                 }
                 return;
@@ -666,7 +666,7 @@ namespace Chat
             {
                 if (client.requestedClientId == false)
                 {
-                    network.BeginWrite(client, network.ComposeMessage(client, 0, 25, null, null));
+                    network.BeginWrite(client, network.ComposeMessage(client, 0, Message.MessageTypes.RequestClientId, null, null));
                     client.requestedClientId = true;
                 }
                 return;
@@ -675,7 +675,7 @@ namespace Chat
             {
                 if (client.requestedUsername == false)
                 {
-                    network.BeginWrite(client, network.ComposeMessage(client, 0, 23, null, null));
+                    network.BeginWrite(client, network.ComposeMessage(client, 0, Message.MessageTypes.RequestUsername, null, null));
                     client.requestedUsername = true;
                 }
                 return;
@@ -685,12 +685,12 @@ namespace Chat
                 List<Client> ignoredClients = new List<Client>();
                 ignoredClients.Add(client);
                 PrintChatMessage($"{client.username} connected");
-                network.SendToAll(ignoredClients, 5, client.username, null);
+                network.SendToAll(ignoredClients, Message.MessageTypes.UserConnected, client.username, null);
                 network.UpdateClientLists();
             }
             client.connectionSetupComplete = true;
-            network.BeginWrite(client, network.ComposeMessage(client, 0, 19, null, null));
-            network.BeginWrite(client, network.ComposeMessage(client, 0, 18, null, null));
+            network.BeginWrite(client, network.ComposeMessage(client, 0, Message.MessageTypes.ConnectionSetupComplete, null, null));
+            network.BeginWrite(client, network.ComposeMessage(client, 0, Message.MessageTypes.SendMessageQueue, null, null));
             client.receivingMessageQueue = true;
         }
 
@@ -749,8 +749,8 @@ namespace Chat
             }
             List<Client> ignoredClients = new List<Client>();
             ignoredClients.Add(clients[0]);
-            network.BeginWrite(clients[0], network.ComposeMessage(clients[0], 0, 9, $"{FrmHolder.username} {reason}", null)); // Kick client
-            network.SendToAll(ignoredClients, 10, $"{username[0]} {FrmHolder.username} {reason}", null);
+            network.BeginWrite(clients[0], network.ComposeMessage(clients[0], 0, Message.MessageTypes.Kicked, $"{FrmHolder.username} {reason}", null)); // Kick client
+            network.SendToAll(ignoredClients, Message.MessageTypes.OtherUserKicked, $"{username[0]} {FrmHolder.username} {reason}", null);
             return false;
         }
 
@@ -989,7 +989,7 @@ namespace Chat
                             message = message.Trim();
                             for (int i = 0; i < network.connectedClients.Count; i++)
                             {
-                                network.BeginWrite(network.connectedClients[i], network.ComposeMessage(network.connectedClients[i], 0, 2, $"{FrmHolder.username} {message}", null));
+                                network.BeginWrite(network.connectedClients[i], network.ComposeMessage(network.connectedClients[i], 0, Message.MessageTypes.ChatMessage, $"{FrmHolder.username} {message}", null));
                             }
                         }
                     }
