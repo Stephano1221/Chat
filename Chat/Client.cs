@@ -72,7 +72,7 @@ namespace Chat
         public byte[] typeBuffer = new byte[4];
         public byte[] lengthBuffer = new byte[4];
         public uint? messageId = null;
-        public uint? messageType = null;
+        public Message.MessageTypes messageType = Message.MessageTypes.None;
         public uint? messageLength = null;
         public bool readHeader = false;
 
