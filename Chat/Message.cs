@@ -10,7 +10,7 @@ namespace Chat
     {
         public enum MessageTypes : uint
         {
-            ConnectionRequest = 0,
+            None = 0,
             Acknowledgement = 1,
             ChatMessage = 2,
             ClientDisconnect = 3,
@@ -145,7 +145,7 @@ namespace Chat
         {
             switch (messageType)
             {
-                case MessageTypes.ConnectionRequest: messageSendPriority = 0; break;
+                case MessageTypes.None: messageSendPriority = 0; break;
                 case MessageTypes.Acknowledgement: messageSendPriority = 0; break;
                 case MessageTypes.ChatMessage: messageSendPriority = 1; break;
                 case MessageTypes.ClientDisconnect: messageSendPriority = 0; break;
@@ -185,7 +185,7 @@ namespace Chat
         {
             switch (messageType)
             {
-                case MessageTypes.ConnectionRequest: return true;
+                case MessageTypes.None: return true;
                 case MessageTypes.Acknowledgement: return true;
                 case MessageTypes.ChatMessage: return true;
                 case MessageTypes.ClientDisconnect: return true;
