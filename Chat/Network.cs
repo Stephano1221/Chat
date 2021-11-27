@@ -198,7 +198,7 @@ namespace Chat
                     }
                     if (FrmHolder.hosting == false)
                     {
-                        BeginWrite(client, ComposeMessage(client, 0, 11, null, null)); // Send heartbeat
+                        BeginWrite(client, ComposeMessage(client, 0, Message.MessageTypes.Heartbeat, null, null)); // Send heartbeat
                     }
                     client.heartbeatReceieved = false;
                 }
@@ -219,7 +219,7 @@ namespace Chat
                 {
                     List<Client> ignoredClients = new List<Client>();
                     ignoredClients.Add(client);
-                    SendToAll(ignoredClients, 13, client.username, null);
+                    SendToAll(ignoredClients, Message.MessageTypes.OtherUserLostConnection, client.username, null);
                     UpdateClientLists();
                     PrintChatMessageEvent(this, $"Lost connection to {client.username}...");
                 }
@@ -269,7 +269,7 @@ namespace Chat
         {
             ECDsa eCDsa = ECDsa.Create();
             CertificateRequest certificateRequest = new CertificateRequest("CN=chat", eCDsa, HashAlgorithmName.SHA256);
-            X509Certificate2 x509Certificate2= certificateRequest.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.Now.AddYears(1));
+            X509Certificate2 x509Certificate2 = certificateRequest.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.Now.AddYears(1));
             byte[] x509Certificate2Bytes = x509Certificate2.Export(X509ContentType.Pkcs12);
             X509Certificate2 x509Certificate2Imported = new X509Certificate2(x509Certificate2Bytes);
             return x509Certificate2Imported;
@@ -294,10 +294,10 @@ namespace Chat
             else
             {
                 client.sendingMessageQueue = false;
-                BeginWrite(client, ComposeMessage(client, 0, 31, null, null));
+                BeginWrite(client, ComposeMessage(client, 0, Message.MessageTypes.FinishedSendingMessageQueue, null, null));
                 if (FrmHolder.hosting == false)
                 {
-                    BeginWrite(client, ComposeMessage(client, 0, 18, null, null));
+                    BeginWrite(client, ComposeMessage(client, 0, Message.MessageTypes.SendMessageQueue, null, null));
                     client.receivingMessageQueue = true;
                 }
             }
@@ -309,7 +309,7 @@ namespace Chat
             {
                 return false;
             }
-            if (message.messageType != 1 && message.messageType != 11)
+            if (message.messageType != Message.MessageTypes.Acknowledgement && message.messageType != Message.MessageTypes.Heartbeat)
             {
                 if (sendFailed)
                 {
@@ -377,18 +377,18 @@ namespace Chat
             }
         }
 
-        public void RemoveMessageFromMessageListByTypeAndOrSendPriority(List<Message> messageList, int? messageType, int? messageSendPriority)
+        public void RemoveMessageFromMessageListByTypeAndOrSendPriority(List<Message> messageList, Message.MessageTypes messageType, int? messageSendPriority)
         {
             for (int i = 0; i < messageList.Count(); i++)
             {
-                if (messageType != null && messageSendPriority != null)
+                if (messageType != Message.MessageTypes.None && messageSendPriority != null)
                 {
                     if (messageList[i].messageType == messageType && messageList[i].messageSendPriority == messageSendPriority)
                     {
                         messageList.RemoveAt(i);
                     }
                 }
-                else if (messageType != null)
+                else if (messageType != Message.MessageTypes.None)
                 {
                     if (messageList[i].messageType == messageType)
                     {
@@ -505,7 +505,7 @@ namespace Chat
             }
         }
 
-        public Message ComposeMessage(Client client, uint messageId, uint messageType, string messageText, byte[] messageBytes)
+        public Message ComposeMessage(Client client, uint messageId, Message.MessageTypes messageType, string messageText, byte[] messageBytes)
         {
             if (messageId == 0)
             {
@@ -544,7 +544,7 @@ namespace Chat
 
                             // Message type
                             byte[] typeBuffer = new byte[4];
-                            typeBuffer = BitConverter.GetBytes(message.messageType);
+                            typeBuffer = BitConverter.GetBytes(((uint)message.messageType));
 
                             // Message bytes
                             byte[] bytesBuffer = null;
@@ -594,7 +594,7 @@ namespace Chat
         }
 
         private void WriteCallback(IAsyncResult asyncResult)
-            {
+        {
             ClientStateObject clientStateObject = asyncResult.AsyncState as ClientStateObject;
             try
             {
@@ -605,7 +605,7 @@ namespace Chat
                 return;
             }
             writeAutoResetEvent.Set();
-            if (clientStateObject.message.messageType != 1 && clientStateObject.message.messageType != 3 && clientStateObject.message.messageType != 11)
+            if (clientStateObject.message.messageType != Message.MessageTypes.Acknowledgement && clientStateObject.message.messageType != Message.MessageTypes.ClientDisconnect && clientStateObject.message.messageType != Message.MessageTypes.Heartbeat)
             {
                 AddMessageToMessageListBySendPriority(clientStateObject.client.messagesToBeSent, clientStateObject.message, true);
             }
@@ -678,7 +678,8 @@ namespace Chat
                         ConvertLittleEndianToBigEndian(clientStateObject.lengthBuffer);
 
                         clientStateObject.messageId = BitConverter.ToUInt32(clientStateObject.idBuffer, 0);
-                        clientStateObject.messageType = BitConverter.ToUInt32(clientStateObject.typeBuffer, 0);
+                        uint messageType = BitConverter.ToUInt32(clientStateObject.typeBuffer, 0);
+                        clientStateObject.messageType = (Message.MessageTypes)messageType;
                         clientStateObject.messageLength = BitConverter.ToUInt32(clientStateObject.lengthBuffer, 0);
 
                         clientStateObject.messageBytes = new byte[clientStateObject.messageLength.GetValueOrDefault()];
@@ -693,7 +694,7 @@ namespace Chat
                     clientStateObject.client.streamUnprocessedBytes.Position = writePosition;
                     TruncateBytesPrecedingPositionInMemoryStream(clientStateObject.client);
                 }
-                Message receivedMessage = ComposeMessage(clientStateObject.client, clientStateObject.messageId.GetValueOrDefault(), clientStateObject.messageType.GetValueOrDefault(), null, clientStateObject.messageBytes);
+                Message receivedMessage = ComposeMessage(clientStateObject.client, clientStateObject.messageId.GetValueOrDefault(), clientStateObject.messageType, null, clientStateObject.messageBytes);
                 MessageReceivedEvent.Invoke(this, new MessageReceivedEventArgs(clientStateObject.client, receivedMessage));
                 BeginRead(clientStateObject.client);
             }
@@ -709,7 +710,7 @@ namespace Chat
             client.streamUnprocessedBytes.SetLength(unprocessedBytes.Count());
         }
 
-        public void SendToAll(List<Client> ignoredClients, uint messageType, string messageText, byte[] messageBytes) //TODO: Replace messagType and messagText with Message class
+        public void SendToAll(List<Client> ignoredClients, Message.MessageTypes messageType, string messageText, byte[] messageBytes) //TODO: Replace messagType and messagText with Message class
         {
             for (int i = 0; i < connectedClients.Count; i++)
             {
@@ -813,12 +814,12 @@ namespace Chat
         public void UpdateClientLists()
         {
             ClearClientListEvent.Invoke(this, null);
-            SendToAll(null, 7, null, null);
+            SendToAll(null, Message.MessageTypes.ClearUserList, null, null);
             string[] usernames = GetClientUsernames();
             for (int i = 0; i < usernames.Length; i++)
             {
                 AddClientToClientListEvent.Invoke(this, usernames[i]);
-                SendToAll(null, 8, usernames[i], null);
+                SendToAll(null, Message.MessageTypes.AddToUserList, usernames[i], null);
             }
         }
 
@@ -829,21 +830,21 @@ namespace Chat
             ignoredClients.Add(client);
             if (setAsAdmin)
             {
-                BeginWrite(client, ComposeMessage(client, 0, 14, setter, null));
-                SendToAll(ignoredClients, 15, $"{client.username} {setter}", null);
+                BeginWrite(client, ComposeMessage(client, 0, Message.MessageTypes.MadeAdmin, setter, null));
+                SendToAll(ignoredClients, Message.MessageTypes.OtherUserMadeAdmin, $"{client.username} {setter}", null);
                 PrintChatMessageEvent.Invoke(this, $"You made {client.username} an Admin");
             }
             else
             {
-                BeginWrite(client, ComposeMessage(client, 0, 16, setter, null));
-                SendToAll(ignoredClients, 17, $"{client.username} {setter}", null);
+                BeginWrite(client, ComposeMessage(client, 0, Message.MessageTypes.RemovedAdmin, setter, null));
+                SendToAll(ignoredClients, Message.MessageTypes.OtherUserRemovedAdmin, $"{client.username} {setter}", null);
                 PrintChatMessageEvent.Invoke(this, $"You removed {client.username} from Admin");
             }
         }
 
         public void SendDisconnect(Client client, bool kick, bool sendToAll)
         {
-            uint type = Convert.ToUInt32(kick == false ? 3 : 9);
+            Message.MessageTypes type = kick == false ? Message.MessageTypes.ClientDisconnect : Message.MessageTypes.Kicked;
             if (sendToAll)
             {
                 List<Client> ignoredClients = new List<Client>();
