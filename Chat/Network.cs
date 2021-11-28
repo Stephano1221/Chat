@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Windows.Forms;
 
@@ -62,8 +63,15 @@ namespace Chat
             AddClientToClientListEvent(this, FrmHolder.username);
             if (FrmHolder.hosting)
             {
-                publicIp = new WebClient().DownloadString("https://ipv4.icanhazip.com/"); //TODO: Implement backup URLs
-                //publicIp = localIp; // For use if unable to access internet/port forward
+                try
+                {
+                    Task<string> publicIpTask = new HttpClient().GetStringAsync("https://ipv4.icanhazip.com/"); //TODO: Implement backup URLs
+                    publicIp = publicIpTask.Result;
+                }
+                catch (Exception ex) when (ex.InnerException is TaskCanceledException || ex.InnerException is HttpRequestException)
+                {
+                    publicIp = $"(Local IP) {localIp}";
+                }
                 publicIp = publicIp.Trim();
 
                 serverThread = new Thread(new ParameterizedThreadStart(StartServer));
