@@ -287,16 +287,16 @@ namespace Chat
             }
             else if (e.message.messageType == Message.MessageTypes.RequestVersionNumber)
             {
-                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, Message.MessageTypes.ClientVersionNumber, FrmHolder.applicationVersion, null));
+                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, Message.MessageTypes.ClientVersionNumber, VersionNumber.applicationVersion, null));
             }
             else if (e.message.messageType == Message.MessageTypes.ClientVersionNumber)
             {
                 e.client.applicationVersionNumber = (e.message.messageText);
                 e.client.receivedApplicationVersionNumber = true;
-                char versionDifference = VersionNumber.CheckVersionCompatibility(FrmHolder.minimumSupportedClientVersion, FrmHolder.maximumSupportedClientVersion, e.client.applicationVersionNumber, FrmHolder.allowClientPreRelease);
-                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, Message.MessageTypes.ServersMinimumSupportedClientVersionNumber, FrmHolder.minimumSupportedClientVersion, null));
-                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, Message.MessageTypes.ServersMaximumSupportedClientVersionNumber, FrmHolder.maximumSupportedClientVersion, null));
-                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, Message.MessageTypes.ServersPreReleaseSupport, FrmHolder.allowClientPreRelease.ToString(), null));
+                char versionDifference = VersionNumber.CheckVersionCompatibility(VersionNumber.minimumSupportedClientVersion, VersionNumber.maximumSupportedClientVersion, e.client.applicationVersionNumber, VersionNumber.allowClientPreRelease);
+                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, Message.MessageTypes.ServersMinimumSupportedClientVersionNumber, VersionNumber.minimumSupportedClientVersion, null));
+                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, Message.MessageTypes.ServersMaximumSupportedClientVersionNumber, VersionNumber.maximumSupportedClientVersion, null));
+                network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, Message.MessageTypes.ServersPreReleaseSupport, VersionNumber.allowClientPreRelease.ToString(), null));
                 network.BeginWrite(e.client, network.ComposeMessage(e.client, 0, Message.MessageTypes.ServerVersionNumberCompatibility, versionDifference.ToString(), null));
                 if (versionDifference == '<' || versionDifference == '>')
                 {
@@ -372,7 +372,7 @@ namespace Chat
                     if (unsupportedVersion)
                     {
                         string difference = clientApplicationNumberServerCompatibility == '<' ? "an older" : "a newer";
-                        MessageBox.Show($"You are running {difference} version ({FrmHolder.applicationVersion}) than that which is supported by the server ({e.client.serverMaximumSupportedClientApplicationVersionNumber}).", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        MessageBox.Show($"You are running {difference} version ({VersionNumber.applicationVersion}) than that which is supported by the server ({e.client.serverMaximumSupportedClientApplicationVersionNumber}).", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         BeginDisconnect();
                     }
                 }
