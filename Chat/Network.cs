@@ -618,7 +618,7 @@ namespace Chat
                 AddMessageToMessageListBySendPriority(clientStateObject.client.messagesToBeSent, clientStateObject.message, true);
             }
 #if DEBUG && messageSentUpdates
-                            if (message.messageType != 11)
+                            if (message.messageType != Message.MessageTypes.Heartbeat)
                             {
                                 string text;
                                 if (message.messageText != null)
