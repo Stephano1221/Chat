@@ -671,7 +671,7 @@ namespace Chat
             if (bytesRead > 0)
             {
                 clientStateObject.client.streamUnprocessedBytes.Write(clientStateObject.byteBuffer, 0, (int)bytesRead);
-                if (clientStateObject.client.streamUnprocessedBytes.Length >= clientStateObject.headerLength)
+                while (clientStateObject.client.streamUnprocessedBytes.Length >= clientStateObject.headerLength)
                 {
                     long writePosition = clientStateObject.client.streamUnprocessedBytes.Position;
                     if (clientStateObject.readHeader == false)
@@ -697,13 +697,18 @@ namespace Chat
                     {
                         clientStateObject.client.streamUnprocessedBytes.Position = clientStateObject.headerLength;
                         clientStateObject.client.streamUnprocessedBytes.Read(clientStateObject.messageBytes, 0, clientStateObject.messageBytes.Count());
+                        TruncateBytesPrecedingPositionInMemoryStream(clientStateObject.client);
+                        clientStateObject.readHeader = false;
                         ConvertLittleEndianToBigEndian(clientStateObject.messageBytes);
+                        Message receivedMessage = ComposeMessage(clientStateObject.client, clientStateObject.messageId.GetValueOrDefault(), clientStateObject.messageType, null, clientStateObject.messageBytes);
+                        MessageReceivedEvent.Invoke(this, new MessageReceivedEventArgs(clientStateObject.client, receivedMessage));
                     }
-                    clientStateObject.client.streamUnprocessedBytes.Position = writePosition;
-                    TruncateBytesPrecedingPositionInMemoryStream(clientStateObject.client);
+                    else
+                    {
+                        clientStateObject.client.streamUnprocessedBytes.Position = writePosition;
+                        break;
+                    }
                 }
-                Message receivedMessage = ComposeMessage(clientStateObject.client, clientStateObject.messageId.GetValueOrDefault(), clientStateObject.messageType, null, clientStateObject.messageBytes);
-                MessageReceivedEvent.Invoke(this, new MessageReceivedEventArgs(clientStateObject.client, receivedMessage));
                 BeginRead(clientStateObject.client);
             }
         }
