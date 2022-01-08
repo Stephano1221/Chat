@@ -68,7 +68,7 @@ namespace Chat
                 }
             }
 #if DEBUG && messageReceivedUpdates
-            if (e.message.messageType != 11)
+            if (e.message.messageType != Message.MessageTypes.Heartbeat)
             {
                 if (e.message.messageText != null)
                 {

@@ -618,16 +618,16 @@ namespace Chat
                 AddMessageToMessageListBySendPriority(clientStateObject.client.messagesToBeSent, clientStateObject.message, true);
             }
 #if DEBUG && messageSentUpdates
-                            if (message.messageType != 11)
+                            if (clientStateObject.message.messageType != Message.MessageTypes.Heartbeat)
                             {
                                 string text;
-                                if (message.messageText != null)
+                                if (clientStateObject.message.messageText != null)
                                 {
-                                    text = $"[SENT] Type: {message.messageType}. ID: {message.messageId}. Text: {message.messageText}";
+                                    text = $"[SENT] Type: {clientStateObject.message.messageType}. ID: {clientStateObject.message.messageId}. Text: {clientStateObject.message.messageText}";
                                 }
                                 else
                                 {
-                                    text = $"[SENT] Type: {message.messageType}. ID: {message.messageId}";
+                                    text = $"[SENT] Type: {clientStateObject.message.messageType}. ID: {clientStateObject.message.messageId}";
                                 }
                                 PrintChatMessageEvent.Invoke(this, text);
                             }
