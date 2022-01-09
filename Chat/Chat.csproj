@@ -25,18 +25,4 @@
     <RepositoryType>Git</RepositoryType>
   </PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-		<NoWarn>1701;1702</NoWarn>
-		<WarningLevel>5</WarningLevel>
-	</PropertyGroup>
-
-	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-		<DocumentationFile></DocumentationFile>
-		<Optimize>true</Optimize>
-		<WarningLevel>5</WarningLevel>
-		<NoWarn>1701;1702</NoWarn>
-		<TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-		<WarningsAsErrors>;NU1605</WarningsAsErrors>
-	</PropertyGroup>
-	
 </Project>
