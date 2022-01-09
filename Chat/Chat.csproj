@@ -3,7 +3,9 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net6.0-windows</TargetFramework>
+	<Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
+	  <ImplicitUsings>enable</ImplicitUsings>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	  <!--Versioning MUST follow Semantic versioning 2.0.0: https://semver.org/spec/v2.0.0.html by Tom Preston-Werner. License (Creative Commons - CC BY 3.0): https://creativecommons.org/licenses/by/3.0/legalcode -->
 	  <!--For further information on how to use the below assembly versions, see https://andrewlock.net/version-vs-versionsuffix-vs-packageversion-what-do-they-all-mean/ by Andrew Lock-->
