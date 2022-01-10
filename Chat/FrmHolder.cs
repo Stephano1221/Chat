@@ -9,7 +9,7 @@
         public static string applicationWindowText = "Chat";
 
         private FrmLoginScreen loginScreen;
-        public static Network network;
+        public static Processing processing;
 
         public FrmHolder()
         {
