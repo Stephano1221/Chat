@@ -59,7 +59,6 @@
             this.xlsvConnectedUsers.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnHeader1});
             this.xlsvConnectedUsers.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
-            this.xlsvConnectedUsers.HideSelection = false;
             this.xlsvConnectedUsers.Location = new System.Drawing.Point(4, 26);
             this.xlsvConnectedUsers.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.xlsvConnectedUsers.Name = "xlsvConnectedUsers";
