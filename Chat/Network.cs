@@ -8,7 +8,7 @@ using System.Net.Sockets;
 
 namespace Chat
 {
-    class Network
+    public class Network
     {
         public X509Certificate2 x509Certificate;
         public string certificateName = "chatappserver.ddns.net";

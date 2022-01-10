@@ -4,7 +4,7 @@
     {
     }
 
-    class MessageReceivedEventArgs : EventArgs
+    public class MessageReceivedEventArgs : EventArgs
     {
         public Client client;
         public Message message;
@@ -16,7 +16,7 @@
         }
     }
 
-    class ShowMessageBoxEventArgs : EventArgs
+    public class ShowMessageBoxEventArgs : EventArgs
     {
         public string message;
         public string caption;
