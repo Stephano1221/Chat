@@ -7,6 +7,7 @@ namespace Chat
 {
     public class Network
     {
+        public event EventHandler<FirstConnectionAttemptResultEventArgs> FirstConnectionAttemptResultEvent;
         public event EventHandler<MessageReceivedEventArgs> MessageReceivedEvent;
         public event EventHandler<ShowMessageBoxEventArgs> ShowMessageBoxEvent;
         public event EventHandler<Client> AcceptTcpClientEvent;
@@ -41,7 +42,15 @@ namespace Chat
         private void ConnectCallback(IAsyncResult asyncResult)
         {
             Client client = asyncResult.AsyncState as Client;
-            client.tcpClient.EndConnect(asyncResult);
+            try
+            {
+                client.tcpClient.EndConnect(asyncResult);
+            }
+            catch (Exception ex) when (ex is SocketException)
+            {
+                InvokeFirstConnectionAttemptResultEvent(this, new FirstConnectionAttemptResultEventArgs(false, "Unable to reach the server.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information));
+                return;
+            }
             connectAutoResetEvent.Set();
             client.sslStream = new SslStream(client.tcpClient.GetStream(), false, new RemoteCertificateValidationCallback(FrmHolder.processing.ValidateServerCertificate), null);
             try
@@ -51,7 +60,7 @@ namespace Chat
                 {
                     client.sslStream.Close();
                     FrmHolder.processing.connectedClients.Remove(client);
-                    ShowMessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs("Unable to establish a secure connection to the server.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error));
+                    InvokeFirstConnectionAttemptResultEvent(this, new FirstConnectionAttemptResultEventArgs(false, "Unable to establish a secure connection to the server.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error));
                     return;
                 }
             }
@@ -59,10 +68,11 @@ namespace Chat
             {
                 client.sslStream.Close();
                 FrmHolder.processing.connectedClients.Remove(client);
-                ShowMessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error));
+                InvokeFirstConnectionAttemptResultEvent(this, new FirstConnectionAttemptResultEventArgs(false, ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error));
                 return;
             }
             BeginRead(client);
+            InvokeFirstConnectionAttemptResultEvent(this, new FirstConnectionAttemptResultEventArgs(true));
         }
 
         public void BeginAcceptTcpClient(TcpListener tcpListener)
@@ -304,6 +314,14 @@ namespace Chat
             client.streamUnprocessedBytes.Position = 0;
             client.streamUnprocessedBytes.Write(unprocessedBytes);
             client.streamUnprocessedBytes.SetLength(unprocessedBytes.Count());
+        }
+
+        private void InvokeFirstConnectionAttemptResultEvent(object sender, FirstConnectionAttemptResultEventArgs e)
+        {
+            if (FirstConnectionAttemptResultEvent != null)
+            {
+                FirstConnectionAttemptResultEvent.Invoke(sender, e);
+            }
         }
     }
 }

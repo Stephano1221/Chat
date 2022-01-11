@@ -2,6 +2,9 @@
 {
     public partial class FrmLoginScreen : Form
     {
+        private delegate void FirstConnectionAttemptResultDelegate(FirstConnectionAttemptResultEventArgs firstConnectionAttemptResultEventArgs);
+        frmConnecting frmConnecting;
+
         public FrmLoginScreen()
         {
             InitializeComponent();
@@ -20,6 +23,7 @@
             {
                 FrmHolder.username = xtbxUsername.Text;
                 FrmHolder.hosting = true;
+                FrmHolder.processing = new Processing();
                 FrmChatScreen frmLoginScreen = new FrmChatScreen
                 {
                     MdiParent = this.ParentForm,
@@ -40,13 +44,14 @@
                 DialogResult dialogResult = frmEnterJoinIp.ShowDialog();
                 if (dialogResult == DialogResult.OK)
                 {
-                    FrmChatScreen frmChatScreen = new FrmChatScreen
+                    FrmHolder.processing = new Processing();
+                    FrmHolder.processing.FirstConnectionAttemptResultEvent += OnFirstConnectionAttemptResult;
+                    frmConnecting = new frmConnecting
                     {
                         MdiParent = this.ParentForm,
                         Dock = DockStyle.Fill
                     };
-                    frmChatScreen.Show();
-                    this.Close();
+                    frmConnecting.Show();
                 }
                 frmEnterJoinIp.Close();
             }
@@ -73,9 +78,41 @@
             return true;
         }
 
+        private void FirstConnectionAttemptResult(FirstConnectionAttemptResultEventArgs e)
+        {
+            if (e.firstConnectionAttemptResult == false)
+            {
+                if (e.message != null)
+                {
+                    MessageBox.Show(e.message, e.caption, e.messageBoxButtons, e.messageBoxIcon);
+                }
+            }
+            else
+            {
+                FrmHolder.chatScreen = new FrmChatScreen
+                {
+                    MdiParent = this.ParentForm,
+                    Dock = DockStyle.Fill
+                };
+                FrmHolder.chatScreen.Show();
+            }
+            frmConnecting.Close();
+        }
+
         private void xtbxUsername_TextChanged(object sender, EventArgs e)
         {
             xlblUsernameError.Hide();
+        }
+        private void OnFirstConnectionAttemptResult(object sender, FirstConnectionAttemptResultEventArgs firstConnectionAttemptResultEventArgs)
+        {
+            if (this.InvokeRequired)
+            {
+                this.BeginInvoke(new FirstConnectionAttemptResultDelegate(FirstConnectionAttemptResult), firstConnectionAttemptResultEventArgs);
+            }
+            else
+            {
+                FirstConnectionAttemptResult(firstConnectionAttemptResultEventArgs);
+            }
         }
     }
 }

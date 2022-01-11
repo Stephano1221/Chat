@@ -11,6 +11,7 @@ namespace Chat
         private Network network;
 
         #region Event Handlers
+        public event EventHandler<FirstConnectionAttemptResultEventArgs> FirstConnectionAttemptResultEvent;
         public event EventHandler OpenMainMenuEvent;
         public event EventHandler<string> PrintChatMessageEvent;
         public event EventHandler<Client> HeartbeatTimeoutEvent;
@@ -56,6 +57,7 @@ namespace Chat
 
         private void SetNetworkEventHandlers()
         {
+            network.FirstConnectionAttemptResultEvent += OnFirstConnectionAttemptResult;
             network.MessageReceivedEvent += OnMessageReceived;
             network.ShowMessageBoxEvent += OnShowMessageBox;
             network.AcceptTcpClientEvent += OnAcceptTcpClient;
@@ -141,7 +143,6 @@ namespace Chat
 
             network.BeginConnect(client);
             StartHeartbeat();
-            InvokePrintChatMessageEvent(this, $"Connected to server on: {publicIp}"); //TODO: Only if succesfully connected - use acknowledgement
 
             while (cancellationToken.IsCancellationRequested == false)
             {
@@ -1172,6 +1173,14 @@ namespace Chat
         }
 
         #region Invoke Events
+        private void InvokeFirstConnectionAttemptResultEvent(object sender, FirstConnectionAttemptResultEventArgs e)
+        {
+            if (FirstConnectionAttemptResultEvent != null)
+            {
+                FirstConnectionAttemptResultEvent.Invoke(sender, e);
+            }
+        }
+
         private void InvokeOpenMainMenuEvent(object sender, EventArgs e)
         {
             if (OpenMainMenuEvent != null)
@@ -1220,6 +1229,11 @@ namespace Chat
             }
         }
         #endregion
+
+        private void OnFirstConnectionAttemptResult(object sender, FirstConnectionAttemptResultEventArgs e)
+        {
+            InvokeFirstConnectionAttemptResultEvent(this, e);
+        }
 
         private void OnShowMessageBox(object sender, ShowMessageBoxEventArgs showMessageBoxEventArgs)
         {
