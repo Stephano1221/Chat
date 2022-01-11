@@ -7,6 +7,7 @@ namespace Chat
 {
     public class Network
     {
+        public event EventHandler<FirstConnectionAttemptResultEventArgs> FirstConnectionAttemptResultEvent;
         public event EventHandler<MessageReceivedEventArgs> MessageReceivedEvent;
         public event EventHandler<ShowMessageBoxEventArgs> ShowMessageBoxEvent;
         public event EventHandler<Client> AcceptTcpClientEvent;
@@ -304,6 +305,14 @@ namespace Chat
             client.streamUnprocessedBytes.Position = 0;
             client.streamUnprocessedBytes.Write(unprocessedBytes);
             client.streamUnprocessedBytes.SetLength(unprocessedBytes.Count());
+        }
+
+        private void InvokeFirstConnectionAttemptResultEvent(object sender, FirstConnectionAttemptResultEventArgs e)
+        {
+            if (FirstConnectionAttemptResultEvent != null)
+            {
+                FirstConnectionAttemptResultEvent.Invoke(sender, e);
+            }
         }
     }
 }
