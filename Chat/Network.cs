@@ -113,7 +113,7 @@ namespace Chat
                 //MessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs(ex.Message, "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning));
             }
             BeginRead(client);
-            AcceptTcpClientEvent.Invoke(this, client);
+            InvokeAcceptTcpClientEvent(this, client);
         }
 
         public void ConvertLittleEndianToBigEndian(byte[] byteArray) // Converts byte array from Little-Endian/Host Byte Order to Big-Endian/Network Byte Order for network tranfer if host machine stores bytes in Little Endian (and back if needed)
@@ -294,7 +294,7 @@ namespace Chat
                         TruncateBytesPrecedingPositionInMemoryStream(clientStateObject.client);
                         clientStateObject.readHeader = false;
                         ConvertLittleEndianToBigEndian(clientStateObject.messageBytes);
-                        MessageReceivedEvent.Invoke(this, new MessageReceivedEventArgs(clientStateObject.client, clientStateObject.messageId.GetValueOrDefault(), clientStateObject.messageType, null, clientStateObject.messageBytes));
+                        InvokeMessageReceivedEvent(this, new MessageReceivedEventArgs(clientStateObject.client, clientStateObject.messageId.GetValueOrDefault(), clientStateObject.messageType, null, clientStateObject.messageBytes));
                     }
                     else
                     {
@@ -321,6 +321,22 @@ namespace Chat
             if (FirstConnectionAttemptResultEvent != null)
             {
                 FirstConnectionAttemptResultEvent.Invoke(sender, e);
+            }
+        }
+
+        private void InvokeMessageReceivedEvent(object sender, MessageReceivedEventArgs e)
+        {
+            if (MessageReceivedEvent != null)
+            {
+                MessageReceivedEvent.Invoke(sender, e);
+            }
+        }
+
+        private void InvokeAcceptTcpClientEvent(object sender, Client e)
+        {
+            if (AcceptTcpClientEvent != null)
+            {
+                AcceptTcpClientEvent.Invoke(sender, e);
             }
         }
     }
