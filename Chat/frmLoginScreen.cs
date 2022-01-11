@@ -2,6 +2,9 @@
 {
     public partial class FrmLoginScreen : Form
     {
+        private delegate void FirstConnectionAttemptResultDelegate(FirstConnectionAttemptResultEventArgs firstConnectionAttemptResultEventArgs);
+        frmConnecting frmConnecting;
+
         public FrmLoginScreen()
         {
             InitializeComponent();
@@ -76,6 +79,17 @@
         private void xtbxUsername_TextChanged(object sender, EventArgs e)
         {
             xlblUsernameError.Hide();
+        }
+        private void OnFirstConnectionAttemptResult(object sender, FirstConnectionAttemptResultEventArgs firstConnectionAttemptResultEventArgs)
+        {
+            if (this.InvokeRequired)
+            {
+                this.BeginInvoke(new FirstConnectionAttemptResultDelegate(FirstConnectionAttemptResult), firstConnectionAttemptResultEventArgs);
+            }
+            else
+            {
+                FirstConnectionAttemptResult(firstConnectionAttemptResultEventArgs);
+            }
         }
     }
 }
