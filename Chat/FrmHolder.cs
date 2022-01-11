@@ -10,6 +10,7 @@
 
         private FrmLoginScreen loginScreen;
         public static Processing processing;
+        public static FrmChatScreen chatScreen;
 
         public FrmHolder()
         {
