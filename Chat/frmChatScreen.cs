@@ -17,7 +17,6 @@ namespace Chat
         public FrmChatScreen()
         {
             InitializeComponent();
-            FrmHolder.processing = new Processing();
             SetProcessingEventHandlers();
             SetFormEventHandlers();
             xlsvConnectedUsers.Columns[0].Width = xlsvConnectedUsers.Width - 5;
