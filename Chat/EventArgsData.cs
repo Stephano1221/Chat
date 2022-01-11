@@ -4,6 +4,30 @@
     {
     }
 
+    public class FirstConnectionAttemptResultEventArgs : EventArgs
+    {
+        public bool firstConnectionAttemptResult;
+        public string message;
+        public string caption;
+        public MessageBoxButtons messageBoxButtons;
+        public MessageBoxIcon messageBoxIcon;
+        public DialogResult dialogResult;
+
+        public FirstConnectionAttemptResultEventArgs(bool firstConnectionAttemptResult, string message, string caption, MessageBoxButtons messageBoxButtons, MessageBoxIcon messageBoxIcon)
+        {
+            this.firstConnectionAttemptResult = firstConnectionAttemptResult;
+            this.message = message;
+            this.caption = caption;
+            this.messageBoxButtons = messageBoxButtons;
+            this.messageBoxIcon = messageBoxIcon;
+        }
+
+        public FirstConnectionAttemptResultEventArgs(bool firstConnectionAttemptResult)
+        {
+            this.firstConnectionAttemptResult = firstConnectionAttemptResult;
+        }
+    }
+
     public class MessageReceivedEventArgs : EventArgs
     {
         public Client client;
