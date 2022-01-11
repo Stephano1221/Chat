@@ -1,13 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net.Security;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
-using System.Net;
+﻿using System.Net.Security;
 using System.Net.Sockets;
 
 namespace Chat
@@ -72,7 +63,7 @@ namespace Chat
         public byte[] typeBuffer = new byte[4];
         public byte[] lengthBuffer = new byte[4];
         public uint? messageId = null;
-        public uint? messageType = null;
+        public Message.MessageTypes messageType = Message.MessageTypes.None;
         public uint? messageLength = null;
         public bool readHeader = false;
 

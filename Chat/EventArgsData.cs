@@ -1,30 +1,52 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Security.Authentication;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-
-namespace Chat
+﻿namespace Chat
 {
     class EventArgsData
     {
     }
 
-    class MessageReceivedEventArgs : EventArgs
+    public class FirstConnectionAttemptResultEventArgs : EventArgs
     {
-        public Client client;
-        public Message message;
+        public bool firstConnectionAttemptResult;
+        public string message;
+        public string caption;
+        public MessageBoxButtons messageBoxButtons;
+        public MessageBoxIcon messageBoxIcon;
+        public DialogResult dialogResult;
 
-        public MessageReceivedEventArgs(Client client, Message message)
+        public FirstConnectionAttemptResultEventArgs(bool firstConnectionAttemptResult, string message, string caption, MessageBoxButtons messageBoxButtons, MessageBoxIcon messageBoxIcon)
         {
-            this.client = client;
+            this.firstConnectionAttemptResult = firstConnectionAttemptResult;
             this.message = message;
+            this.caption = caption;
+            this.messageBoxButtons = messageBoxButtons;
+            this.messageBoxIcon = messageBoxIcon;
+        }
+
+        public FirstConnectionAttemptResultEventArgs(bool firstConnectionAttemptResult)
+        {
+            this.firstConnectionAttemptResult = firstConnectionAttemptResult;
         }
     }
 
-    class ShowMessageBoxEventArgs : EventArgs
+    public class MessageReceivedEventArgs : EventArgs
+    {
+        public Client client;
+        public uint messageId;
+        public Message.MessageTypes messageType;
+        public string messageText;
+        public byte[] messageBytes;
+
+        public MessageReceivedEventArgs(Client client, uint messageId, Message.MessageTypes messageType, string messageText, byte[] messageBytes)
+        {
+            this.client = client;
+            this.messageId = messageId;
+            this.messageType = messageType;
+            this.messageText = messageText;
+            this.messageBytes = messageBytes;
+        }
+    }
+
+    public class ShowMessageBoxEventArgs : EventArgs
     {
         public string message;
         public string caption;

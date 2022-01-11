@@ -1,21 +1,53 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
 
 namespace Chat
 {
     public class Message
     {
+        public enum MessageTypes : uint
+        {
+            None = 0,
+            Acknowledgement = 1,
+            ChatMessage = 2,
+            ClientDisconnect = 3,
+            UsernameInUse = 4,
+            UserConnected = 5,
+            UserDisconnected = 6,
+            ClearUserList = 7,
+            AddToUserList = 8,
+            Kicked = 9,
+            OtherUserKicked = 10,
+            Heartbeat = 11,
+            OwnClientId = 12,
+            OtherUserLostConnection = 13,
+            MadeAdmin = 14,
+            OtherUserMadeAdmin = 15,
+            RemovedAdmin = 16,
+            OtherUserRemovedAdmin = 17,
+            SendMessageQueue = 18,
+            ConnectionSetupComplete = 19,
+            ClientId = 20,
+            RequestVersionNumber = 21,
+            ClientVersionNumber = 22,
+            RequestUsername = 23,
+            ClientUsername = 24,
+            RequestClientId = 25,
+            ServersMinimumSupportedClientVersionNumber = 26,
+            ServersMaximumSupportedClientVersionNumber = 27,
+            ServersPreReleaseSupport = 28,
+            ServerVersionNumberCompatibility = 29,
+            ServerVersionNumber = 30,
+            FinishedSendingMessageQueue = 31
+        }
+
         public uint messageId;
-        public uint messageType;
+        public MessageTypes messageType;
         public string messageText;
         public byte[] messageBytes;
 
         public int messageSendPriority;
 
-        public Message(uint messageId, uint messageType, string messageText)
+        public Message(uint messageId, MessageTypes messageType, string messageText)
         {
             this.messageId = messageId;
             this.messageType = messageType;
@@ -25,7 +57,7 @@ namespace Chat
             SetPriorityLevelFromMessageType();
         }
 
-        public Message(uint messageType, string messageText)
+        public Message(MessageTypes messageType, string messageText)
         {
             this.messageType = messageType;
             this.messageText = messageText;
@@ -35,7 +67,7 @@ namespace Chat
 
         }
 
-        public Message(uint messageId, uint messageType, string messageText, int messageSendPriority)
+        public Message(uint messageId, MessageTypes messageType, string messageText, int messageSendPriority)
         {
             this.messageId = messageId;
             this.messageType = messageType;
@@ -45,7 +77,7 @@ namespace Chat
             this.messageSendPriority = messageSendPriority;
         }
 
-        public Message(uint messageType, string messageText, int messageSendPriority)
+        public Message(MessageTypes messageType, string messageText, int messageSendPriority)
         {
             this.messageType = messageType;
             this.messageText = messageText;
@@ -54,7 +86,7 @@ namespace Chat
             this.messageSendPriority = messageSendPriority;
         }
 
-        public Message(uint messageId, uint messageType, byte[] messageBytes)
+        public Message(uint messageId, MessageTypes messageType, byte[] messageBytes)
         {
             this.messageId = messageId;
             this.messageType = messageType;
@@ -64,7 +96,7 @@ namespace Chat
             SetPriorityLevelFromMessageType();
         }
 
-        public Message(uint messageType, byte[] messageBytes)
+        public Message(MessageTypes messageType, byte[] messageBytes)
         {
             this.messageType = messageType;
             this.messageBytes = messageBytes;
@@ -74,7 +106,7 @@ namespace Chat
 
         }
 
-        public Message(uint messageId, uint messageType, byte[] messageBytes, int messageSendPriority)
+        public Message(uint messageId, MessageTypes messageType, byte[] messageBytes, int messageSendPriority)
         {
             this.messageId = messageId;
             this.messageType = messageType;
@@ -84,7 +116,7 @@ namespace Chat
             this.messageSendPriority = messageSendPriority;
         }
 
-        public Message(uint messageType, byte[] messageBytes, int messageSendPriority)
+        public Message(MessageTypes messageType, byte[] messageBytes, int messageSendPriority)
         {
             this.messageType = messageType;
             this.messageBytes = messageBytes;
@@ -95,52 +127,52 @@ namespace Chat
 
         public void MessageTextToOrFromBytes()
         {
-                if (messageText != null && messageBytes == null)
-                {
-                    messageBytes = Encoding.Unicode.GetBytes(messageText);
-                }
-                else if (messageBytes != null && CheckIfCanConvertToText())
-                {
-                    messageText = Encoding.Unicode.GetString(messageBytes);
-                }
+            if (messageText != null && messageBytes == null)
+            {
+                messageBytes = Encoding.Unicode.GetBytes(messageText);
+            }
+            else if (messageBytes != null && CheckIfCanConvertToText())
+            {
+                messageText = Encoding.Unicode.GetString(messageBytes);
+            }
         }
 
         public void SetPriorityLevelFromMessageType()
         {
-            switch(messageType)
+            switch (messageType)
             {
-                case 0: messageSendPriority = 0; break;
-                case 1: messageSendPriority = 0; break;
-                case 2: messageSendPriority = 1; break;
-                case 3: messageSendPriority = 0; break;
-                case 4: messageSendPriority = 0; break;
-                case 5: messageSendPriority = 1; break;
-                case 6: messageSendPriority = 1; break;
-                case 7: messageSendPriority = 1; break;
-                case 8: messageSendPriority = 1; break;
-                case 9: messageSendPriority = 0; break;
-                case 10: messageSendPriority = 1; break;
-                case 11: messageSendPriority = 0; break;
-                case 12: messageSendPriority = 0; break;
-                case 13: messageSendPriority = 1; break;
-                case 14: messageSendPriority = 1; break;
-                case 15: messageSendPriority = 1; break;
-                case 16: messageSendPriority = 1; break;
-                case 17: messageSendPriority = 1; break;
-                case 18: messageSendPriority = 0; break;
-                case 19: messageSendPriority = 0; break;
-                case 20: messageSendPriority = 0; break;
-                case 21: messageSendPriority = 0; break;
-                case 22: messageSendPriority = 0; break;
-                case 23: messageSendPriority = 0; break;
-                case 24: messageSendPriority = 0; break;
-                case 25: messageSendPriority = 0; break;
-                case 26: messageSendPriority = 0; break;
-                case 27: messageSendPriority = 0; break;
-                case 28: messageSendPriority = 0; break;
-                case 29: messageSendPriority = 0; break;
-                case 30: messageSendPriority = 0; break;
-                case 31: messageSendPriority = 0; break;
+                case MessageTypes.None: messageSendPriority = 0; break;
+                case MessageTypes.Acknowledgement: messageSendPriority = 0; break;
+                case MessageTypes.ChatMessage: messageSendPriority = 1; break;
+                case MessageTypes.ClientDisconnect: messageSendPriority = 0; break;
+                case MessageTypes.UsernameInUse: messageSendPriority = 0; break;
+                case MessageTypes.UserConnected: messageSendPriority = 1; break;
+                case MessageTypes.UserDisconnected: messageSendPriority = 1; break;
+                case MessageTypes.ClearUserList: messageSendPriority = 1; break;
+                case MessageTypes.AddToUserList: messageSendPriority = 1; break;
+                case MessageTypes.Kicked: messageSendPriority = 0; break;
+                case MessageTypes.OtherUserKicked: messageSendPriority = 1; break;
+                case MessageTypes.Heartbeat: messageSendPriority = 0; break;
+                case MessageTypes.OwnClientId: messageSendPriority = 0; break;
+                case MessageTypes.OtherUserLostConnection: messageSendPriority = 1; break;
+                case MessageTypes.MadeAdmin: messageSendPriority = 1; break;
+                case MessageTypes.OtherUserMadeAdmin: messageSendPriority = 1; break;
+                case MessageTypes.RemovedAdmin: messageSendPriority = 1; break;
+                case MessageTypes.OtherUserRemovedAdmin: messageSendPriority = 1; break;
+                case MessageTypes.SendMessageQueue: messageSendPriority = 0; break;
+                case MessageTypes.ConnectionSetupComplete: messageSendPriority = 0; break;
+                case MessageTypes.ClientId: messageSendPriority = 0; break;
+                case MessageTypes.RequestVersionNumber: messageSendPriority = 0; break;
+                case MessageTypes.ClientVersionNumber: messageSendPriority = 0; break;
+                case MessageTypes.RequestUsername: messageSendPriority = 0; break;
+                case MessageTypes.ClientUsername: messageSendPriority = 0; break;
+                case MessageTypes.RequestClientId: messageSendPriority = 0; break;
+                case MessageTypes.ServersMinimumSupportedClientVersionNumber: messageSendPriority = 0; break;
+                case MessageTypes.ServersMaximumSupportedClientVersionNumber: messageSendPriority = 0; break;
+                case MessageTypes.ServersPreReleaseSupport: messageSendPriority = 0; break;
+                case MessageTypes.ServerVersionNumberCompatibility: messageSendPriority = 0; break;
+                case MessageTypes.ServerVersionNumber: messageSendPriority = 0; break;
+                case MessageTypes.FinishedSendingMessageQueue: messageSendPriority = 0; break;
                 default: messageSendPriority = 0; break;
             }
         }
@@ -149,38 +181,38 @@ namespace Chat
         {
             switch (messageType)
             {
-                case 0: return true;
-                case 1: return true;
-                case 2: return true;
-                case 3: return true;
-                case 4: return true;
-                case 5: return true;
-                case 6: return true;
-                case 7: return true;
-                case 8: return true;
-                case 9: return true;
-                case 10: return true;
-                case 11: return true;
-                case 12: return true;
-                case 13: return true;
-                case 14: return true;
-                case 15: return true;
-                case 16: return true;
-                case 17: return true;
-                case 18: return true;
-                case 19: return true;
-                case 20: return true;
-                case 21: return true;
-                case 22: return true;
-                case 23: return true;
-                case 24: return true;
-                case 25: return true;
-                case 26: return true;
-                case 27: return true;
-                case 28: return true;
-                case 29: return true;
-                case 30: return true;
-                case 31: return true;
+                case MessageTypes.None: return true;
+                case MessageTypes.Acknowledgement: return true;
+                case MessageTypes.ChatMessage: return true;
+                case MessageTypes.ClientDisconnect: return true;
+                case MessageTypes.UsernameInUse: return true;
+                case MessageTypes.UserConnected: return true;
+                case MessageTypes.UserDisconnected: return true;
+                case MessageTypes.ClearUserList: return true;
+                case MessageTypes.AddToUserList: return true;
+                case MessageTypes.Kicked: return true;
+                case MessageTypes.OtherUserKicked: return true;
+                case MessageTypes.Heartbeat: return true;
+                case MessageTypes.OwnClientId: return true;
+                case MessageTypes.OtherUserLostConnection: return true;
+                case MessageTypes.MadeAdmin: return true;
+                case MessageTypes.OtherUserMadeAdmin: return true;
+                case MessageTypes.RemovedAdmin: return true;
+                case MessageTypes.OtherUserRemovedAdmin: return true;
+                case MessageTypes.SendMessageQueue: return true;
+                case MessageTypes.ConnectionSetupComplete: return true;
+                case MessageTypes.ClientId: return true;
+                case MessageTypes.RequestVersionNumber: return true;
+                case MessageTypes.ClientVersionNumber: return true;
+                case MessageTypes.RequestUsername: return true;
+                case MessageTypes.ClientUsername: return true;
+                case MessageTypes.RequestClientId: return true;
+                case MessageTypes.ServersMinimumSupportedClientVersionNumber: return true;
+                case MessageTypes.ServersMaximumSupportedClientVersionNumber: return true;
+                case MessageTypes.ServersPreReleaseSupport: return true;
+                case MessageTypes.ServerVersionNumberCompatibility: return true;
+                case MessageTypes.ServerVersionNumber: return true;
+                case MessageTypes.FinishedSendingMessageQueue: return true;
                 default: return false;
             }
         }
