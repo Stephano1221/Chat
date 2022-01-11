@@ -64,7 +64,7 @@ namespace Chat
                     return;
                 }
             }
-            catch (AuthenticationException ex)
+            catch (Exception ex) when (ex is AuthenticationException || ex is IOException)
             {
                 client.sslStream.Close();
                 FrmHolder.processing.connectedClients.Remove(client);
@@ -106,7 +106,7 @@ namespace Chat
                     //MessageBoxEvent.Invoke(this, new ShowMessageBoxEventArgs("Unable to establish a secure connection to client.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning));
                 }
             }
-            catch (AuthenticationException ex)
+            catch (Exception ex) when (ex is AuthenticationException || ex is IOException)
             {
                 client.sslStream.Close();
                 FrmHolder.processing.connectedClients.Remove(client);
