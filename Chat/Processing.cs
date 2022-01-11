@@ -900,7 +900,10 @@ namespace Chat
                 string[] parts = message.messageText.Split(' ', 2);
                 string username = parts[0];
                 string messageText = parts[1];
-                InvokePrintChatMessageEvent(this, $"{username}: {messageText}");
+                if (messageText[0] != '/')
+                {
+                    InvokePrintChatMessageEvent(this, $"{username}: {messageText}");
+                }
                 if (FrmHolder.hosting)
                 {
                     SendToAll(null, Message.MessageTypes.ChatMessage, message.messageText, null);
