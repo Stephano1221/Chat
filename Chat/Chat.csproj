@@ -9,7 +9,7 @@
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 	  <!--Versioning MUST follow Semantic versioning 2.0.0: https://semver.org/spec/v2.0.0.html by Tom Preston-Werner. License (Creative Commons - CC BY 3.0): https://creativecommons.org/licenses/by/3.0/legalcode -->
 	  <!--For further information on how to use the below assembly versions, see https://andrewlock.net/version-vs-versionsuffix-vs-packageversion-what-do-they-all-mean/ by Andrew Lock-->
-	  <VersionPrefix>0.2.0</VersionPrefix> <!--Main version number (e.g. '1.2.3')-->
+	  <VersionPrefix>0.2.1</VersionPrefix> <!--Main version number (e.g. '1.2.3')-->
 	  <VersionSuffix>alpha.1</VersionSuffix> <!--Version number suffix. May include version-specific release stage, (e.g. 'alpha', 'beta.1', 'rc.2') and may include build metadata, preceded by a '+' (e.g. '001', ) -->
 	  <Version></Version> <!--If unspecified, <VersionPrefix> and <VersionSuffix> are used-->
 	  <AssemblyVersion></AssemblyVersion> <!--Referenced by other APIs. Only change if introducing breaking-changes. If unspecified, <Version> is used-->

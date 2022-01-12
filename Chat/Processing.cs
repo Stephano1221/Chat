@@ -375,7 +375,7 @@ namespace Chat
         {
             heartbeat.Interval = 1000;
             heartbeat.Elapsed += Heartbeat_Tick;
-            //heartbeat.Start();
+            heartbeat.Start();
         }
 
         private void StopHeartbeat()
