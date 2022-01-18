@@ -37,7 +37,13 @@ namespace Chat
             ServersPreReleaseSupport = 28,
             ServerVersionNumberCompatibility = 29,
             ServerVersionNumber = 30,
-            FinishedSendingMessageQueue = 31
+            FinishedSendingMessageQueue = 31,
+            RankGiven = 32,
+            RankTaken = 33,
+            OtherUserRankGiven = 34,
+            OtherUserRankTaken = 35,
+            RequestAllRanks = 36,
+            AllRanks = 37
         }
 
         public uint messageId;
@@ -173,6 +179,12 @@ namespace Chat
                 case MessageTypes.ServerVersionNumberCompatibility: messageSendPriority = 0; break;
                 case MessageTypes.ServerVersionNumber: messageSendPriority = 0; break;
                 case MessageTypes.FinishedSendingMessageQueue: messageSendPriority = 0; break;
+                case MessageTypes.RankGiven: messageSendPriority = 1; break;
+                case MessageTypes.RankTaken: messageSendPriority = 1; break;
+                case MessageTypes.OtherUserRankGiven: messageSendPriority = 1; break;
+                case MessageTypes.OtherUserRankTaken: messageSendPriority = 1; break;
+                case MessageTypes.RequestAllRanks: messageSendPriority = 1; break;
+                case MessageTypes.AllRanks: messageSendPriority = 1; break;
                 default: messageSendPriority = 0; break;
             }
         }
@@ -213,6 +225,12 @@ namespace Chat
                 case MessageTypes.ServerVersionNumberCompatibility: return true;
                 case MessageTypes.ServerVersionNumber: return true;
                 case MessageTypes.FinishedSendingMessageQueue: return true;
+                case MessageTypes.RankGiven: return true;
+                case MessageTypes.RankTaken: return true;
+                case MessageTypes.OtherUserRankGiven: return true;
+                case MessageTypes.OtherUserRankTaken: return true;
+                case MessageTypes.RequestAllRanks: return true;
+                case MessageTypes.AllRanks: return true;
                 default: return false;
             }
         }

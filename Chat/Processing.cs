@@ -43,6 +43,8 @@ namespace Chat
         public CancellationTokenSource clientCancellationTokenSource = new CancellationTokenSource();
         #endregion
 
+        private frmManageRanks frmManageRanks;
+
         public System.Timers.Timer heartbeat = new System.Timers.Timer();
 
         private string kickFormat = "/kick [Username] [Reason (optional)]";
@@ -634,6 +636,22 @@ namespace Chat
                 {
                     return RunCommandAdmin(commandParts);
                 }
+                else if (commandParts[0] == "giverank")
+                {
+                    RunCommandGiveRank(commandParts);
+                }
+                else if (commandParts[0] == "takerank")
+                {
+                    RunCommandTakeRank(commandParts);
+                }
+                else if(commandParts[0] == "ranks")
+                {
+                    RunCommandRanks(commandParts);
+                }
+                else if (commandParts[0] == "manageranks")
+                {
+                    RunCommandManageRanks();
+                }
                 return true;
             }
             return false; //true if commmand
@@ -684,6 +702,168 @@ namespace Chat
             BeginWrite(client, ComposeMessage(client, 0, Message.MessageTypes.ConnectionSetupComplete, null, null));
             BeginWrite(client, ComposeMessage(client, 0, Message.MessageTypes.SendMessageQueue, null, null));
             client.receivingMessageQueue = true;
+        }
+
+        public List<Ranks.Rank> GetRanksFromDatabase()
+        {
+            throw new NotImplementedException();
+        }
+
+        private List<Commands.Command> possibleMatchingCommands(string command)
+        {
+            if (command != null)
+            {
+                List<Commands.Command> matchingCommands = new List<Commands.Command>();
+                foreach (Commands.Command defaultCommand in Commands.defaultCommandsInfo)
+                {
+                    foreach (string commandName in defaultCommand.Names)
+                    {
+                        if (commandName.Contains(command, StringComparison.OrdinalIgnoreCase))
+                        {
+                            matchingCommands.Add(defaultCommand);
+                        }
+                    }
+                }
+                return matchingCommands;
+            }
+            return null;
+        }
+
+        private void RunCommandGiveRank(string[] commandParts)
+        {
+            if (commandParts.Length == 1)
+            {
+                InvokePrintChatMessageEvent(this, $"A user must be specified.");
+                return;
+            }
+            else if (commandParts.Length == 2)
+            {
+                InvokePrintChatMessageEvent(this, $"A rank must be specified.");
+                return;
+            }
+            string[] username = { commandParts[1] };
+            List<Client> matchingClients = ClientSearch(username, null);
+            if (matchingClients.Count() == 0)
+            {
+                InvokePrintChatMessageEvent(this, $"This user could not be found.");
+                return;
+            }
+            string rankName = commandParts[2];
+            List<Ranks.Rank> matchingRanks = Ranks.GetRanksMatchingName(rankName);
+            if (matchingClients == null || matchingRanks.Count() == 0)
+            {
+                InvokePrintChatMessageEvent(this, $"This rank could not be found.");
+                return;
+            }
+            else
+            {
+                foreach (Ranks.Rank rank in matchingClients[0].ranks)
+                {
+                    if (rank.Name == rankName)
+                    {
+                        InvokePrintChatMessageEvent(this, $"This user already has this rank.");
+                        return;
+                    }
+                }
+                matchingClients[0].ranks.Add(matchingRanks[0]);
+                InvokePrintChatMessageEvent(this, $"{username[0]} has been given the rank {rankName}");
+
+                List<Client> ignoredClients = new List<Client>();
+                ignoredClients.Add(matchingClients[0]);
+                BeginWrite(matchingClients[0], ComposeMessage(matchingClients[0], 0, Message.MessageTypes.RankGiven, $"{FrmHolder.username} {rankName}", null));
+                SendToAll(ignoredClients, Message.MessageTypes.OtherUserRankGiven, $"{username[0]} {FrmHolder.username} {rankName}", null);
+            }
+        }
+
+        private void RunCommandTakeRank(string[] commandParts)
+        {
+            if (commandParts.Length == 1)
+            {
+                InvokePrintChatMessageEvent(this, $"A user must be specified.");
+                return;
+            }
+            else if (commandParts.Length == 2)
+            {
+                InvokePrintChatMessageEvent(this, $"A rank must be specified.");
+                return;
+            }
+            string[] username = { commandParts[1] };
+            List<Client> matchingClients = ClientSearch(username, null);
+            if (matchingClients.Count() == 0)
+            {
+                InvokePrintChatMessageEvent(this, $"This user could not be found.");
+                return;
+            }
+            string rankName = commandParts[2];
+            foreach (Ranks.Rank rank in matchingClients[0].ranks)
+            {
+                if (rank.Name == rankName)
+                {
+                    matchingClients[0].ranks.Remove(rank);
+                    InvokePrintChatMessageEvent(this, $"You removed {username[0]}'s rank of {rankName}.");
+
+                    List<Client> ignoredClients = new List<Client>();
+                    ignoredClients.Add(matchingClients[0]);
+                    BeginWrite(matchingClients[0], ComposeMessage(matchingClients[0], 0, Message.MessageTypes.RankTaken, $"{FrmHolder.username} {rankName}", null));
+                    SendToAll(ignoredClients, Message.MessageTypes.OtherUserRankTaken, $"{username[0]} {FrmHolder.username} {rankName}", null);
+                    return;
+                }
+            }
+            InvokePrintChatMessageEvent(this, "The user does not have this rank.");
+            return;
+        }
+
+        private void RunCommandRanks(string[] commandParts)
+        {
+            if (commandParts.Length == 1)
+            {
+                List<string> rankNames = new List<string>();
+                foreach (Ranks.Rank rank in Ranks.ranksInMemoryForTestingOnly)
+                {
+                    rankNames.Add(rank.Name);
+                }
+                if (rankNames == null || rankNames.Count() == 0)
+                {
+                    InvokePrintChatMessageEvent(this, $"There are no ranks on the server.");
+                    return;
+                }
+                string rankNamesCombined = String.Join(", ", rankNames);
+                InvokePrintChatMessageEvent(this, $"Available ranks are: {rankNamesCombined}.");
+                return;
+            }
+            else if (commandParts.Length == 2)
+            {
+                string[] username = { commandParts[1] };
+                List<Client> matchingClients = ClientSearch(username, null);
+                if (matchingClients.Count() == 0)
+                {
+                    InvokePrintChatMessageEvent(this, $"This user could not be found.");
+                    return;
+                }
+                List<string> rankNames = new List<string>();
+                foreach (Ranks.Rank rank in matchingClients[0].ranks)
+                {
+                    rankNames.Add(rank.Name);
+                }
+                if (rankNames == null || rankNames.Count() == 0)
+                {
+                    InvokePrintChatMessageEvent(this, $"This user has no ranks.");
+                    return;
+                }
+                string rankNamesCombined = String.Join(", ", rankNames);
+                InvokePrintChatMessageEvent(this, $"{username[0]} has the ranks: {rankNamesCombined}.");
+                return;
+            }
+        }
+
+        private void RunCommandManageRanks()
+        {
+            frmManageRanks = new frmManageRanks
+            {
+                MdiParent = FrmHolder.ActiveForm,
+                Dock = DockStyle.Fill
+            };
+            frmManageRanks.Show();
         }
 
         private void RunCommandHelp(string[] commandParts)
@@ -1172,6 +1352,45 @@ namespace Chat
             else if (message.messageType == Message.MessageTypes.FinishedSendingMessageQueue)
             {
                 e.client.receivingMessageQueue = false;
+            }
+            else if (message.messageType == Message.MessageTypes.RankGiven)
+            {
+                string[] parts = message.messageText.Split(' ', 2);
+                string issuer = parts[0];
+                string rank = parts[1];
+                InvokePrintChatMessageEvent(this, $"You have been given the rank {rank} by {issuer}");
+            }
+            else if (message.messageType == Message.MessageTypes.RankTaken)
+            {
+                string[] parts = message.messageText.Split(' ', 2);
+                string issuer = parts[0];
+                string rank = parts[1];
+                InvokePrintChatMessageEvent(this, $"You have been removed from the rank {rank} by {issuer}");
+            }
+            else if (message.messageType == Message.MessageTypes.OtherUserRankGiven)
+            {
+                string[] parts = message.messageText.Split(' ', 3);
+                string username = parts[0];
+                string issuer = parts[1];
+                string rank = parts[2];
+                InvokePrintChatMessageEvent(this, $"{username} has been given the rank {rank} by {issuer}");
+            }
+            else if (message.messageType == Message.MessageTypes.OtherUserRankTaken)
+            {
+                string[] parts = message.messageText.Split(' ', 3);
+                string username = parts[0];
+                string issuer = parts[1];
+                string rank = parts[2];
+                InvokePrintChatMessageEvent(this, $"{username} has been removed from the rank {rank} by {issuer}");
+            }
+            else if (message.messageType == Message.MessageTypes.RequestAllRanks)
+            {
+                //List<Ranks.Rank> ranks = GetRanksFromDatabase();
+                throw new NotImplementedException();
+            }
+            else if (message.messageType == Message.MessageTypes.AllRanks)
+            {
+                throw new NotImplementedException();
             }
         }
 

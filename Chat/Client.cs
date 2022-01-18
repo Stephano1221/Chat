@@ -8,6 +8,7 @@ namespace Chat
         #region User properties
         public string username;
         public bool admin = false;
+        public List<Ranks.Rank> ranks = new List<Ranks.Rank>();
         public bool serverMuted = false;
         public bool serverDeafened = false;
         public string applicationVersionNumber;
