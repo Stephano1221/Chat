@@ -68,7 +68,6 @@ namespace Chat
             }
             changedRanks = unchangedRanks;
             DisplayChangedRanks(changedRanks, 0);
-            xlsvRanks.Items[0].Selected = true;
         }
 
         private void DisplayChangedRanks(List<Ranks.Rank> ranks, int selectedRankIndex)
@@ -149,35 +148,95 @@ namespace Chat
 
         private Ranks.Rank GetSelectedRank(List<Ranks.Rank> ranks)
         {
+            if (xlsvRanks == null || xlsvRanks.SelectedIndices.Count == 0)
+            {
+                return null;
+            }
             int selectedRankIndex = xlsvRanks.SelectedIndices[0];
             return ranks.ElementAt(selectedRankIndex);
         }
 
         private void Save()
         {
-
+            foreach (Ranks.Rank rank in changedRanks)
+            {
+                rank.Name = rank.Name.Trim();
+            }
         }
 
-        private bool AskToSave()
+        private DialogResult AskToSave()
         {
             DialogResult dialogResult = MessageBox.Show("You have unsaved changes. Would you like to save?", "Save changes", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
-            if (dialogResult == DialogResult.Yes)
-            {
-                return true;
-            }
-            return false;
+            return dialogResult;
         }
 
         private void CloseForm()
         {
-            if (changedRanks != null && changedRanks.Count() > 0)
+            List<Ranks.Rank> changes = ChangesMade();
+            if (changes != null && changes.Count() > 0)
             {
-                if (AskToSave())
+                DialogResult dialogResult = AskToSave();
+                if (dialogResult == DialogResult.Yes)
                 {
                     Save();
                 }
+                else if (dialogResult == DialogResult.Cancel)
+                {
+                    return;
+                }
             }
             this.Close();
+        }
+
+        private List<Ranks.Rank> ChangesMade()
+        {
+            return null;
+            throw new NotImplementedException();
+        }
+
+        private void PopulateEditNameBox()
+        {
+            Ranks.Rank selectedRank = GetSelectedRank(changedRanks);
+            if (xlsvRanks == null || xlsvRanks.SelectedIndices.Count == 0)
+            {
+                return;
+            }
+            if (selectedRank.Level <= 1)
+            {
+                xtbxName.Enabled = false;
+            }
+            else
+            {
+                xtbxName.Enabled = true;
+            }
+            xtbxName.Text = xlsvRanks.SelectedItems[0].Text;
+        }
+
+        private void RankNameTextChanged()
+        {
+            if (String.IsNullOrWhiteSpace(xtbxName.Text))
+            {
+                xlsvRanks.Enabled = false;
+            }
+            else
+            {
+                xlsvRanks.Enabled = true;
+            }
+            if (xtbxName.Focused)
+            {
+                Ranks.Rank selectedRank = GetSelectedRank(changedRanks);
+                selectedRank.Name = xtbxName.Text;
+                DisplayChangedRanks(changedRanks, xlsvRanks.SelectedIndices[0]);
+            }
+        }
+
+        private void HandleEmptyRankName()
+        {
+            if (String.IsNullOrWhiteSpace(xtbxName.Text))
+            {
+                MessageBox.Show("Rank name cannot be empty.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                xtbxName.Focus();
+            }
         }
 
         private void RecordUnsavedChange()
@@ -208,6 +267,21 @@ namespace Chat
         private void xbtnRankDemote_Click(object sender, EventArgs e)
         {
             DemoteRank();
+        }
+
+        private void xlsvRanks_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            PopulateEditNameBox();
+        }
+
+        private void xtbxName_TextChanged(object sender, EventArgs e)
+        {
+            RankNameTextChanged();
+        }
+
+        private void xtbxName_Leave(object sender, EventArgs e)
+        {
+            HandleEmptyRankName();
         }
     }
 }
