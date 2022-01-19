@@ -2,6 +2,7 @@
 {
     public static class Permissions
     {
+        [Flags]
         public enum IndividualPermissionNumber : ulong
         {
             None = 0,
@@ -38,14 +39,9 @@
             { IndividualPermissionNumber.SendVoice, new Permission(0, "Speak", "Allows users to speak in voice channels.") }
         };
 
-        public static ulong GetPermissionsNumber(IndividualPermissionNumber[] individualPermissionNumbers)
+        public static ulong GetPermissionsNumberAsUlong(IndividualPermissionNumber individualPermissionNumber)
         {
-            ulong permissionNumber = 0;
-            foreach (IndividualPermissionNumber individualPermissionNumber in individualPermissionNumbers)
-            {
-                permissionNumber += Convert.ToUInt64(individualPermissionNumber);
-            }
-            return permissionNumber;
+            return Convert.ToUInt64(individualPermissionNumber);
         }
 
         public class Permission
