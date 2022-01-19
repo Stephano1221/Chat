@@ -86,12 +86,21 @@ namespace Chat
             return Ranks.SortByLevel(unsortedRanks, false);
         }
 
-        private void RemoveRank()
+        private void AddRank()
         {
-
+            Ranks.Rank newRank = new Ranks.Rank(9999, "New rank", Color.DarkGray, 2, 0); //TODO: Generate unique ID
+            foreach (Ranks.Rank rank in changedRanks)
+            {
+                if (rank.Level > 1)
+                {
+                    rank.Level++;
+                }
+            }
+            changedRanks.Insert(changedRanks.Count() - 1, newRank);
+            DisplayChangedRanks(changedRanks, changedRanks.Count() - 2);
         }
 
-        private void AddRank()
+        private void RemoveRank()
         {
 
         }
