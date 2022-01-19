@@ -102,7 +102,13 @@ namespace Chat
 
         private void RemoveRank()
         {
-
+            Ranks.Rank selectedRank = GetSelectedRank(changedRanks);
+            if (selectedRank == null || selectedRank.Level <= 1)
+            {
+                return;
+        }
+            changedRanks.Remove(selectedRank);
+            DisplayChangedRanks(changedRanks, xlsvRanks.SelectedIndices[0]);
         }
 
         private void PromoteRank()
