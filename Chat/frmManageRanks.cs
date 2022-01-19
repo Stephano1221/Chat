@@ -108,7 +108,7 @@ namespace Chat
             if (selectedRank == null || selectedRank.Level <= 1)
             {
                 return;
-        }
+            }
             changedRanks.Remove(selectedRank);
             DisplayChangedRanks(changedRanks, xlsvRanks.SelectedIndices[0]);
         }
@@ -262,6 +262,38 @@ namespace Chat
             }
         }
 
+        private void SelectedRankChanged()
+        {
+            PopulateEditNameBox();
+            Ranks.Rank selectedRank = GetSelectedRank(changedRanks);
+            bool enableAddRank = true;
+            bool enableRemoveRank = true;
+            bool enablePromoteRank = true;
+            bool enableDemoteRank = true;
+            if (selectedRank == null)
+            {
+                return;
+            }
+            if (selectedRank.Level == Convert.ToUInt64(changedRanks.Count()))
+            {
+                enablePromoteRank = false;
+            }
+            if (selectedRank.Level <= 1)
+            {
+                enableRemoveRank = false;
+                enablePromoteRank = false;
+                enableDemoteRank = false;
+            }
+            if (selectedRank.Level == 2)
+            {
+                enableDemoteRank = false;
+            }
+            xbtnAddRank.Enabled = enableAddRank;
+            xbtnRemoveRank.Enabled = enableRemoveRank;
+            xbtnRankPromote.Enabled = enablePromoteRank;
+            xbtnRankDemote.Enabled = enableDemoteRank;
+        }
+
         private void RecordUnsavedChange()
         {
 
@@ -294,7 +326,7 @@ namespace Chat
 
         private void xlsvRanks_SelectedIndexChanged(object sender, EventArgs e)
         {
-            PopulateEditNameBox();
+            SelectedRankChanged();
         }
 
         private void xtbxName_TextChanged(object sender, EventArgs e)
