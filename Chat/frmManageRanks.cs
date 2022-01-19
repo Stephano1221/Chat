@@ -27,20 +27,14 @@ namespace Chat
 
         private void PopulatePermissions()
         {
-            xclbPermissions.Items.Clear();
-            xclbPermissions.Items.Add("Overseer");
-            xclbPermissions.Items.Add("Kick");
-            xclbPermissions.Items.Add("Ban");
-            xclbPermissions.Items.Add("Mute");
-            xclbPermissions.Items.Add("Deafen");
-            xclbPermissions.Items.Add("Delete Messages");
-            xclbPermissions.Items.Add("Regulate Channels");
-            xclbPermissions.Items.Add("Regulate Ranks");
-            xclbPermissions.Items.Add("Ping @All");
-            xclbPermissions.Items.Add("Read Messages");
-            xclbPermissions.Items.Add("Send Messages");
-            xclbPermissions.Items.Add("Listen");
-            xclbPermissions.Items.Add("Speak");
+            xlsvPermissions.Items.Clear();
+            foreach(KeyValuePair<Permissions.IndividualPermissionNumber, Permissions.Permission> permission in Permissions.permissionNames)
+            {
+                ListViewItem listViewItem = new ListViewItem(permission.Value.Name);
+                listViewItem.SubItems.Add(permission.Value.Description);
+                xlsvPermissions.Items.Add(listViewItem);
+            }
+            xlsvPermissions.AutoResizeColumns(ColumnHeaderAutoResizeStyle.ColumnContent);
         }
 
         private void RequestRanks()

@@ -30,7 +30,6 @@
         {
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.xlblPermissions = new System.Windows.Forms.Label();
-            this.xclbPermissions = new System.Windows.Forms.CheckedListBox();
             this.xlblRanks = new System.Windows.Forms.Label();
             this.xbtnRemoveRank = new System.Windows.Forms.Button();
             this.xbtnAddRank = new System.Windows.Forms.Button();
@@ -39,6 +38,9 @@
             this.xlsvRanks = new System.Windows.Forms.ListView();
             this.columnHeader1 = new System.Windows.Forms.ColumnHeader();
             this.xtbxName = new System.Windows.Forms.TextBox();
+            this.xlsvPermissions = new System.Windows.Forms.ListView();
+            this.name = new System.Windows.Forms.ColumnHeader();
+            this.description = new System.Windows.Forms.ColumnHeader();
             this.xbtnBack = new System.Windows.Forms.Button();
             this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
@@ -55,7 +57,6 @@
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 100F));
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel1.Controls.Add(this.xlblPermissions, 4, 0);
-            this.tableLayoutPanel1.Controls.Add(this.xclbPermissions, 4, 2);
             this.tableLayoutPanel1.Controls.Add(this.xlblRanks, 2, 0);
             this.tableLayoutPanel1.Controls.Add(this.xbtnRemoveRank, 1, 0);
             this.tableLayoutPanel1.Controls.Add(this.xbtnAddRank, 3, 0);
@@ -63,6 +64,7 @@
             this.tableLayoutPanel1.Controls.Add(this.xbtnRankDemote, 0, 3);
             this.tableLayoutPanel1.Controls.Add(this.xlsvRanks, 1, 1);
             this.tableLayoutPanel1.Controls.Add(this.xtbxName, 4, 1);
+            this.tableLayoutPanel1.Controls.Add(this.xlsvPermissions, 4, 2);
             this.tableLayoutPanel1.Location = new System.Drawing.Point(12, 38);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
             this.tableLayoutPanel1.RowCount = 4;
@@ -86,21 +88,6 @@
             this.xlblPermissions.TabIndex = 1;
             this.xlblPermissions.Text = "Permissions";
             this.xlblPermissions.TextAlign = System.Drawing.ContentAlignment.BottomCenter;
-            // 
-            // xclbPermissions
-            // 
-            this.xclbPermissions.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.xclbPermissions.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.xclbPermissions.FormattingEnabled = true;
-            this.xclbPermissions.HorizontalScrollbar = true;
-            this.xclbPermissions.IntegralHeight = false;
-            this.xclbPermissions.Location = new System.Drawing.Point(353, 63);
-            this.xclbPermissions.Name = "xclbPermissions";
-            this.tableLayoutPanel1.SetRowSpan(this.xclbPermissions, 2);
-            this.xclbPermissions.Size = new System.Drawing.Size(520, 484);
-            this.xclbPermissions.TabIndex = 2;
             // 
             // xlblRanks
             // 
@@ -192,6 +179,34 @@
             this.xtbxName.TextChanged += new System.EventHandler(this.xtbxName_TextChanged);
             this.xtbxName.Leave += new System.EventHandler(this.xtbxName_Leave);
             // 
+            // xlsvPermissions
+            // 
+            this.xlsvPermissions.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.xlsvPermissions.CheckBoxes = true;
+            this.xlsvPermissions.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.name,
+            this.description});
+            this.xlsvPermissions.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
+            this.xlsvPermissions.Location = new System.Drawing.Point(353, 63);
+            this.xlsvPermissions.MultiSelect = false;
+            this.xlsvPermissions.Name = "xlsvPermissions";
+            this.tableLayoutPanel1.SetRowSpan(this.xlsvPermissions, 2);
+            this.xlsvPermissions.Size = new System.Drawing.Size(520, 484);
+            this.xlsvPermissions.TabIndex = 10;
+            this.xlsvPermissions.UseCompatibleStateImageBehavior = false;
+            this.xlsvPermissions.View = System.Windows.Forms.View.Details;
+            this.xlsvPermissions.ItemCheck += new System.Windows.Forms.ItemCheckEventHandler(this.xlsvPermissions_ItemCheck);
+            // 
+            // name
+            // 
+            this.name.Text = "Name";
+            // 
+            // description
+            // 
+            this.description.Text = "Description";
+            // 
             // xbtnBack
             // 
             this.xbtnBack.Location = new System.Drawing.Point(15, 9);
@@ -222,7 +237,6 @@
 
         private TableLayoutPanel tableLayoutPanel1;
         private Label xlblPermissions;
-        private CheckedListBox xclbPermissions;
         private Label xlblRanks;
         private Button xbtnBack;
         private Button xbtnRemoveRank;
@@ -232,5 +246,8 @@
         private Button xbtnRankPromote;
         private Button xbtnRankDemote;
         private TextBox xtbxName;
+        private ListView xlsvPermissions;
+        private ColumnHeader name;
+        private ColumnHeader description;
     }
 }
