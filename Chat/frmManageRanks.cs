@@ -15,6 +15,8 @@ namespace Chat
         List<Ranks.Rank> unchangedRanks = new List<Ranks.Rank>();
         List<Ranks.Rank> changedRanks = new List<Ranks.Rank>();
 
+        bool canRefreshRankNameTextbox = true;
+
         public frmManageRanks()
         {
             InitializeComponent();
@@ -211,11 +213,15 @@ namespace Chat
 
         private void PopulateEditNameBox()
         {
-            Ranks.Rank selectedRank = GetSelectedRank(changedRanks);
+            if (canRefreshRankNameTextbox == false)
+            {
+                return;
+            }
             if (xlsvRanks == null || xlsvRanks.SelectedIndices.Count == 0)
             {
                 return;
             }
+            Ranks.Rank selectedRank = GetSelectedRank(changedRanks);
             if (selectedRank.Level <= 1)
             {
                 xtbxName.Enabled = false;
@@ -224,7 +230,7 @@ namespace Chat
             {
                 xtbxName.Enabled = true;
             }
-            xtbxName.Text = xlsvRanks.SelectedItems[0].Text;
+            xtbxName.Text = selectedRank.Name;
         }
 
         private void RankNameTextChanged()
@@ -240,9 +246,11 @@ namespace Chat
             if (xtbxName.Focused)
             {
                 Ranks.Rank selectedRank = GetSelectedRank(changedRanks);
-                selectedRank.Name = xtbxName.Text;
+                selectedRank.Name = xtbxName.Text.Trim();
+                canRefreshRankNameTextbox = false;
                 DisplayChangedRanks(changedRanks, xlsvRanks.SelectedIndices[0]);
             }
+            canRefreshRankNameTextbox = true;
         }
 
         private void HandleEmptyRankName()
