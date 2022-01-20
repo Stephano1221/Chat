@@ -28,13 +28,56 @@ namespace Chat
         private void PopulatePermissions()
         {
             xlsvPermissions.Items.Clear();
-            foreach(KeyValuePair<Permissions.IndividualPermissionNumber, Permissions.Permission> permission in Permissions.permissionNames)
+            foreach (KeyValuePair<Permissions.IndividualPermissionNumber, Permissions.Permission> permission in Permissions.permissionNames)
             {
                 ListViewItem listViewItem = new ListViewItem(permission.Value.Name);
                 listViewItem.SubItems.Add(permission.Value.Description);
                 xlsvPermissions.Items.Add(listViewItem);
             }
             xlsvPermissions.AutoResizeColumns(ColumnHeaderAutoResizeStyle.ColumnContent);
+        }
+
+        private void SetPermissionsCheckedStates(Ranks.Rank rank)
+        {
+            foreach (ListViewItem listViewItem in xlsvPermissions.Items)
+            {
+                foreach (KeyValuePair<Permissions.IndividualPermissionNumber, Permissions.Permission> permission in Permissions.permissionNames)
+                {
+                    if (listViewItem.Text == permission.Value.Name)
+                    {
+                        if ((rank.PermissionsNumber & permission.Key) == permission.Key)
+                        {
+                            listViewItem.Checked = true;
+                            break;
+                        }
+                        else
+                        {
+                            listViewItem.Checked = false;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        private Permissions.IndividualPermissionNumber GetPermissionNumberFromPermissionList(Ranks.Rank rank)
+        {
+            Permissions.IndividualPermissionNumber individualPermissionNumber = new Permissions.IndividualPermissionNumber();
+            foreach (ListViewItem listViewItem in xlsvPermissions.Items)
+            {
+                if (listViewItem.Checked)
+                {
+                    foreach (KeyValuePair<Permissions.IndividualPermissionNumber, Permissions.Permission> permission in Permissions.permissionNames)
+                    {
+                        if (listViewItem.Text == permission.Value.Name)
+                        {
+                            individualPermissionNumber = individualPermissionNumber | permission.Key;
+                            break;
+                        }
+                    }
+                }
+            }
+            return individualPermissionNumber;
         }
 
         private void RequestRanks()
@@ -259,7 +302,7 @@ namespace Chat
         private void SelectedRankChanged()
         {
             PopulateEditNameBox();
-            Ranks.Rank selectedRank = GetSelectedRank(changedRanks);
+            SetPermissionsCheckedStates(selectedRank);
             bool enableAddRank = true;
             bool enableRemoveRank = true;
             bool enablePromoteRank = true;
