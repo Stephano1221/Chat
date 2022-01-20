@@ -1,19 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-
-namespace Chat
+﻿namespace Chat
 {
     public partial class frmManageRanks : Form
     {
         List<Ranks.Rank> unchangedRanks = new List<Ranks.Rank>();
         List<Ranks.Rank> changedRanks = new List<Ranks.Rank>();
+        Ranks.Rank selectedRank;
 
         bool canRefreshRankNameTextbox = true;
 
@@ -104,20 +95,22 @@ namespace Chat
             foreach (Ranks.Rank rank in sortedRanks)
             {
                 unchangedRanks.Add(rank.DeepCopy());
+                changedRanks.Add(rank.DeepCopy());
             }
-            changedRanks = unchangedRanks;
-            DisplayChangedRanks(changedRanks, 0);
+            selectedRank = changedRanks.ElementAtOrDefault(0);
+            DisplayChangedRanks(changedRanks);
         }
 
-        private void DisplayChangedRanks(List<Ranks.Rank> ranks, int selectedRankIndex)
+        private void DisplayChangedRanks(List<Ranks.Rank> ranks)
         {
             xlsvRanks.Items.Clear();
+            xlsvRanks.SelectedIndices.Clear();
             foreach (Ranks.Rank rank in ranks)
             {
                 xlsvRanks.Items.Add(rank.Name);
             }
-            xlsvRanks.SelectedIndices.Clear();
-            xlsvRanks.Items[selectedRankIndex].Selected = true;
+            xlsvRanks.Items[changedRanks.IndexOf(selectedRank)].Selected = true;
+            SetPermissionsCheckedStates(selectedRank);
         }
 
         private List<Ranks.Rank> SortRanksByLevel(List<Ranks.Rank> unsortedRanks)
@@ -136,48 +129,51 @@ namespace Chat
                 }
             }
             changedRanks.Insert(changedRanks.Count() - 1, newRank);
-            DisplayChangedRanks(changedRanks, changedRanks.Count() - 2);
+            selectedRank = newRank;
+            DisplayChangedRanks(changedRanks);
         }
 
         private void RemoveRank()
         {
-            Ranks.Rank selectedRank = GetSelectedRank(changedRanks);
             if (selectedRank == null || selectedRank.Level <= 1)
             {
                 return;
             }
+            foreach (Ranks.Rank rank in changedRanks)
+            {
+                if (rank.Level > selectedRank.Level)
+                {
+                    rank.Level--;
+                }
+            }
+            int indexOfSelectedRank = changedRanks.IndexOf(selectedRank);
             changedRanks.Remove(selectedRank);
-            DisplayChangedRanks(changedRanks, xlsvRanks.SelectedIndices[0]);
+            selectedRank = changedRanks[indexOfSelectedRank];
+            DisplayChangedRanks(changedRanks);
         }
 
         private void PromoteRank()
         {
-            Ranks.Rank selectedRank = GetSelectedRank(changedRanks);
             if (selectedRank.Level <= 1 || selectedRank.Level >= Convert.ToUInt64(changedRanks.Count()))
             {
                 return;
             }
             int levelIncreaseAmount = 1;
-            int selectedRankIndex = xlsvRanks.SelectedIndices[0];
-            int newSelectedRankIndex = selectedRankIndex - levelIncreaseAmount;
             IncreaseRankLevel(changedRanks, selectedRank, levelIncreaseAmount);
             changedRanks = SortRanksByLevel(changedRanks);
-            DisplayChangedRanks(changedRanks, newSelectedRankIndex);
+            DisplayChangedRanks(changedRanks);
         }
 
         private void DemoteRank()
         {
-            Ranks.Rank selectedRank = GetSelectedRank(changedRanks);
             if (selectedRank.Level <= 2)
             {
                 return;
             }
             int levelDecreaseAmount = 1;
-            int selectedRankIndex = xlsvRanks.SelectedIndices[0];
-            int newSelectedRankIndex = selectedRankIndex + levelDecreaseAmount;
             DecreaseRankLevel(changedRanks, selectedRank, levelDecreaseAmount);
             changedRanks = SortRanksByLevel(changedRanks);
-            DisplayChangedRanks(changedRanks, newSelectedRankIndex);
+            DisplayChangedRanks(changedRanks);
         }
 
         private void IncreaseRankLevel(List<Ranks.Rank> ranksByLevelDescending, Ranks.Rank rankToPromote, int levelIncreaseAmount)
@@ -198,16 +194,6 @@ namespace Chat
                 ranksByLevelDescending.ElementAt(i + 1).Level++;
             }
             rankToDemote.Level -= Convert.ToUInt64(levelDecreaseAmount);
-        }
-
-        private Ranks.Rank GetSelectedRank(List<Ranks.Rank> ranks)
-        {
-            if (xlsvRanks == null || xlsvRanks.SelectedIndices.Count == 0)
-            {
-                return null;
-            }
-            int selectedRankIndex = xlsvRanks.SelectedIndices[0];
-            return ranks.ElementAt(selectedRankIndex);
         }
 
         private void Save()
@@ -250,15 +236,10 @@ namespace Chat
 
         private void PopulateEditNameBox()
         {
-            if (canRefreshRankNameTextbox == false)
+            if (canRefreshRankNameTextbox == false || selectedRank == null)
             {
                 return;
             }
-            if (xlsvRanks == null || xlsvRanks.SelectedIndices.Count == 0)
-            {
-                return;
-            }
-            Ranks.Rank selectedRank = GetSelectedRank(changedRanks);
             if (selectedRank.Level <= 1)
             {
                 xtbxName.Enabled = false;
@@ -282,10 +263,9 @@ namespace Chat
             }
             if (xtbxName.Focused)
             {
-                Ranks.Rank selectedRank = GetSelectedRank(changedRanks);
                 selectedRank.Name = xtbxName.Text.Trim();
                 canRefreshRankNameTextbox = false;
-                DisplayChangedRanks(changedRanks, xlsvRanks.SelectedIndices[0]);
+                DisplayChangedRanks(changedRanks);
             }
             canRefreshRankNameTextbox = true;
         }
@@ -301,6 +281,11 @@ namespace Chat
 
         private void SelectedRankChanged()
         {
+            if (xlsvRanks.SelectedIndices.Count == 0)
+            {
+                return;
+            }
+            selectedRank = changedRanks.ElementAtOrDefault(xlsvRanks.SelectedIndices[0]);
             PopulateEditNameBox();
             SetPermissionsCheckedStates(selectedRank);
             bool enableAddRank = true;
@@ -329,6 +314,14 @@ namespace Chat
             xbtnRemoveRank.Enabled = enableRemoveRank;
             xbtnRankPromote.Enabled = enablePromoteRank;
             xbtnRankDemote.Enabled = enableDemoteRank;
+        }
+
+        private void SetRankPermissions(ItemCheckEventArgs e)
+        {
+            if (e == null)
+            {
+                return;
+            }
         }
 
         private void RecordUnsavedChange()
@@ -374,6 +367,11 @@ namespace Chat
         private void xtbxName_Leave(object sender, EventArgs e)
         {
             HandleEmptyRankName();
+        }
+
+        private void xlsvPermissions_ItemCheck(object sender, ItemCheckEventArgs e)
+        {
+            SetRankPermissions(e);
         }
     }
 }
