@@ -340,11 +340,6 @@
             }
         }
 
-        private void RecordUnsavedChange()
-        {
-
-        }
-
         private void xbtnBack_Click(object sender, EventArgs e)
         {
             CloseForm();
