@@ -39,10 +39,30 @@
             { IndividualPermissionNumber.SendVoice, new Permission("Speak", "Allows users to speak in voice channels.") }
         };
 
-        public static ulong GetPermissionsNumberAsUlong(IndividualPermissionNumber individualPermissionNumber)
+        public static ulong GetPermissionsNumberAsUlong(IndividualPermissionNumber permissionNumber)
         {
-            return Convert.ToUInt64(individualPermissionNumber);
+            return Convert.ToUInt64(permissionNumber);
         }
+
+        public static bool ContainsPermission(IndividualPermissionNumber basePermissionNumber, IndividualPermissionNumber targetPermissionNumber)
+        {
+            if ((targetPermissionNumber & basePermissionNumber) == basePermissionNumber)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        public static IndividualPermissionNumber AddPermission(IndividualPermissionNumber basePermissionNumber, IndividualPermissionNumber targetPermissionNumber)
+        {
+            return targetPermissionNumber |= basePermissionNumber;
+        }
+
+        public static IndividualPermissionNumber RemovePermission(IndividualPermissionNumber basePermissionNumber, IndividualPermissionNumber targetPermissionNumber)
+        {
+            return targetPermissionNumber &= ~basePermissionNumber;
+        }
+
 
         public class Permission
         {

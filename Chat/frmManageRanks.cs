@@ -36,7 +36,7 @@
                 {
                     if (listViewItem.Text == permission.Value.Name)
                     {
-                        if ((rank.PermissionsNumber & permission.Key) == permission.Key)
+                        if (Permissions.ContainsPermission(permission.Key, rank.PermissionsNumber))
                         {
                             listViewItem.Checked = true;
                             break;
@@ -62,7 +62,7 @@
                     {
                         if (listViewItem.Text == permission.Value.Name)
                         {
-                            individualPermissionNumber = individualPermissionNumber | permission.Key;
+                            individualPermissionNumber = Permissions.AddPermission(permission.Key, individualPermissionNumber);
                             break;
                         }
                     }
