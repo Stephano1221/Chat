@@ -36,7 +36,7 @@
                 {
                     if (listViewItem.Text == permission.Value.Name)
                     {
-                        if (Permissions.ContainsPermission(permission.Key, rank.PermissionsNumber))
+                        if (Permissions.ContainsPermission(permission.Key, rank.PermissionNumber))
                         {
                             listViewItem.Checked = true;
                             break;
@@ -212,8 +212,8 @@
 
         private void CloseForm()
         {
-            List<Ranks.Rank> changes = ChangesMade();
-            if (changes != null && changes.Count() > 0)
+            Ranks.Changes changes = ChangesMade();
+            if (changes != null && (changes.newRanks.Count() > 0 || changes.changedRanks.Count() > 0 || changes.deletedRanks.Count() > 0))
             {
                 DialogResult dialogResult = AskToSave();
                 if (dialogResult == DialogResult.Yes)
@@ -228,10 +228,10 @@
             this.Close();
         }
 
-        private List<Ranks.Rank> ChangesMade()
+        private Ranks.Changes ChangesMade()
         {
-            return null;
-            throw new NotImplementedException();
+            Ranks.Changes changes = new Ranks.Changes(unchangedRanks, changedRanks);
+            return changes;
         }
 
         private void PopulateEditNameBox()
@@ -328,12 +328,12 @@
                 {
                     if (e.NewValue == CheckState.Checked)
                     {
-                        selectedRank.PermissionsNumber = Permissions.AddPermission(permission.Key, selectedRank.PermissionsNumber);
+                        selectedRank.PermissionNumber = Permissions.AddPermission(permission.Key, selectedRank.PermissionNumber);
                         break;
                     }
                     else
                     {
-                        selectedRank.PermissionsNumber = Permissions.RemovePermission(permission.Key, selectedRank.PermissionsNumber);
+                        selectedRank.PermissionNumber = Permissions.RemovePermission(permission.Key, selectedRank.PermissionNumber);
                         break;
                     }
                 }

@@ -41,7 +41,7 @@
             public string Name { get; set; }
             public Color Color { get; set; }
             public ulong Level { get; set; }
-            public Permissions.IndividualPermissionNumber PermissionsNumber { get; set; }
+            public Permissions.IndividualPermissionNumber PermissionNumber { get; set; }
 
             public Rank(ulong id, string name, Color color, ulong level, Permissions.IndividualPermissionNumber permissionsNumber)
             {
@@ -49,13 +49,75 @@
                 this.Name = name;
                 this.Color = color;
                 this.Level = level;
-                this.PermissionsNumber = permissionsNumber;
+                this.PermissionNumber = permissionsNumber;
             }
 
             public Rank DeepCopy()
             {
-                Rank rankCopy = new Rank(Id, Name, Color, Level, PermissionsNumber);
+                Rank rankCopy = new Rank(Id, Name, Color, Level, PermissionNumber);
                 return rankCopy;
+            }
+        }
+
+        public class Changes
+        {
+            public List<Rank> newRanks { get; set;} = new List<Rank>();
+            public List<Rank> changedRanks { get; set; } = new List<Rank>();
+            public List<Rank> deletedRanks { get; set; } = new List<Rank>();
+
+            public Changes(List<Rank> baseRanks, List<Rank> targetRanks)
+            {
+                GetChanges(baseRanks, targetRanks);
+            }
+
+            public Changes GetChanges(List<Rank> baseRanks, List<Rank> targetRanks)
+            {
+                foreach(Rank baseRank in baseRanks)
+                {
+                    bool baseRankFound = false;
+                    foreach(Rank targetRank in targetRanks)
+                    {
+                        if (baseRank.Id == targetRank.Id)
+                        {
+                            baseRankFound = true;
+                            if (ChangesFound(baseRank, targetRank))
+                            {
+                                changedRanks.Add(targetRank);
+                                break;
+                            }
+                        }
+                    }
+                    if (baseRankFound == false)
+                    {
+                        deletedRanks.Add(baseRank);
+                    }
+                }
+                foreach (Rank targetRank in targetRanks)
+                {
+                    bool targetRankFound = false;
+                    foreach (Rank baseRank in baseRanks)
+                    {
+                        if (targetRank.Id == baseRank.Id)
+                        {
+                            targetRankFound = true;
+                        }
+                    }
+                    if (targetRankFound == false)
+                    {
+                        newRanks.Add(targetRank);
+                    }
+                }
+                return this;
+            }
+
+            public bool ChangesFound(Rank baseRank, Rank targetRank)
+            {
+                if (baseRank.Id != targetRank.Id) { return true; }
+                if (baseRank.Name != targetRank.Name) { return true; }
+                if (baseRank.Color != targetRank.Color) { return true; }
+                if (baseRank.Level != targetRank.Level) { return true; }
+                if (baseRank.PermissionNumber != targetRank.PermissionNumber) { return true; }
+                return false;
             }
         }
     }
