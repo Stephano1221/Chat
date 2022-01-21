@@ -250,14 +250,25 @@
 
         private void RankNameTextChanged()
         {
+            bool enableRankList = true;
+            bool enablePermissionList = true;
+            bool enableBackButton = true;
             if (String.IsNullOrWhiteSpace(xtbxName.Text))
             {
-                xlsvRanks.Enabled = false;
+
+                enableRankList = false;
+                enablePermissionList = false;
+                enableBackButton = false;
             }
             else
             {
-                xlsvRanks.Enabled = true;
+                enableRankList = true;
+                enablePermissionList = true;
+                enableBackButton = true;
             }
+            xlsvRanks.Enabled = enableRankList;
+            xlsvPermissions.Enabled = enablePermissionList;
+            xbtnBack.Enabled = enableBackButton;
             if (xtbxName.Focused)
             {
                 selectedRank.Name = xtbxName.Text.Trim();
