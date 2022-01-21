@@ -196,12 +196,9 @@
             rankToDemote.Level -= Convert.ToUInt64(levelDecreaseAmount);
         }
 
-        private void Save()
+        private void Save(Ranks.Changes changes)
         {
-            foreach (Ranks.Rank rank in changedRanks)
-            {
-                rank.Name = rank.Name.Trim();
-            }
+            changes.SaveChanges();
         }
 
         private DialogResult AskToSave()
@@ -218,7 +215,7 @@
                 DialogResult dialogResult = AskToSave();
                 if (dialogResult == DialogResult.Yes)
                 {
-                    Save();
+                    Save(changes);
                 }
                 else if (dialogResult == DialogResult.Cancel)
                 {

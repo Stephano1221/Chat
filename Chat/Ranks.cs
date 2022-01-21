@@ -119,6 +119,45 @@
                 if (baseRank.PermissionNumber != targetRank.PermissionNumber) { return true; }
                 return false;
             }
+
+            public void SaveChanges()
+            {
+                if (deletedRanks != null && deletedRanks.Count() > 0)
+                {
+                    foreach (Rank deletedRank in deletedRanks)
+                    {
+                        foreach (Rank rank in ranksInMemoryForTestingOnly)
+                        {
+                            if (deletedRank.Id == rank.Id)
+                            {
+                                ranksInMemoryForTestingOnly.Remove(rank);
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (changedRanks != null && changedRanks.Count() > 0)
+                {
+                    foreach (Rank changedRank in changedRanks)
+                    {
+                        for (int i = 0; i < ranksInMemoryForTestingOnly.Count(); i++)
+                        {
+                            if (changedRank.Id == ranksInMemoryForTestingOnly[i].Id)
+                            {
+                                ranksInMemoryForTestingOnly[i] = changedRank.DeepCopy();
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (newRanks != null && newRanks.Count() > 0)
+                {
+                    foreach (Rank newRank in newRanks)
+                    {
+                        ranksInMemoryForTestingOnly.Add(newRank.DeepCopy());
+                    }
+                }
+            }
         }
     }
 }
