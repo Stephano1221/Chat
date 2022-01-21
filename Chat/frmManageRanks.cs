@@ -318,9 +318,25 @@
 
         private void SetRankPermissions(ItemCheckEventArgs e)
         {
-            if (e == null)
+            if (e == null || xlsvPermissions.Focused == false)
             {
                 return;
+            }
+            foreach (KeyValuePair<Permissions.IndividualPermissionNumber, Permissions.Permission> permission in Permissions.permissionNames)
+            {
+                if (xlsvPermissions.Items[e.Index].Text == permission.Value.Name)
+                {
+                    if (e.NewValue == CheckState.Checked)
+                    {
+                        selectedRank.PermissionsNumber = Permissions.AddPermission(permission.Key, selectedRank.PermissionsNumber);
+                        break;
+                    }
+                    else
+                    {
+                        selectedRank.PermissionsNumber = Permissions.RemovePermission(permission.Key, selectedRank.PermissionsNumber);
+                        break;
+                    }
+                }
             }
         }
 
