@@ -210,7 +210,7 @@
         private void CloseForm()
         {
             Ranks.Changes changes = ChangesMade();
-            if (changes != null && (changes.newRanks.Count() > 0 || changes.changedRanks.Count() > 0 || changes.deletedRanks.Count() > 0))
+            if (changes != null && (changes.newRanks.Count() > 0 || changes.modifiedRanks.Count() > 0 || changes.removedRanks.Count() > 0))
             {
                 DialogResult dialogResult = AskToSave();
                 if (dialogResult == DialogResult.Yes)

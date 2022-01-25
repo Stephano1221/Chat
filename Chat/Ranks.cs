@@ -65,8 +65,8 @@ namespace Chat
         public class Changes
         {
             public List<Rank> newRanks { get; set;} = new List<Rank>();
-            public List<Rank> changedRanks { get; set; } = new List<Rank>();
-            public List<Rank> deletedRanks { get; set; } = new List<Rank>();
+            public List<Rank> modifiedRanks { get; set; } = new List<Rank>();
+            public List<Rank> removedRanks { get; set; } = new List<Rank>();
 
             public Changes(List<Rank> baseRanks, List<Rank> targetRanks)
             {
@@ -85,14 +85,14 @@ namespace Chat
                             baseRankFound = true;
                             if (ChangesFound(baseRank, targetRank))
                             {
-                                changedRanks.Add(targetRank);
+                                modifiedRanks.Add(targetRank);
                                 break;
                             }
                         }
                     }
                     if (baseRankFound == false)
                     {
-                        deletedRanks.Add(baseRank);
+                        removedRanks.Add(baseRank);
                     }
                 }
                 foreach (Rank targetRank in targetRanks)
@@ -125,9 +125,9 @@ namespace Chat
 
             public void SaveChanges()
             {
-                if (deletedRanks != null && deletedRanks.Count() > 0)
+                if (removedRanks != null && removedRanks.Count() > 0)
                 {
-                    foreach (Rank deletedRank in deletedRanks)
+                    foreach (Rank deletedRank in removedRanks)
                     {
                         foreach (Rank rank in ranksInMemoryForTestingOnly)
                         {
@@ -139,15 +139,15 @@ namespace Chat
                         }
                     }
                 }
-                if (changedRanks != null && changedRanks.Count() > 0)
+                if (modifiedRanks != null && modifiedRanks.Count() > 0)
                 {
-                    foreach (Rank changedRank in changedRanks)
+                    foreach (Rank editedRank in modifiedRanks)
                     {
                         for (int i = 0; i < ranksInMemoryForTestingOnly.Count(); i++)
                         {
-                            if (changedRank.Id == ranksInMemoryForTestingOnly[i].Id)
+                            if (editedRank.Id == ranksInMemoryForTestingOnly[i].Id)
                             {
-                                ranksInMemoryForTestingOnly[i] = changedRank.DeepCopy();
+                                ranksInMemoryForTestingOnly[i] = editedRank.DeepCopy();
                                 break;
                             }
                         }
@@ -155,9 +155,9 @@ namespace Chat
                 }
                 if (newRanks != null && newRanks.Count() > 0)
                 {
-                    foreach (Rank newRank in newRanks)
+                    foreach (Rank addedRank in newRanks)
                     {
-                        ranksInMemoryForTestingOnly.Add(newRank.DeepCopy());
+                        ranksInMemoryForTestingOnly.Add(addedRank.DeepCopy());
                     }
                 }
             }
