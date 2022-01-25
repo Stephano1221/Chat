@@ -1,4 +1,7 @@
-﻿namespace Chat
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace Chat
 {
     public static class Ranks
     {
@@ -157,6 +160,12 @@
                         ranksInMemoryForTestingOnly.Add(newRank.DeepCopy());
                     }
                 }
+            }
+
+            public string SerializeToJson()
+            {
+                string json = JsonSerializer.Serialize(this);
+                return json;
             }
         }
     }
