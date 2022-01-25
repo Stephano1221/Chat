@@ -40,7 +40,7 @@ namespace Chat
 
         public class Rank
         {
-            public ulong Id { get; set; }
+            public ulong Id { get; }
             public string Name { get; set; }
             public Color Color { get; set; }
             public ulong Level { get; set; }
