@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Chat
 {
-    public static class Ranks
+    public class Ranks
     {
         public static List<Rank> ranksInMemoryForTestingOnly = new List<Rank>() //TESTING: POPULATED FOR TESTING PURPOSES ONLY. CHECK DATABASE WHEN CHECKING RANKS.
         {
