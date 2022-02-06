@@ -8,12 +8,22 @@
 
         bool canRefreshRankNameTextbox = true;
 
+        private delegate void OnRanksReceivedAllEventHandler(List<Ranks.Rank> ranks);
+        private delegate void OnRanksUpdatedEventHandler(Ranks.Changes changes);
+
         public frmManageRanks()
         {
             InitializeComponent();
             xlsvRanks.Columns[0].Width = xlsvRanks.Width - 5;
+            SubscribeToRankEvents();
             PopulatePermissions();
             RequestRanks();
+        }
+
+        private void SubscribeToRankEvents()
+        {
+            FrmHolder.processing.ranks.ranksReceivedAll += OnRanksReceivedAll;
+            FrmHolder.processing.ranks.ranksUpdated += OnRanksUpdated;
         }
 
         private void PopulatePermissions()
@@ -345,6 +355,30 @@
                         break;
                     }
                 }
+            }
+        }
+
+        private void OnRanksUpdated(object sender, Ranks.Changes e)
+        {
+            if (xlsvRanks.InvokeRequired)
+            {
+                xlsvRanks.BeginInvoke(new OnRanksUpdatedEventHandler(RanksUpdated), e);
+            }
+            else
+            {
+                RanksUpdated(e);
+            }
+        }
+
+        private void OnRanksReceivedAll(object sender, List<Ranks.Rank> e)
+        {
+            if (xlsvRanks.InvokeRequired)
+            {
+                xlsvRanks.BeginInvoke(new OnRanksReceivedAllEventHandler(RanksReceivedAll), e);
+                }
+            else
+            {
+                RanksReceivedAll(e);
             }
         }
 
