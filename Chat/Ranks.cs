@@ -133,17 +133,17 @@ namespace Chat
                 return false;
             }
 
-            public void SaveChanges()
+            public List<Rank> MergeChanges(List<Rank> baseRanks)
             {
                 if (removedRanks != null && removedRanks.Count() > 0)
                 {
                     foreach (Rank deletedRank in removedRanks)
                     {
-                        foreach (Rank rank in ranksInMemoryForTestingOnly)
+                        foreach (Rank rank in baseRanks)
                         {
                             if (deletedRank.Id == rank.Id)
                             {
-                                ranksInMemoryForTestingOnly.Remove(rank);
+                                baseRanks.Remove(rank);
                                 break;
                             }
                         }
@@ -153,11 +153,11 @@ namespace Chat
                 {
                     foreach (Rank editedRank in modifiedRanks)
                     {
-                        for (int i = 0; i < ranksInMemoryForTestingOnly.Count(); i++)
+                        for (int i = 0; i < baseRanks.Count(); i++)
                         {
-                            if (editedRank.Id == ranksInMemoryForTestingOnly[i].Id)
+                            if (editedRank.Id == baseRanks[i].Id)
                             {
-                                ranksInMemoryForTestingOnly[i] = editedRank.DeepCopy();
+                                baseRanks[i] = editedRank.DeepCopy();
                                 break;
                             }
                         }
@@ -167,9 +167,10 @@ namespace Chat
                 {
                     foreach (Rank addedRank in newRanks)
                     {
-                        ranksInMemoryForTestingOnly.Add(addedRank.DeepCopy());
+                        baseRanks.Add(addedRank.DeepCopy());
                     }
                 }
+                return baseRanks;
             }
 
             public string SerializeToJson()
