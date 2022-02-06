@@ -28,14 +28,17 @@ namespace Chat
 
         public static List<Rank> SortByLevel(List<Rank> ranks, bool ascending)
         {
+            List<Rank> sortedRanks;
             if (ascending)
             {
-                return ranks.OrderBy(rank => rank.Level).ToList();
+                sortedRanks = ranks.OrderBy(rank => rank.Level).ToList();
             }
             else
             {
-                return ranks.OrderByDescending(rank => rank.Level).ToList();
+                sortedRanks = ranks.OrderByDescending(rank => rank.Level).ToList();
             }
+            List<Rank> sortedRanksWithUniqueLevels = SetLevelByIndex(sortedRanks);
+            return sortedRanksWithUniqueLevels;
         }
 
         public static List<Rank> SetLevelByIndex(List<Rank> ranks)
