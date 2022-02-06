@@ -1,8 +1,8 @@
-﻿using System.Net.Security;
+﻿using System.Net;
+using System.Net.Sockets;
+using System.Net.Security;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using System.Net;
-using System.Net.Sockets;
 
 namespace Chat
 {
@@ -644,7 +644,7 @@ namespace Chat
                 {
                     RunCommandTakeRank(commandParts);
                 }
-                else if(commandParts[0] == "ranks")
+                else if (commandParts[0] == "ranks")
                 {
                     RunCommandRanks(commandParts);
                 }
