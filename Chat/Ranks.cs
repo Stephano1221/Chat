@@ -11,30 +11,28 @@ namespace Chat
         /// Represents a list of ranks on a server.
         /// Use <see cref="UpdateRanksList(Changes)"/> or <see cref="UpdateRanksList(List{Rank})"/> to set.
         /// </summary>
-        public static List<Rank> ranksInMemoryForTestingOnly = new List<Rank>() //TESTING: POPULATED FOR TESTING PURPOSES ONLY. CHECK DATABASE WHEN CHECKING RANKS.
+        public List<Rank> RankList
         {
-            new Rank(3, "Administrator", Color.Blue, 3, Permissions.IndividualPermissionNumber.Overseer | Permissions.IndividualPermissionNumber.Kick | Permissions.IndividualPermissionNumber.Ban | Permissions.IndividualPermissionNumber.Mute | Permissions.IndividualPermissionNumber.Deafen | Permissions.IndividualPermissionNumber.DeleteMessages | Permissions.IndividualPermissionNumber.RegulateChannels | Permissions.IndividualPermissionNumber.RegulateRanks | Permissions.IndividualPermissionNumber.PingAll | Permissions.IndividualPermissionNumber.ReadMessages | Permissions.IndividualPermissionNumber.SendMessages | Permissions.IndividualPermissionNumber.HearVoice | Permissions.IndividualPermissionNumber.SendVoice),
-            new Rank(2, "Moderator", Color.Azure, 2, Permissions.IndividualPermissionNumber.Mute | Permissions.IndividualPermissionNumber.Deafen | Permissions.IndividualPermissionNumber.DeleteMessages | Permissions.IndividualPermissionNumber.PingAll | Permissions.IndividualPermissionNumber.ReadMessages | Permissions.IndividualPermissionNumber.SendMessages | Permissions.IndividualPermissionNumber.HearVoice | Permissions.IndividualPermissionNumber.SendVoice),
-            new Rank(1, "@All", Color.Azure, 1, Permissions.IndividualPermissionNumber.Mute | Permissions.IndividualPermissionNumber.Deafen | Permissions.IndividualPermissionNumber.DeleteMessages | Permissions.IndividualPermissionNumber.PingAll | Permissions.IndividualPermissionNumber.ReadMessages | Permissions.IndividualPermissionNumber.SendMessages | Permissions.IndividualPermissionNumber.HearVoice | Permissions.IndividualPermissionNumber.SendVoice),
-            new Rank(4, "Test4", Color.Azure, 4, Permissions.IndividualPermissionNumber.Mute | Permissions.IndividualPermissionNumber.Deafen | Permissions.IndividualPermissionNumber.DeleteMessages | Permissions.IndividualPermissionNumber.PingAll | Permissions.IndividualPermissionNumber.ReadMessages | Permissions.IndividualPermissionNumber.SendMessages | Permissions.IndividualPermissionNumber.HearVoice | Permissions.IndividualPermissionNumber.SendVoice)
-        };
+            get { return RankList; }
+            private set { RankList = value; }
+        }
 
         public void UpdateRanksList(List<Rank> ranks)
         {
-            ranksInMemoryForTestingOnly = ranks;
+            RankList = ranks;
             InvokeRanksReceivedAll(this, ranks);
         }
 
         public void UpdateRanksList(Changes changes)
         {
-            changes.MergeChanges(ranksInMemoryForTestingOnly);
+            changes.MergeChanges(RankList);
             InvokeRanksUpdated(this, changes);
         }
 
-        public static List<Rank> GetRanksMatchingName(string name)
+        public List<Rank> GetRanksMatchingName(string name)
         {
             List<Rank> matchingRanks = new List<Rank>();
-            foreach (Rank rank in ranksInMemoryForTestingOnly)
+            foreach (Rank rank in RankList)
             {
                 if (rank.Name == name)
                 {
