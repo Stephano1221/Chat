@@ -5,6 +5,12 @@ namespace Chat
 {
     public class Ranks
     {
+        public event EventHandler<List<Rank>> ranksReceivedAll;
+        public event EventHandler<Changes> ranksUpdated;
+        /// <summary>
+        /// Represents a list of ranks on a server.
+        /// Use <see cref="UpdateRanksList(Changes)"/> or <see cref="UpdateRanksList(List{Rank})"/> to set.
+        /// </summary>
         public static List<Rank> ranksInMemoryForTestingOnly = new List<Rank>() //TESTING: POPULATED FOR TESTING PURPOSES ONLY. CHECK DATABASE WHEN CHECKING RANKS.
         {
             new Rank(3, "Administrator", Color.Blue, 3, Permissions.IndividualPermissionNumber.Overseer | Permissions.IndividualPermissionNumber.Kick | Permissions.IndividualPermissionNumber.Ban | Permissions.IndividualPermissionNumber.Mute | Permissions.IndividualPermissionNumber.Deafen | Permissions.IndividualPermissionNumber.DeleteMessages | Permissions.IndividualPermissionNumber.RegulateChannels | Permissions.IndividualPermissionNumber.RegulateRanks | Permissions.IndividualPermissionNumber.PingAll | Permissions.IndividualPermissionNumber.ReadMessages | Permissions.IndividualPermissionNumber.SendMessages | Permissions.IndividualPermissionNumber.HearVoice | Permissions.IndividualPermissionNumber.SendVoice),
@@ -12,6 +18,18 @@ namespace Chat
             new Rank(1, "@All", Color.Azure, 1, Permissions.IndividualPermissionNumber.Mute | Permissions.IndividualPermissionNumber.Deafen | Permissions.IndividualPermissionNumber.DeleteMessages | Permissions.IndividualPermissionNumber.PingAll | Permissions.IndividualPermissionNumber.ReadMessages | Permissions.IndividualPermissionNumber.SendMessages | Permissions.IndividualPermissionNumber.HearVoice | Permissions.IndividualPermissionNumber.SendVoice),
             new Rank(4, "Test4", Color.Azure, 4, Permissions.IndividualPermissionNumber.Mute | Permissions.IndividualPermissionNumber.Deafen | Permissions.IndividualPermissionNumber.DeleteMessages | Permissions.IndividualPermissionNumber.PingAll | Permissions.IndividualPermissionNumber.ReadMessages | Permissions.IndividualPermissionNumber.SendMessages | Permissions.IndividualPermissionNumber.HearVoice | Permissions.IndividualPermissionNumber.SendVoice)
         };
+
+        public void UpdateRanksList(List<Rank> ranks)
+        {
+            ranksInMemoryForTestingOnly = ranks;
+            InvokeRanksReceivedAll(this, ranks);
+        }
+
+        public void UpdateRanksList(Changes changes)
+        {
+            changes.MergeChanges(ranksInMemoryForTestingOnly);
+            InvokeRanksUpdated(this, changes);
+        }
 
         public static List<Rank> GetRanksMatchingName(string name)
         {
@@ -66,6 +84,22 @@ namespace Chat
                 return false;
             }
             return true;
+        }
+
+        private void InvokeRanksReceivedAll(object sender, List<Rank> ranksList)
+        {
+            if (ranksReceivedAll != null)
+            {
+                ranksReceivedAll.Invoke(this, ranksList);
+            }
+        }
+
+        private void InvokeRanksUpdated(object sender, Changes mostRecentChange)
+        {
+            if (ranksUpdated != null)
+            {
+                ranksUpdated.Invoke(sender, mostRecentChange);
+            }
         }
 
         public string SerializeToJson()
