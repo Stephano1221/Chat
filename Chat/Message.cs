@@ -44,7 +44,8 @@ namespace Chat
             OtherUserRankTaken = 35,
             RequestAllRanks = 36,
             AllRanks = 37,
-            ChangedRanks = 38
+            ChangedRanks = 38,
+            InvalidRanks = 39
         }
 
         public uint messageId;
@@ -187,6 +188,7 @@ namespace Chat
                 case MessageTypes.RequestAllRanks: messageSendPriority = 1; break;
                 case MessageTypes.AllRanks: messageSendPriority = 1; break;
                 case MessageTypes.ChangedRanks: messageSendPriority = 1; break;
+                case MessageTypes.InvalidRanks: messageSendPriority = 1; break;
                 default: messageSendPriority = 0; break;
             }
         }
@@ -234,6 +236,7 @@ namespace Chat
                 case MessageTypes.RequestAllRanks: return true;
                 case MessageTypes.AllRanks: return true;
                 case MessageTypes.ChangedRanks: return true;
+                case MessageTypes.InvalidRanks: return true;
                 default: return false;
             }
         }
