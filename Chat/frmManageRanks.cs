@@ -125,6 +125,24 @@
             unchangedRanks = FrmHolder.processing.ranks.RankList;
         }
 
+        private bool HasLocalLevelChange()
+        {
+            foreach (Ranks.Rank localChangedRank in changedRanks)
+            {
+                foreach (Ranks.Rank localUnchangedRank in unchangedRanks)
+                {
+                    if (localChangedRank.Id == localUnchangedRank.Id)
+                    {
+                        if (localChangedRank.Level != localUnchangedRank.Level)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
         private void RemoveRankFromList(Ranks.Rank rankToRemove, List<Ranks.Rank> baseRanks)
         {
             if (rankToRemove == null || baseRanks == null || baseRanks.Count() == 0)
