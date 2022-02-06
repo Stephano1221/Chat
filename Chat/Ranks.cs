@@ -38,6 +38,18 @@ namespace Chat
             }
         }
 
+        public string SerializeToJson()
+        {
+            string json = JsonSerializer.Serialize(this);
+            return json;
+        }
+
+        public static Ranks DeserializeFromJson(string json)
+        {
+            Ranks ranks = JsonSerializer.Deserialize<Ranks>(json);
+            return ranks;
+        }
+
         public class Rank
         {
             public ulong Id { get; }
@@ -64,7 +76,7 @@ namespace Chat
 
         public class Changes
         {
-            public List<Rank> newRanks { get; set;} = new List<Rank>();
+            public List<Rank> newRanks { get; set; } = new List<Rank>();
             public List<Rank> modifiedRanks { get; set; } = new List<Rank>();
             public List<Rank> unmodifiedRanks { get; set; } = new List<Rank>();
             public List<Rank> removedRanks { get; set; } = new List<Rank>();
@@ -83,7 +95,7 @@ namespace Chat
                 foreach (Rank baseRank in baseRanks)
                 {
                     bool baseRankFound = false;
-                    foreach(Rank targetRank in targetRanks)
+                    foreach (Rank targetRank in targetRanks)
                     {
                         if (baseRank.Id == targetRank.Id)
                         {
