@@ -55,6 +55,19 @@ namespace Chat
             return ranks;
         }
 
+        public static bool IsValidRank(Rank rank)
+        {
+            if (string.IsNullOrWhiteSpace(rank.Name))
+            {
+                return false;
+            }
+            if (rank.Color.IsEmpty)
+            {
+                return false;
+            }
+            return true;
+        }
+
         public string SerializeToJson()
         {
             string json = JsonSerializer.Serialize(this);
