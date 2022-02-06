@@ -38,6 +38,20 @@ namespace Chat
             }
         }
 
+        public static List<Rank> SetLevelByIndex(List<Rank> ranks)
+        {
+            ulong nextSettableLevel = Convert.ToUInt64(ranks.Count());
+            foreach (Rank rank in ranks)
+            {
+                if (rank.Level == nextSettableLevel)
+                {
+                    continue;
+                }
+                rank.Level = nextSettableLevel--;
+            }
+            return ranks;
+        }
+
         public string SerializeToJson()
         {
             string json = JsonSerializer.Serialize(this);
