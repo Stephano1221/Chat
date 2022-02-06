@@ -84,6 +84,18 @@ namespace Chat
             return true;
         }
 
+        public string SerializeToJson()
+        {
+            string json = JsonSerializer.Serialize(this);
+            return json;
+        }
+
+        public static Ranks DeserializeFromJson(string json)
+        {
+            Ranks ranks = JsonSerializer.Deserialize<Ranks>(json);
+            return ranks;
+        }
+
         private void InvokeRanksReceivedAll(object sender, List<Rank> ranksList)
         {
             if (ranksReceivedAll != null)
@@ -98,18 +110,6 @@ namespace Chat
             {
                 ranksUpdated.Invoke(sender, mostRecentChange);
             }
-        }
-
-        public string SerializeToJson()
-        {
-            string json = JsonSerializer.Serialize(this);
-            return json;
-        }
-
-        public static Ranks DeserializeFromJson(string json)
-        {
-            Ranks ranks = JsonSerializer.Deserialize<Ranks>(json);
-            return ranks;
         }
 
         public class Rank
@@ -194,7 +194,6 @@ namespace Chat
                         newRanks.Add(targetRank);
                     }
                 }
-                return this;
             }
 
             public static bool ChangesFound(Rank baseRank, Rank targetRank)
