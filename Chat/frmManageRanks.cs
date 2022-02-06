@@ -84,7 +84,6 @@
 
         private void RequestRanks()
         {
-            unchangedRanks.Clear();
             if (FrmHolder.hosting)
             {
                 //ReceiveRanks(FrmHolder.processing.GetRanksFromDatabase());
@@ -111,6 +110,44 @@
             }
             selectedRank = changedRanks.ElementAtOrDefault(0);
             DisplayChangedRanks(changedRanks);
+        }
+
+        private void RanksReceivedAll(List<Ranks.Rank> ranks)
+        {
+            ReceiveRanks(ranks);
+        }
+
+        private void RanksUpdated(Ranks.Changes changes)
+        {
+            RemoveRanksFromList(changes.removedRanks, changedRanks);
+            ModifyRanksInList(unchangedRanks, changes.modifiedRanks, changedRanks);
+            AddRanksToList(changes.newRanks, changedRanks);
+            unchangedRanks = FrmHolder.processing.ranks.RankList;
+        }
+
+        private void RemoveRankFromList(Ranks.Rank rankToRemove, List<Ranks.Rank> baseRanks)
+        {
+            if (rankToRemove == null || baseRanks == null || baseRanks.Count() == 0)
+            {
+                throw new ArgumentNullException();
+            }
+            foreach (Ranks.Rank rank in baseRanks)
+            {
+                if (rankToRemove.Id == rank.Id)
+                {
+                    baseRanks.Remove(rank);
+                    break;
+                }
+            }
+            SortRanksByLevel(baseRanks);
+        }
+
+        private void RemoveRanksFromList(List<Ranks.Rank> ranksToRemove, List<Ranks.Rank> baseRanks)
+        {
+            foreach (Ranks.Rank rankToRemove in ranksToRemove)
+            {
+                RemoveRankFromList(rankToRemove, baseRanks);
+            }
         }
 
         private void DisplayChangedRanks(List<Ranks.Rank> ranks)
@@ -384,7 +421,7 @@
             if (xlsvRanks.InvokeRequired)
             {
                 xlsvRanks.BeginInvoke(new OnRanksReceivedAllEventHandler(RanksReceivedAll), e);
-                }
+            }
             else
             {
                 RanksReceivedAll(e);
