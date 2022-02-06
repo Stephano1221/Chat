@@ -149,7 +149,7 @@ namespace Chat
                 return this;
             }
 
-            public bool ChangesFound(Rank baseRank, Rank targetRank)
+            public static bool ChangesFound(Rank baseRank, Rank targetRank)
             {
                 if (baseRank.Id != targetRank.Id) { return true; }
                 if (baseRank.Name != targetRank.Name) { return true; }
