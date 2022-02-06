@@ -150,6 +150,37 @@
             }
         }
 
+        private void AddRankToList(Ranks.Rank rankToAdd, List<Ranks.Rank> baseRanks)
+        {
+            if (rankToAdd == null || baseRanks == null || baseRanks.Count() == 0)
+            {
+                throw new ArgumentNullException();
+            }
+            bool alreadyExists = false;
+            foreach (Ranks.Rank rank in baseRanks)
+            {
+                if (rankToAdd.Id == rank.Id)
+                {
+                    alreadyExists = true;
+                    break;
+                }
+            }
+            if (alreadyExists)
+            {
+                return;
+            }
+            baseRanks.Add(rankToAdd);
+            SortRanksByLevel(baseRanks);
+        }
+
+        private void AddRanksToList(List<Ranks.Rank> ranksToAdd, List<Ranks.Rank> baseRanks)
+        {
+            foreach (Ranks.Rank rankToAdd in ranksToAdd)
+            {
+                AddRankToList(rankToAdd, baseRanks);
+            }
+        }
+
         private void DisplayChangedRanks(List<Ranks.Rank> ranks)
         {
             xlsvRanks.Items.Clear();
