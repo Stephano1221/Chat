@@ -199,6 +199,70 @@
             }
         }
 
+        private void ModifyRank(Ranks.Rank unmodifiedRank, Ranks.Rank modifiedRank, Ranks.Rank rankToModify)
+        {
+            if (modifiedRank == null || rankToModify == null)
+            {
+                throw new ArgumentNullException();
+            }
+            bool hasLocalNameChange = false;
+            bool hasLocalColorChange = false;
+            bool hasLocalPermissionsChange = false;
+            if (unmodifiedRank != null)
+            {
+                hasLocalNameChange = unmodifiedRank.Name == modifiedRank.Name ? false : true;
+                hasLocalColorChange = unmodifiedRank.Color == modifiedRank.Color ? false : true;
+                hasLocalPermissionsChange = unmodifiedRank.PermissionNumber == modifiedRank.PermissionNumber ? false : true;
+            }
+            if (hasLocalNameChange == false && rankToModify.Name != modifiedRank.Name)
+            {
+                rankToModify.Name = modifiedRank.Name;
+            }
+            if (hasLocalColorChange == false && rankToModify.Color != modifiedRank.Color)
+            {
+                rankToModify.Color = modifiedRank.Color;
+            }
+            if (hasLocalPermissionsChange == false && rankToModify.PermissionNumber != modifiedRank.PermissionNumber)
+            {
+                rankToModify.PermissionNumber = modifiedRank.PermissionNumber;
+            }
+        }
+
+        private void ModifyRanksInList(List<Ranks.Rank> unmodifiedRanks, List<Ranks.Rank> modifiedRanks, List<Ranks.Rank> ranksToModify)
+        {
+            if (modifiedRanks == null || ranksToModify == null)
+            {
+                throw new ArgumentNullException();
+            }
+            bool hasLocalLevelChange = HasLocalLevelChange();
+            foreach (Ranks.Rank modifiedRank in modifiedRanks)
+            {
+                foreach (Ranks.Rank rankToModify in ranksToModify)
+                {
+                    if (modifiedRank.Id == rankToModify.Id)
+                    {
+                        Ranks.Rank unmodifiedRankTemp = null;
+                        if (unmodifiedRanks != null)
+                        {
+                            foreach (Ranks.Rank unmodifiedRank in unmodifiedRanks)
+                            {
+                                if (unmodifiedRank.Id == rankToModify.Id)
+                                {
+                                    unmodifiedRankTemp = unmodifiedRank;
+                                }
+                            }
+                        }
+                        ModifyRank(unmodifiedRankTemp, modifiedRank, rankToModify);
+                        if (hasLocalLevelChange == false)
+                        {
+                            rankToModify.Level = modifiedRank.Level;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
         private void DisplayChangedRanks(List<Ranks.Rank> ranks)
         {
             xlsvRanks.Items.Clear();
