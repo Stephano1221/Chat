@@ -44,6 +44,7 @@ namespace Chat
         #endregion
 
         private frmManageRanks frmManageRanks;
+        public Ranks ranks = new Ranks();
 
         public System.Timers.Timer heartbeat = new System.Timers.Timer();
 
@@ -749,7 +750,7 @@ namespace Chat
                 return;
             }
             string rankName = commandParts[2];
-            List<Ranks.Rank> matchingRanks = Ranks.GetRanksMatchingName(rankName);
+            List<Ranks.Rank> matchingRanks = FrmHolder.processing.ranks.GetRanksMatchingName(rankName);
             if (matchingClients == null || matchingRanks.Count() == 0)
             {
                 InvokePrintChatMessageEvent(this, $"This rank could not be found.");
@@ -818,7 +819,7 @@ namespace Chat
             if (commandParts.Length == 1)
             {
                 List<string> rankNames = new List<string>();
-                foreach (Ranks.Rank rank in Ranks.ranksInMemoryForTestingOnly)
+                foreach (Ranks.Rank rank in FrmHolder.processing.ranks.RankList)
                 {
                     rankNames.Add(rank.Name);
                 }
