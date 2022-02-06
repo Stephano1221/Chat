@@ -251,6 +251,12 @@ namespace Chat
                 string json = JsonSerializer.Serialize(this);
                 return json;
             }
+
+            public static Changes DeserializeFromJson(string json)
+            {
+                Changes changes = JsonSerializer.Deserialize<Changes>(json);
+                return changes;
+            }
         }
     }
 }
