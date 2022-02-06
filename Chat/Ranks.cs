@@ -66,6 +66,7 @@ namespace Chat
         {
             public List<Rank> newRanks { get; set;} = new List<Rank>();
             public List<Rank> modifiedRanks { get; set; } = new List<Rank>();
+            public List<Rank> unmodifiedRanks { get; set; } = new List<Rank>();
             public List<Rank> removedRanks { get; set; } = new List<Rank>();
 
             public Changes(List<Rank> baseRanks, List<Rank> targetRanks)
@@ -73,9 +74,13 @@ namespace Chat
                 GetChanges(baseRanks, targetRanks);
             }
 
-            public Changes GetChanges(List<Rank> baseRanks, List<Rank> targetRanks)
+            public void GetChanges(List<Rank> baseRanks, List<Rank> targetRanks)
             {
-                foreach(Rank baseRank in baseRanks)
+                newRanks = new List<Rank>();
+                modifiedRanks = new List<Rank>();
+                unmodifiedRanks = new List<Rank>();
+                removedRanks = new List<Rank>();
+                foreach (Rank baseRank in baseRanks)
                 {
                     bool baseRankFound = false;
                     foreach(Rank targetRank in targetRanks)
@@ -86,6 +91,11 @@ namespace Chat
                             if (ChangesFound(baseRank, targetRank))
                             {
                                 modifiedRanks.Add(targetRank);
+                                break;
+                            }
+                            else
+                            {
+                                unmodifiedRanks.Add(targetRank);
                                 break;
                             }
                         }
