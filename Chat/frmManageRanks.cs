@@ -5,6 +5,7 @@
         List<Ranks.Rank> unchangedRanks = new List<Ranks.Rank>();
         List<Ranks.Rank> changedRanks = new List<Ranks.Rank>();
         Ranks.Rank selectedRank;
+        Ranks.Changes changes;
 
         bool canRefreshRankNameTextbox = true;
 
@@ -87,7 +88,7 @@
             if (FrmHolder.hosting)
             {
                 //ReceiveRanks(FrmHolder.processing.GetRanksFromDatabase());
-                ReceiveRanks(Ranks.ranksInMemoryForTestingOnly);
+                ReceiveRanks(FrmHolder.processing.ranks.RankList);
             }
             else
             {
@@ -102,6 +103,7 @@
                 return;
             }
             List<Ranks.Rank> sortedRanks = SortRanksByLevel(receivedRanks);
+            unchangedRanks.Clear();
             foreach (Ranks.Rank rank in sortedRanks)
             {
                 unchangedRanks.Add(rank.DeepCopy());
@@ -130,7 +132,7 @@
 
         private void AddRank()
         {
-            Ranks.Rank newRank = new Ranks.Rank(9999, "New rank", Color.DarkGray, 2, 0); //TODO: Generate unique ID
+            Ranks.Rank newRank = new Ranks.Rank(0, "New rank", Color.DarkGray, 2, 0); //TODO: Generate unique ID
             foreach (Ranks.Rank rank in changedRanks)
             {
                 if (rank.Level > 1)
@@ -208,7 +210,14 @@
 
         private void Save(Ranks.Changes changes)
         {
-            changes.SaveChanges();
+            if (FrmHolder.hosting)
+            {
+                FrmHolder.processing.SaveRanksAsServer(null, changes);
+            }
+            else
+            {
+                FrmHolder.processing.SaveRanksAsClient(changes);
+            }
         }
 
         private DialogResult AskToSave()
@@ -219,7 +228,7 @@
 
         private void CloseForm()
         {
-            Ranks.Changes changes = ChangesMade();
+            ChangesMade();
             if (changes != null && (changes.newRanks.Count() > 0 || changes.modifiedRanks.Count() > 0 || changes.removedRanks.Count() > 0))
             {
                 DialogResult dialogResult = AskToSave();
@@ -237,7 +246,7 @@
 
         private Ranks.Changes ChangesMade()
         {
-            Ranks.Changes changes = new Ranks.Changes(unchangedRanks, changedRanks);
+            changes = new Ranks.Changes(unchangedRanks, changedRanks);
             return changes;
         }
 
