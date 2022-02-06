@@ -710,6 +710,47 @@ namespace Chat
             throw new NotImplementedException();
         }
 
+        public void SaveRanksAsServer(Client requestingClient, Ranks.Changes changes)
+        {
+            if (ValidateRanks(changes.newRanks) == false || ValidateRanks(changes.modifiedRanks) == false)
+            {
+                if (requestingClient == null)
+                {
+                    SavingRanksFailedInvalidRanks();
+                }
+                else
+                {
+                    BeginWrite(requestingClient, ComposeMessage(requestingClient, 0, Message.MessageTypes.AllRanks, null, null));
+                }
+            }
+            //TODO: Read ranks from database
+            //TODO: Save to database
+            ranks.UpdateRanksList(changes); //TODO: Replace with reading all ranks from database
+        }
+
+        public void SaveRanksAsClient(Ranks.Changes changes)
+        {
+            string json = ranks.SerializeToJson();
+            BeginWrite(connectedClients[0], ComposeMessage(connectedClients[0], 0, Message.MessageTypes.AllRanks, json, null));
+        }
+
+        private bool ValidateRanks(List<Ranks.Rank> ranks)
+        {
+            foreach (Ranks.Rank rank in ranks)
+            {
+                if (Ranks.IsValidRank(rank) == false)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private void SavingRanksFailedInvalidRanks()
+        {
+            InvokeShowMessageBoxEvent(this, new ShowMessageBoxEventArgs("An error occured when saving ranks: Invalid ranks.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning));
+        }
+
         private List<Commands.Command> possibleMatchingCommands(string command)
         {
             if (command != null)
@@ -1386,12 +1427,25 @@ namespace Chat
             }
             else if (message.messageType == Message.MessageTypes.RequestAllRanks)
             {
-                //List<Ranks.Rank> ranks = GetRanksFromDatabase();
-                throw new NotImplementedException();
+                string json = ranks.SerializeToJson();
+                BeginWrite(e.client, ComposeMessage(e.client, 0, Message.MessageTypes.AllRanks, json, null));
             }
             else if (message.messageType == Message.MessageTypes.AllRanks)
             {
-                throw new NotImplementedException();
+                if (FrmHolder.hosting)
+                {
+                    Ranks.Changes changes = Ranks.Changes.DeserializeFromJson(message.messageText);
+                    SaveRanksAsServer(e.client, changes);
+                }
+                else
+                {
+                    Ranks receivedRanks = Ranks.DeserializeFromJson(message.messageText);
+                    ranks.UpdateRanksList(receivedRanks.RankList);
+                }
+            }
+            else if (message.messageType == Message.MessageTypes.InvalidRanks)
+            {
+                SavingRanksFailedInvalidRanks();
             }
         }
 
