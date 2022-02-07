@@ -321,9 +321,8 @@
             {
                 return;
             }
-            int levelIncreaseAmount = 1;
-            IncreaseRankLevel(changedRanks, selectedRank, levelIncreaseAmount);
-            changedRanks = SortRanksByLevel(changedRanks);
+            int levelDifference = 1;
+            ChangeRankLevel(changedRanks, selectedRank, levelDifference);
             DisplayChangedRanks(changedRanks);
         }
 
@@ -333,30 +332,30 @@
             {
                 return;
             }
-            int levelDecreaseAmount = 1;
-            DecreaseRankLevel(changedRanks, selectedRank, levelDecreaseAmount);
-            changedRanks = SortRanksByLevel(changedRanks);
+            int levelDifference = -1;
+            ChangeRankLevel(changedRanks, selectedRank, levelDifference);
             DisplayChangedRanks(changedRanks);
         }
 
-        private void IncreaseRankLevel(List<Ranks.Rank> ranksByLevelDescending, Ranks.Rank rankToPromote, int levelIncreaseAmount)
+        private void ChangeRankLevel(List<Ranks.Rank> ranksByLevelDescending, Ranks.Rank rank, int levelDifference)
         {
-            int indexOfRankToPromote = ranksByLevelDescending.IndexOf(rankToPromote);
-            for (int i = indexOfRankToPromote; i > indexOfRankToPromote - levelIncreaseAmount; i--)
+            if (ranksByLevelDescending == null || ranksByLevelDescending.Count() == 0 || rank == null)
             {
-                ranksByLevelDescending.ElementAt(i - 1).Level--;
+                return;
             }
-            rankToPromote.Level += Convert.ToUInt64(levelIncreaseAmount);
-        }
-
-        private void DecreaseRankLevel(List<Ranks.Rank> ranksByLevelDescending, Ranks.Rank rankToDemote, int levelDecreaseAmount)
-        {
-            int indexOfRankToDemote = ranksByLevelDescending.IndexOf(rankToDemote);
-            for (int i = indexOfRankToDemote; i < indexOfRankToDemote + levelDecreaseAmount; i++)
+            int indexOfRank = ranksByLevelDescending.IndexOf(rank);
+            int indexToInsertAt = indexOfRank - levelDifference;
+            if (indexToInsertAt < 0)
             {
-                ranksByLevelDescending.ElementAt(i + 1).Level++;
+                indexToInsertAt = 0;
             }
-            rankToDemote.Level -= Convert.ToUInt64(levelDecreaseAmount);
+            else if (indexToInsertAt >= ranksByLevelDescending.Count())
+            {
+                indexToInsertAt = ranksByLevelDescending.Count() - 1;
+            }
+            ranksByLevelDescending.RemoveAt(indexOfRank);
+            ranksByLevelDescending.Insert(indexToInsertAt, rank);
+            Ranks.SetLevelByIndex(ranksByLevelDescending);
         }
 
         private void Save(Ranks.Changes changes)
