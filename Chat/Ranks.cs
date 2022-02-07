@@ -60,14 +60,15 @@ namespace Chat
 
         public static List<Rank> SetLevelByIndex(List<Rank> ranks)
         {
-            ulong nextSettableLevel = Convert.ToUInt64(ranks.Count());
+            ulong nextSettableLevel = Convert.ToUInt64(ranks.Count()) + 1;
             foreach (Rank rank in ranks)
             {
+                nextSettableLevel--;
                 if (rank.Level == nextSettableLevel)
                 {
                     continue;
                 }
-                rank.Level = nextSettableLevel--;
+                rank.Level = nextSettableLevel;
             }
             return ranks;
         }
