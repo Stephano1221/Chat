@@ -79,11 +79,18 @@ namespace Chat
             {
                 return false;
             }
-            if (rank.Color.IsEmpty)
-            {
-                return false;
-            }
             return true;
+        }
+
+        public void AddFirstRank()
+        {
+            Permissions.IndividualPermissionNumber permissionNumber = Permissions.IndividualPermissionNumber.None;
+            permissionNumber = Permissions.AddPermission(permissionNumber, Permissions.IndividualPermissionNumber.ReadMessages);
+            permissionNumber = Permissions.AddPermission(permissionNumber, Permissions.IndividualPermissionNumber.SendMessages);
+            permissionNumber = Permissions.AddPermission(permissionNumber, Permissions.IndividualPermissionNumber.HearVoice);
+            permissionNumber = Permissions.AddPermission(permissionNumber, Permissions.IndividualPermissionNumber.SendVoice);
+            Rank firstRank = new Rank(0, "All", Color.Empty, 1, permissionNumber);
+            RankList.Insert(0, firstRank);
         }
 
         public string SerializeToJson()

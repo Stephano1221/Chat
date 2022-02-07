@@ -53,6 +53,7 @@ namespace Chat
 
         public Processing()
         {
+            ranks.AddFirstRank();
             network = new Network();
             SetNetworkEventHandlers();
             BeginNetworkThreads();
