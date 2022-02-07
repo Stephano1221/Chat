@@ -7,7 +7,7 @@ namespace Chat
     {
         public event EventHandler<List<Rank>> ranksReceivedAll;
         public event EventHandler<Changes> ranksUpdated;
-        private List<Rank> _rankList;
+        private List<Rank> _rankList = new List<Rank>();
         /// <summary>
         /// Represents a list of ranks on a server.
         /// Use <see cref="UpdateRanksList(Changes)"/> or <see cref="UpdateRanksList(List{Rank})"/> to set.
