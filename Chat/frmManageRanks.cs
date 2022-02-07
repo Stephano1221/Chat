@@ -290,7 +290,8 @@
                     rank.Level++;
                 }
             }
-            changedRanks.Insert(changedRanks.Count() - 1, newRank);
+            changedRanks.Add(newRank);
+            changedRanks = Ranks.SortByLevel(changedRanks, false);
             selectedRank = newRank;
             DisplayChangedRanks(changedRanks);
         }
