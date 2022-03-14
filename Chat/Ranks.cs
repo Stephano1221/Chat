@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Numerics;
 
 namespace Chat
 {
@@ -89,7 +90,7 @@ namespace Chat
             permissionNumber = Permissions.AddPermission(permissionNumber, Permissions.IndividualPermissionNumber.SendMessages);
             permissionNumber = Permissions.AddPermission(permissionNumber, Permissions.IndividualPermissionNumber.HearVoice);
             permissionNumber = Permissions.AddPermission(permissionNumber, Permissions.IndividualPermissionNumber.SendVoice);
-            Rank firstRank = new Rank(0, "All", Color.Empty, 1, permissionNumber);
+            Rank firstRank = new Rank(1, "All", Color.Empty, 1, permissionNumber);
             RankList.Insert(0, firstRank);
         }
 
@@ -123,13 +124,13 @@ namespace Chat
 
         public class Rank
         {
-            public ulong Id { get; }
+            public BigInteger Id { get; }
             public string Name { get; set; }
             public Color Color { get; set; }
             public ulong Level { get; set; }
             public Permissions.IndividualPermissionNumber PermissionNumber { get; set; }
 
-            public Rank(ulong id, string name, Color color, ulong level, Permissions.IndividualPermissionNumber permissionsNumber)
+            public Rank(BigInteger id, string name, Color color, ulong level, Permissions.IndividualPermissionNumber permissionsNumber)
             {
                 this.Id = id;
                 this.Name = name;
