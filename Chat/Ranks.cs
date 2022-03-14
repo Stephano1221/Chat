@@ -148,10 +148,10 @@ namespace Chat
 
         public class Changes
         {
-            public List<Rank> newRanks { get; set; } = new List<Rank>();
-            public List<Rank> modifiedRanks { get; set; } = new List<Rank>();
-            public List<Rank> unmodifiedRanks { get; set; } = new List<Rank>();
-            public List<Rank> removedRanks { get; set; } = new List<Rank>();
+            public List<Rank> NewRanks { get; set; } = new List<Rank>();
+            public List<Rank> ModifiedRanks { get; set; } = new List<Rank>();
+            public List<Rank> UnmodifiedRanks { get; set; } = new List<Rank>();
+            public List<Rank> RemovedRanks { get; set; } = new List<Rank>();
 
             public Changes(List<Rank> baseRanks, List<Rank> targetRanks)
             {
@@ -160,10 +160,10 @@ namespace Chat
 
             public void GetChanges(List<Rank> baseRanks, List<Rank> targetRanks)
             {
-                newRanks = new List<Rank>();
-                modifiedRanks = new List<Rank>();
-                unmodifiedRanks = new List<Rank>();
-                removedRanks = new List<Rank>();
+                NewRanks = new List<Rank>();
+                ModifiedRanks = new List<Rank>();
+                UnmodifiedRanks = new List<Rank>();
+                RemovedRanks = new List<Rank>();
                 foreach (Rank baseRank in baseRanks)
                 {
                     bool baseRankFound = false;
@@ -174,19 +174,19 @@ namespace Chat
                             baseRankFound = true;
                             if (ChangesFound(baseRank, targetRank))
                             {
-                                modifiedRanks.Add(targetRank);
+                                ModifiedRanks.Add(targetRank);
                                 break;
                             }
                             else
                             {
-                                unmodifiedRanks.Add(targetRank);
+                                UnmodifiedRanks.Add(targetRank);
                                 break;
                             }
                         }
                     }
                     if (baseRankFound == false)
                     {
-                        removedRanks.Add(baseRank);
+                        RemovedRanks.Add(baseRank);
                     }
                 }
                 foreach (Rank targetRank in targetRanks)
@@ -201,7 +201,7 @@ namespace Chat
                     }
                     if (targetRankFound == false)
                     {
-                        newRanks.Add(targetRank);
+                        NewRanks.Add(targetRank);
                     }
                 }
             }
@@ -218,9 +218,9 @@ namespace Chat
 
             public List<Rank> MergeChanges(List<Rank> baseRanks)
             {
-                if (removedRanks != null && removedRanks.Count() > 0)
+                if (RemovedRanks != null && RemovedRanks.Count() > 0)
                 {
-                    foreach (Rank deletedRank in removedRanks)
+                    foreach (Rank deletedRank in RemovedRanks)
                     {
                         foreach (Rank rank in baseRanks)
                         {
@@ -232,9 +232,9 @@ namespace Chat
                         }
                     }
                 }
-                if (modifiedRanks != null && modifiedRanks.Count() > 0)
+                if (ModifiedRanks != null && ModifiedRanks.Count() > 0)
                 {
-                    foreach (Rank editedRank in modifiedRanks)
+                    foreach (Rank editedRank in ModifiedRanks)
                     {
                         for (int i = 0; i < baseRanks.Count(); i++)
                         {
@@ -246,9 +246,9 @@ namespace Chat
                         }
                     }
                 }
-                if (newRanks != null && newRanks.Count() > 0)
+                if (NewRanks != null && NewRanks.Count() > 0)
                 {
-                    foreach (Rank addedRank in newRanks)
+                    foreach (Rank addedRank in NewRanks)
                     {
                         baseRanks.Add(addedRank.DeepCopy());
                     }
