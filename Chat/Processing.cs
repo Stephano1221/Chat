@@ -733,6 +733,8 @@ namespace Chat
                 changes.NewRanks.Add(new Ranks.Rank(IdGenerator.GenerateId(), newRank.Name, newRank.Color, newRank.Level, newRank.PermissionNumber));
             }
             ranks.UpdateRanksList(changes); //TODO: Replace with reading all ranks from database
+            string json = changes.SerializeToJson();
+            BeginWriteToAll(null, Message.MessageTypes.ChangedRanks, json, null);
         }
 
         public void SaveRanksAsClient(Ranks.Changes changes)
@@ -1448,6 +1450,14 @@ namespace Chat
                 {
                     Ranks receivedRanks = Ranks.DeserializeFromJson(message.messageText);
                     ranks.UpdateRanksList(receivedRanks.RankList);
+                }
+            }
+            else if (message.messageType == Message.MessageTypes.ChangedRanks)
+            {
+                if (FrmHolder.hosting == false)
+                {
+                    Ranks.Changes changes = Ranks.Changes.DeserializeFromJson(message.messageText);
+                    ranks.UpdateRanksList(changes);
                 }
             }
             else if (message.messageType == Message.MessageTypes.InvalidRanks)
