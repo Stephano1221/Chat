@@ -119,9 +119,9 @@
 
         private void RanksUpdated(Ranks.Changes changes)
         {
-            RemoveRanksFromList(changes.removedRanks, changedRanks);
-            ModifyRanksInList(unchangedRanks, changes.modifiedRanks, changedRanks);
-            AddRanksToList(changes.newRanks, changedRanks);
+            RemoveRanksFromList(changes.RemovedRanks, changedRanks);
+            ModifyRanksInList(unchangedRanks, changes.ModifiedRanks, changedRanks);
+            AddRanksToList(changes.NewRanks, changedRanks);
             unchangedRanks = FrmHolder.processing.ranks.RankList;
         }
 
@@ -379,7 +379,7 @@
         private void CloseForm()
         {
             ChangesMade();
-            if (changes != null && (changes.newRanks.Count() > 0 || changes.modifiedRanks.Count() > 0 || changes.removedRanks.Count() > 0))
+            if (changes != null && (changes.NewRanks.Count() > 0 || changes.ModifiedRanks.Count() > 0 || changes.RemovedRanks.Count() > 0))
             {
                 DialogResult dialogResult = AskToSave();
                 if (dialogResult == DialogResult.Yes)

@@ -713,7 +713,7 @@ namespace Chat
 
         public void SaveRanksAsServer(Client requestingClient, Ranks.Changes changes)
         {
-            if (ValidateRanks(changes.newRanks) == false || ValidateRanks(changes.modifiedRanks) == false)
+            if (ValidateRanks(changes.NewRanks) == false || ValidateRanks(changes.ModifiedRanks) == false)
             {
                 if (requestingClient == null)
                 {
