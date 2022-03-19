@@ -362,6 +362,7 @@
         {
             if (FrmHolder.hosting)
             {
+                RemoveRanksFromList(changes.NewRanks, changedRanks);
                 FrmHolder.processing.SaveRanksAsServer(null, changes);
             }
             else

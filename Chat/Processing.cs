@@ -715,17 +715,23 @@ namespace Chat
         {
             if (ValidateRanks(changes.NewRanks) == false || ValidateRanks(changes.ModifiedRanks) == false)
             {
-                if (requestingClient == null)
+                if (requestingClient == null) //Server is the caller
                 {
                     SavingRanksFailedInvalidRanks();
                 }
                 else
                 {
-                    BeginWrite(requestingClient, ComposeMessage(requestingClient, 0, Message.MessageTypes.AllRanks, null, null));
+                    BeginWrite(requestingClient, ComposeMessage(requestingClient, 0, Message.MessageTypes.InvalidRanks, null, null));
                 }
             }
             //TODO: Read ranks from database
             //TODO: Save to database
+            List<Ranks.Rank> newRanks = changes.NewRanks;
+            changes.NewRanks = new List<Ranks.Rank>();
+            foreach (Ranks.Rank newRank in newRanks)
+            {
+                changes.NewRanks.Add(new Ranks.Rank(IdGenerator.GenerateId(), newRank.Name, newRank.Color, newRank.Level, newRank.PermissionNumber));
+            }
             ranks.UpdateRanksList(changes); //TODO: Replace with reading all ranks from database
         }
 
