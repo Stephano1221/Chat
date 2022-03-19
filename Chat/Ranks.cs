@@ -124,19 +124,26 @@ namespace Chat
 
         public class Rank
         {
+            [JsonConverter(typeof(BigIntegerJsonConverter))]
             public BigInteger Id { get; }
             public string Name { get; set; }
             public Color Color { get; set; }
             public ulong Level { get; set; }
             public Permissions.IndividualPermissionNumber PermissionNumber { get; set; }
 
-            public Rank(BigInteger id, string name, Color color, ulong level, Permissions.IndividualPermissionNumber permissionsNumber)
+            public Rank(BigInteger id, string name, Color color, ulong level, Permissions.IndividualPermissionNumber permissionNumber)
             {
                 this.Id = id;
                 this.Name = name;
                 this.Color = color;
                 this.Level = level;
-                this.PermissionNumber = permissionsNumber;
+                this.PermissionNumber = permissionNumber;
+            }
+
+            [JsonConstructor]
+            public Rank()
+            {
+
             }
 
             public Rank DeepCopy()
@@ -156,6 +163,12 @@ namespace Chat
             public Changes(List<Rank> baseRanks, List<Rank> targetRanks)
             {
                 GetChanges(baseRanks, targetRanks);
+            }
+
+            [JsonConstructor]
+            public Changes()
+            {
+
             }
 
             public void GetChanges(List<Rank> baseRanks, List<Rank> targetRanks)
