@@ -27,7 +27,7 @@ namespace Chat
 
         public void UpdateRanksList(Changes changes)
         {
-            changes.MergeChanges(RankList);
+            RankList = changes.MergeChanges(RankList);
             InvokeRanksUpdated(this, changes);
         }
 
@@ -266,6 +266,7 @@ namespace Chat
                         baseRanks.Add(addedRank.DeepCopy());
                     }
                 }
+                baseRanks = SortByLevel(baseRanks, false);
                 return baseRanks;
             }
 
