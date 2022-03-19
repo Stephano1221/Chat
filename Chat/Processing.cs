@@ -435,7 +435,7 @@ namespace Chat
                 {
                     List<Client> ignoredClients = new List<Client>();
                     ignoredClients.Add(client);
-                    SendToAll(ignoredClients, Message.MessageTypes.OtherUserLostConnection, client.username, null);
+                    BeginWriteToAll(ignoredClients, Message.MessageTypes.OtherUserLostConnection, client.username, null);
                     UpdateClientLists();
                     InvokePrintChatMessageEvent(this, $"Lost connection to {client.username}...");
                 }
@@ -454,13 +454,13 @@ namespace Chat
             if (setAsAdmin)
             {
                 BeginWrite(client, ComposeMessage(client, 0, Message.MessageTypes.MadeAdmin, setter, null));
-                SendToAll(ignoredClients, Message.MessageTypes.OtherUserMadeAdmin, $"{client.username} {setter}", null);
+                BeginWriteToAll(ignoredClients, Message.MessageTypes.OtherUserMadeAdmin, $"{client.username} {setter}", null);
                 InvokePrintChatMessageEvent(this, $"You made {client.username} an Admin");
             }
             else
             {
                 BeginWrite(client, ComposeMessage(client, 0, Message.MessageTypes.RemovedAdmin, setter, null));
-                SendToAll(ignoredClients, Message.MessageTypes.OtherUserRemovedAdmin, $"{client.username} {setter}", null);
+                BeginWriteToAll(ignoredClients, Message.MessageTypes.OtherUserRemovedAdmin, $"{client.username} {setter}", null);
                 InvokePrintChatMessageEvent(this, $"You removed {client.username} from Admin");
             }
         }
@@ -472,7 +472,7 @@ namespace Chat
             {
                 List<Client> ignoredClients = new List<Client>();
                 ignoredClients.Add(client);
-                SendToAll(ignoredClients, type, null, null);
+                BeginWriteToAll(ignoredClients, type, null, null);
                 for (int i = 0; i < connectedClients.Count; i++)
                 {
                     if (connectedClients[i].sslStream != null)
@@ -493,7 +493,7 @@ namespace Chat
             }
         }
 
-        public void SendToAll(List<Client> ignoredClients, Message.MessageTypes messageType, string messageText, byte[] messageBytes) //TODO: Replace messagType and messagText with Message class
+        public void BeginWriteToAll(List<Client> ignoredClients, Message.MessageTypes messageType, string messageText, byte[] messageBytes) //TODO: Replace messagType and messagText with Message class
         {
             for (int i = 0; i < connectedClients.Count; i++)
             {
@@ -597,12 +597,12 @@ namespace Chat
         public void UpdateClientLists()
         {
             InvokeClearClientListEvent(this, null);
-            SendToAll(null, Message.MessageTypes.ClearUserList, null, null);
+            BeginWriteToAll(null, Message.MessageTypes.ClearUserList, null, null);
             string[] usernames = GetClientUsernames();
             for (int i = 0; i < usernames.Length; i++)
             {
                 InvokeAddClientToClientListEvent(this, usernames[i]);
-                SendToAll(null, Message.MessageTypes.AddToUserList, usernames[i], null);
+                BeginWriteToAll(null, Message.MessageTypes.AddToUserList, usernames[i], null);
             }
         }
 
@@ -697,7 +697,7 @@ namespace Chat
                 List<Client> ignoredClients = new List<Client>();
                 ignoredClients.Add(client);
                 InvokePrintChatMessageEvent(this, $"{client.username} connected");
-                SendToAll(ignoredClients, Message.MessageTypes.UserConnected, client.username, null);
+                BeginWriteToAll(ignoredClients, Message.MessageTypes.UserConnected, client.username, null);
                 UpdateClientLists();
             }
             client.connectionSetupComplete = true;
@@ -814,7 +814,7 @@ namespace Chat
                 List<Client> ignoredClients = new List<Client>();
                 ignoredClients.Add(matchingClients[0]);
                 BeginWrite(matchingClients[0], ComposeMessage(matchingClients[0], 0, Message.MessageTypes.RankGiven, $"{FrmHolder.username} {rankName}", null));
-                SendToAll(ignoredClients, Message.MessageTypes.OtherUserRankGiven, $"{username[0]} {FrmHolder.username} {rankName}", null);
+                BeginWriteToAll(ignoredClients, Message.MessageTypes.OtherUserRankGiven, $"{username[0]} {FrmHolder.username} {rankName}", null);
             }
         }
 
@@ -848,7 +848,7 @@ namespace Chat
                     List<Client> ignoredClients = new List<Client>();
                     ignoredClients.Add(matchingClients[0]);
                     BeginWrite(matchingClients[0], ComposeMessage(matchingClients[0], 0, Message.MessageTypes.RankTaken, $"{FrmHolder.username} {rankName}", null));
-                    SendToAll(ignoredClients, Message.MessageTypes.OtherUserRankTaken, $"{username[0]} {FrmHolder.username} {rankName}", null);
+                    BeginWriteToAll(ignoredClients, Message.MessageTypes.OtherUserRankTaken, $"{username[0]} {FrmHolder.username} {rankName}", null);
                     return;
                 }
             }
@@ -960,7 +960,7 @@ namespace Chat
             List<Client> ignoredClients = new List<Client>();
             ignoredClients.Add(clients[0]);
             BeginWrite(clients[0], ComposeMessage(clients[0], 0, Message.MessageTypes.Kicked, $"{FrmHolder.username} {reason}", null)); // Kick client
-            SendToAll(ignoredClients, Message.MessageTypes.OtherUserKicked, $"{username[0]} {FrmHolder.username} {reason}", null);
+            BeginWriteToAll(ignoredClients, Message.MessageTypes.OtherUserKicked, $"{username[0]} {FrmHolder.username} {reason}", null);
             return false;
         }
 
@@ -1129,7 +1129,7 @@ namespace Chat
                 }
                 if (FrmHolder.hosting)
                 {
-                    SendToAll(null, Message.MessageTypes.ChatMessage, message.messageText, null);
+                    BeginWriteToAll(null, Message.MessageTypes.ChatMessage, message.messageText, null);
                 }
             }
             else if (message.messageType == Message.MessageTypes.ClientDisconnect)
@@ -1144,7 +1144,7 @@ namespace Chat
                     if (e.client.username != null)
                     {
                         InvokePrintChatMessageEvent(this, $"{e.client.username} disconnected");
-                        SendToAll(null, Message.MessageTypes.UserDisconnected, e.client.username, null);
+                        BeginWriteToAll(null, Message.MessageTypes.UserDisconnected, e.client.username, null);
                     }
                     UpdateClientLists();
                 }
