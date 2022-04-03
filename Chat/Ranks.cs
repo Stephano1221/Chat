@@ -125,7 +125,7 @@ namespace Chat
         public class Rank
         {
             [JsonConverter(typeof(BigIntegerJsonConverter))]
-            public BigInteger Id { get; }
+            public BigInteger Id { get; set; }
             public string Name { get; set; }
             public Color Color { get; set; }
             public ulong Level { get; set; }
