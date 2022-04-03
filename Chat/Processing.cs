@@ -97,7 +97,9 @@ namespace Chat
                 clientThread.IsBackground = true;
                 clientThread.Start(clientCancellationTokenSource.Token);
             }
-            //network.StartHeartbeat();
+#if RELEASE
+            StartHeartbeat();
+#endif
         }
 
         public void StartServer(object obj)
@@ -695,7 +697,7 @@ namespace Chat
             }
             if (client.sessionFirstConnection)
             {
-                BeginWrite(client, ComposeMessage(client, 0, Message.MessageTypes.AllRanks, JsonSerializer.Serialize<List<Ranks.Rank>>(ranks.RankList), null)) ;
+                BeginWrite(client, ComposeMessage(client, 0, Message.MessageTypes.AllRanks, JsonSerializer.Serialize<List<Ranks.Rank>>(ranks.RankList), null));
                 List<Client> ignoredClients = new List<Client>();
                 ignoredClients.Add(client);
                 InvokePrintChatMessageEvent(this, $"{client.username} connected");
@@ -1468,7 +1470,7 @@ namespace Chat
             }
         }
 
-        #region Invoke Events
+#region Invoke Events
         private void InvokeFirstConnectionAttemptResultEvent(object sender, FirstConnectionAttemptResultEventArgs e)
         {
             if (FirstConnectionAttemptResultEvent != null)
@@ -1524,7 +1526,7 @@ namespace Chat
                 ShowMessageBoxEvent.Invoke(sender, e);
             }
         }
-        #endregion
+#endregion
 
         private void OnFirstConnectionAttemptResult(object sender, FirstConnectionAttemptResultEventArgs e)
         {
