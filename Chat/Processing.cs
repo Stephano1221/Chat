@@ -697,7 +697,7 @@ namespace Chat
             }
             if (client.sessionFirstConnection)
             {
-                BeginWrite(client, ComposeMessage(client, 0, Message.MessageTypes.AllRanks, JsonSerializer.Serialize<List<Ranks.Rank>>(ranks.RankList), null));
+                BeginWrite(client, ComposeMessage(client, 0, Message.MessageTypes.AllRanks, JsonSerializer.Serialize(ranks.RankList), null));
                 List<Client> ignoredClients = new List<Client>();
                 ignoredClients.Add(client);
                 InvokePrintChatMessageEvent(this, $"{client.username} connected");
