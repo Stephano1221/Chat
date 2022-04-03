@@ -1,6 +1,6 @@
-﻿using System.Text.Json;
+﻿using System.Numerics;
+using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Numerics;
 
 namespace Chat
 {

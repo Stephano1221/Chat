@@ -1,8 +1,9 @@
 ﻿using System.Net;
-using System.Net.Sockets;
 using System.Net.Security;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Text.Json;
 
 namespace Chat
 {
@@ -694,6 +695,7 @@ namespace Chat
             }
             if (client.sessionFirstConnection)
             {
+                BeginWrite(client, ComposeMessage(client, 0, Message.MessageTypes.AllRanks, JsonSerializer.Serialize<List<Ranks.Rank>>(ranks.RankList), null)) ;
                 List<Client> ignoredClients = new List<Client>();
                 ignoredClients.Add(client);
                 InvokePrintChatMessageEvent(this, $"{client.username} connected");
@@ -1448,8 +1450,8 @@ namespace Chat
                 }
                 else
                 {
-                    Ranks receivedRanks = Ranks.DeserializeFromJson(message.messageText);
-                    ranks.UpdateRanksList(receivedRanks.RankList);
+                    List<Ranks.Rank> receivedRanks = JsonSerializer.Deserialize<List<Ranks.Rank>>(message.messageText);
+                    ranks.UpdateRanksList(receivedRanks);
                 }
             }
             else if (message.messageType == Message.MessageTypes.ChangedRanks)
