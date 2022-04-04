@@ -41,6 +41,7 @@
             this.xlsvPermissions = new System.Windows.Forms.ListView();
             this.name = new System.Windows.Forms.ColumnHeader();
             this.description = new System.Windows.Forms.ColumnHeader();
+            this.xbtnColor = new System.Windows.Forms.Button();
             this.xbtnBack = new System.Windows.Forms.Button();
             this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
@@ -50,12 +51,13 @@
             this.tableLayoutPanel1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.tableLayoutPanel1.ColumnCount = 5;
+            this.tableLayoutPanel1.ColumnCount = 6;
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 50F));
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 100F));
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 100F));
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 100F));
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 40F));
             this.tableLayoutPanel1.Controls.Add(this.xlblPermissions, 4, 0);
             this.tableLayoutPanel1.Controls.Add(this.xlblRanks, 2, 0);
             this.tableLayoutPanel1.Controls.Add(this.xbtnRemoveRank, 1, 0);
@@ -65,13 +67,15 @@
             this.tableLayoutPanel1.Controls.Add(this.xlsvRanks, 1, 1);
             this.tableLayoutPanel1.Controls.Add(this.xtbxName, 4, 1);
             this.tableLayoutPanel1.Controls.Add(this.xlsvPermissions, 4, 2);
+            this.tableLayoutPanel1.Controls.Add(this.xbtnColor, 5, 1);
             this.tableLayoutPanel1.Location = new System.Drawing.Point(12, 38);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
             this.tableLayoutPanel1.RowCount = 4;
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 30F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 30F));
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 49.99999F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50.00001F));
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             this.tableLayoutPanel1.Size = new System.Drawing.Size(876, 550);
             this.tableLayoutPanel1.TabIndex = 0;
             // 
@@ -81,6 +85,7 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.xlblPermissions.AutoSize = true;
+            this.tableLayoutPanel1.SetColumnSpan(this.xlblPermissions, 2);
             this.xlblPermissions.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.xlblPermissions.Location = new System.Drawing.Point(353, 0);
             this.xlblPermissions.Name = "xlblPermissions";
@@ -174,7 +179,7 @@
             this.xtbxName.Location = new System.Drawing.Point(353, 33);
             this.xtbxName.MaxLength = 100;
             this.xtbxName.Name = "xtbxName";
-            this.xtbxName.Size = new System.Drawing.Size(520, 23);
+            this.xtbxName.Size = new System.Drawing.Size(480, 23);
             this.xtbxName.TabIndex = 9;
             this.xtbxName.TextChanged += new System.EventHandler(this.xtbxName_TextChanged);
             this.xtbxName.Leave += new System.EventHandler(this.xtbxName_Leave);
@@ -188,6 +193,7 @@
             this.xlsvPermissions.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.name,
             this.description});
+            this.tableLayoutPanel1.SetColumnSpan(this.xlsvPermissions, 2);
             this.xlsvPermissions.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
             this.xlsvPermissions.Location = new System.Drawing.Point(353, 63);
             this.xlsvPermissions.MultiSelect = false;
@@ -206,6 +212,15 @@
             // description
             // 
             this.description.Text = "Description";
+            // 
+            // xbtnColor
+            // 
+            this.xbtnColor.Location = new System.Drawing.Point(839, 33);
+            this.xbtnColor.Name = "xbtnColor";
+            this.xbtnColor.Size = new System.Drawing.Size(34, 23);
+            this.xbtnColor.TabIndex = 11;
+            this.xbtnColor.UseVisualStyleBackColor = true;
+            this.xbtnColor.Click += new System.EventHandler(this.xbtnColor_Click);
             // 
             // xbtnBack
             // 
@@ -249,5 +264,6 @@
         private ListView xlsvPermissions;
         private ColumnHeader name;
         private ColumnHeader description;
+        private Button xbtnColor;
     }
 }
