@@ -269,7 +269,9 @@
             xlsvRanks.SelectedIndices.Clear();
             foreach (Ranks.Rank rank in ranks)
             {
-                xlsvRanks.Items.Add(rank.Name);
+                ListViewItem listViewItem = new ListViewItem(rank.Name);
+                listViewItem.ForeColor = rank.Color;
+                xlsvRanks.Items.Add(listViewItem);
             }
             xlsvRanks.Items[changedRanks.IndexOf(selectedRank)].Selected = true;
             SetPermissionsCheckedStates(selectedRank);
@@ -282,7 +284,7 @@
 
         private void AddRank()
         {
-            Ranks.Rank newRank = new Ranks.Rank(0, "New rank", Color.DarkGray, 2, 0); //TODO: Generate unique ID
+            Ranks.Rank newRank = new Ranks.Rank(0, "New rank", Color.Empty, 2, 0); //TODO: Generate unique ID
             foreach (Ranks.Rank rank in changedRanks)
             {
                 if (rank.Level > 1)
@@ -466,6 +468,7 @@
             selectedRank = changedRanks.ElementAtOrDefault(xlsvRanks.SelectedIndices[0]);
             PopulateEditNameBox();
             SetPermissionsCheckedStates(selectedRank);
+            SetGuiToRankColor(selectedRank.Color);
             bool enableAddRank = true;
             bool enableRemoveRank = true;
             bool enablePromoteRank = true;
@@ -516,6 +519,26 @@
                     }
                 }
             }
+        }
+
+        private Color SelectRankColor()
+        {
+            ColorDialog colorDialog = new ColorDialog();
+            colorDialog.SolidColorOnly = true;
+            if (colorDialog.ShowDialog() == DialogResult.OK)
+            {
+                selectedRank.Color = colorDialog.Color;
+                SetGuiToRankColor(colorDialog.Color);
+                DisplayChangedRanks(changedRanks);
+                return colorDialog.Color;
+            }
+            return Color.Empty;
+        }
+
+        private void SetGuiToRankColor(Color color)
+        {
+            xbtnColor.BackColor = color;
+            xtbxName.ForeColor = color;
         }
 
         private void OnRanksUpdated(object sender, Ranks.Changes e)
@@ -585,6 +608,11 @@
         private void xlsvPermissions_ItemCheck(object sender, ItemCheckEventArgs e)
         {
             SetRankPermissions(e);
+        }
+
+        private void xbtnColor_Click(object sender, EventArgs e)
+        {
+            SelectRankColor();
         }
     }
 }
