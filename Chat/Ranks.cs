@@ -127,6 +127,7 @@ namespace Chat
             [JsonConverter(typeof(BigIntegerJsonConverter))]
             public BigInteger Id { get; init; }
             public string Name { get; set; }
+            [JsonConverter(typeof(ColorJsonConverter))]
             public Color Color { get; set; }
             public ulong Level { get; set; }
             public Permissions.IndividualPermissionNumber PermissionNumber { get; set; }
